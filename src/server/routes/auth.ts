@@ -81,9 +81,11 @@ export const authRoutes = async (server: FastifyInstance) => {
 
   server.post('/register', async (request: FastifyRequest<{ Body: RegisterBody }>, reply) => {
     console.log('Registration attempt:', { email: request.body.email, companyName: request.body.companyName });
+    console.log('Full registration data:', request.body);
     
     try {
       const body = registerSchema.parse(request.body);
+      console.log('Validation passed:', body);
       
       // Check if tenant with same domain or subdomain exists
       const existingTenant = await db.query.tenants.findFirst({
@@ -95,91 +97,110 @@ export const authRoutes = async (server: FastifyInstance) => {
         return reply.code(400).send({ error: 'Domain already registered' });
       }
 
+      console.log('Creating tenant...');
       // Create tenant
-      const [tenant] = await db.insert(tenants).values({
-        tenantName: body.companyName,
-        domain: body.domain,
-        subdomain: body.subdomain,
-        status: 'trial',
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days trial
-      }).returning();
+      try {
+        const [tenant] = await db.insert(tenants).values({
+          tenantName: body.companyName,
+          domain: body.domain,
+          subdomain: body.subdomain,
+          status: 'trial',
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days trial
+        }).returning();
 
-      console.log('Tenant created:', { id: tenant.id, name: tenant.tenantName });
+        console.log('Tenant created:', { id: tenant.id, name: tenant.tenantName });
 
-      // Create admin role for tenant
-      const [role] = await db.insert(roles).values({
-        tenantId: tenant.id,
-        roleName: 'Tenant Admin',
-        description: 'Admin role with full access',
-        permissions: ['manage_users', 'manage_affiliates', 'view_reports'],
-        isCustom: false,
-      }).returning();
+        console.log('Creating admin role...');
+        // Create admin role for tenant
+        try {
+          const [role] = await db.insert(roles).values({
+            tenantId: tenant.id,
+            roleName: 'Tenant Admin',
+            description: 'Admin role with full access',
+            permissions: ['manage_users', 'manage_affiliates', 'view_reports'],
+            isCustom: false,
+          }).returning();
 
-      console.log('Admin role created:', { id: role.id, tenantId: role.tenantId });
+          console.log('Admin role created:', { id: role.id, tenantId: role.tenantId });
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(body.password, 10);
+          console.log('Hashing password...');
+          // Hash password
+          const hashedPassword = await bcrypt.hash(body.password, 10);
 
-      // Create user
-      const [user] = await db.insert(users).values({
-        tenantId: tenant.id,
-        email: body.email,
-        firstName: body.firstName,
-        lastName: body.lastName,
-        password: hashedPassword,
-        roleId: role.id,
-        termsAccepted: true,
-      }).returning();
+          console.log('Creating user...');
+          // Create user
+          try {
+            const [user] = await db.insert(users).values({
+              tenantId: tenant.id,
+              email: body.email,
+              firstName: body.firstName,
+              lastName: body.lastName,
+              password: hashedPassword,
+              roleId: role.id,
+              termsAccepted: true,
+            }).returning();
 
-      console.log('User created:', { id: user.id, email: user.email });
+            console.log('User created:', { id: user.id, email: user.email });
 
-      // Generate JWT
-      const token = jwt.sign(
-        { 
-          userId: user.id,
-          tenantId: user.tenantId,
-          email: user.email,
-        },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '24h' }
-      );
+            // Generate JWT
+            const token = jwt.sign(
+              { 
+                userId: user.id,
+                tenantId: user.tenantId,
+                email: user.email,
+              },
+              process.env.JWT_SECRET || 'your-secret-key',
+              { expiresIn: '24h' }
+            );
 
-      // Get the complete user data with relations
-      const completeUser = await db.query.users.findFirst({
-        where: eq(users.id, user.id),
-        with: {
-          tenant: true,
-          role: true,
-        },
-      });
+            // Get the complete user data with relations
+            const completeUser = await db.query.users.findFirst({
+              where: eq(users.id, user.id),
+              with: {
+                tenant: true,
+                role: true,
+              },
+            });
 
-      if (!completeUser) {
-        throw new Error('Failed to fetch complete user data');
+            if (!completeUser) {
+              throw new Error('Failed to fetch complete user data');
+            }
+
+            console.log('Registration successful for:', user.email);
+            return { 
+              token, 
+              user: {
+                id: completeUser.id,
+                email: completeUser.email,
+                firstName: completeUser.firstName,
+                lastName: completeUser.lastName,
+                phone: completeUser.phone,
+                countryCode: completeUser.countryCode,
+                timezone: completeUser.timezone,
+                language: completeUser.language,
+                isAffiliate: completeUser.isAffiliate,
+              },
+              tenant: completeUser.tenant,
+              role: completeUser.role,
+            };
+          } catch (userError) {
+            console.error('Error creating user:', userError);
+            throw userError;
+          }
+        } catch (roleError) {
+          console.error('Error creating role:', roleError);
+          throw roleError;
+        }
+      } catch (tenantError) {
+        console.error('Error creating tenant:', tenantError);
+        throw tenantError;
       }
-
-      console.log('Registration successful for:', user.email);
-      return { 
-        token, 
-        user: {
-          id: completeUser.id,
-          email: completeUser.email,
-          firstName: completeUser.firstName,
-          lastName: completeUser.lastName,
-          phone: completeUser.phone,
-          countryCode: completeUser.countryCode,
-          timezone: completeUser.timezone,
-          language: completeUser.language,
-          isAffiliate: completeUser.isAffiliate,
-        },
-        tenant: completeUser.tenant,
-        role: completeUser.role,
-      };
     } catch (error) {
       console.error('Registration error:', error);
       if (error instanceof z.ZodError) {
         return reply.code(400).send({ error: error.errors });
       }
-      return reply.code(500).send({ error: 'Internal server error' });
+      return reply.code(500).send({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) });
     }
   });
 

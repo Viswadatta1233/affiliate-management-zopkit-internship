@@ -36,6 +36,7 @@ import Billing from '@/pages/settings/billing';
 import Login from '@/pages/auth/login';
 import Register from '@/pages/auth/register';
 import NotFound from '@/pages/not-found';
+import ProductsPage from '@/pages/products';
 
 // Route guard for authenticated routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -75,6 +76,9 @@ function App() {
             
             {/* Tracking Links */}
             <Route path="tracking-links" element={<TrackingLinks />} />
+            
+            {/* Products */}
+            <Route path="products" element={<ProductsPage />} />
             
             {/* Commissions */}
             <Route path="commissions">

@@ -160,3 +160,18 @@ export interface Commission {
   createdAt: Date;
   paidAt?: Date;
 }
+
+// Add Product type
+export interface Product {
+  id: string;
+  tenantId: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  price: number;
+  currency: string;
+  category?: string;
+  status: 'available' | 'unavailable' | 'outofstock';
+  createdAt: Date;
+  updatedAt: Date;
+}

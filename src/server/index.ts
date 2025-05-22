@@ -1,12 +1,22 @@
+import 'dotenv/config'; // Load environment variables from .env file
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { authenticateJWT, enforceTenantIsolation } from './security';
 import { authRoutes } from './routes/auth';
+import { productRoutes } from './routes/products';
 import { pool } from './db';
 
 // Ensure JWT secret is set
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 console.log('Using JWT_SECRET:', JWT_SECRET);
+
+// Log database connection details (without showing password)
+console.log('Database connection:', {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,
+});
 
 const server = Fastify({
   logger: true
@@ -26,6 +36,7 @@ server.addHook('onRequest', enforceTenantIsolation);
 
 // Register routes
 server.register(authRoutes, { prefix: '/api/auth' });
+server.register(productRoutes, { prefix: '/api/products' });
 
 // Health check route
 server.get('/health', async () => {

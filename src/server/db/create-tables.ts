@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 const pool = new Pool({
   host: 'localhost',
   user: 'postgres',
-  password: 'datta1234',
+  password: 'asdfvbnm1234',
   database: 'affiliate_db',
   port: 5432,
 });
@@ -22,6 +22,12 @@ async function createTables() {
 
       DO $$ BEGIN
         CREATE TYPE user_status AS ENUM('active', 'inactive', 'pending');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      
+      DO $$ BEGIN
+        CREATE TYPE product_status AS ENUM('available', 'unavailable', 'outofstock');
       EXCEPTION
         WHEN duplicate_object THEN null;
       END $$;
@@ -73,6 +79,20 @@ async function createTables() {
         is_affiliate boolean DEFAULT false,
         password varchar NOT NULL,
         created_at timestamp DEFAULT now() NOT NULL
+      );
+      
+      CREATE TABLE IF NOT EXISTS products (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        name varchar NOT NULL,
+        description text,
+        image_url varchar,
+        price decimal(10, 2) NOT NULL,
+        currency varchar DEFAULT 'USD' NOT NULL,
+        category varchar,
+        status product_status DEFAULT 'available' NOT NULL,
+        created_at timestamp DEFAULT now() NOT NULL,
+        updated_at timestamp DEFAULT now() NOT NULL
       );
     `);
     

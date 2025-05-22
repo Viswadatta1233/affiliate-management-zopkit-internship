@@ -1,9 +1,10 @@
-import { pgTable, uuid, varchar, timestamp, jsonb, boolean, text, integer, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, jsonb, boolean, text, integer, pgEnum, decimal } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Enums
 export const userStatusEnum = pgEnum('user_status', ['active', 'inactive', 'pending']);
 export const tenantStatusEnum = pgEnum('tenant_status', ['trial', 'active', 'suspended']);
+export const productStatusEnum = pgEnum('product_status', ['available', 'unavailable', 'outofstock']);
 
 // Tables
 export const tenants = pgTable('tenants', {
@@ -52,10 +53,26 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').notNull().defaultNow()
 });
 
+// Products table
+export const products = pgTable('products', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: varchar('name').notNull(),
+  description: text('description'),
+  imageUrl: varchar('image_url'),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 3 }).notNull().default('USD'),
+  category: varchar('category'),
+  status: productStatusEnum('status').default('available'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
 // Relations
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   users: many(users),
-  roles: many(roles)
+  roles: many(roles),
+  products: many(products)
 }));
 
 export const rolesRelations = relations(roles, ({ one, many }) => ({
@@ -74,5 +91,12 @@ export const usersRelations = relations(users, ({ one }) => ({
   role: one(roles, {
     fields: [users.roleId],
     references: [roles.id]
+  })
+}));
+
+export const productsRelations = relations(products, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [products.tenantId],
+    references: [tenants.id]
   })
 }));

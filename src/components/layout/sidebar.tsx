@@ -26,7 +26,9 @@ import {
   Globe,
   Megaphone,
   MessagesSquare,
-  Plus
+  Plus,
+  ShoppingCart,
+  Package
 } from 'lucide-react';
 
 import {
@@ -127,6 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
   const canViewNotifications = useMemo(() => hasPermission('notifications:view'), [role]);
   const canViewIntegrations = useMemo(() => hasPermission('integrations:view'), [role]);
   const canManageTenant = useMemo(() => hasPermission('tenant:manage'), [role]);
+  const canManageProducts = useMemo(() => hasPermission('products:manage') || hasPermission('*'), [role]);
 
   const isAffiliate = useMemo(() => user?.isAffiliate, [user]);
 
@@ -209,6 +212,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<Plus className="h-4 w-4" />}
               title="Create Campaign"
               isCurrent={isActivePath('/campaigns/create')}
+            />
+          </SidebarGroup>
+
+          {/* Products */}
+          <SidebarGroup
+            title="Products"
+            icon={<Package className="h-5 w-5" />}
+            defaultOpen={isActivePath('/products')}
+          >
+            <SidebarItem
+              href="/products"
+              icon={<ShoppingCart className="h-4 w-4" />}
+              title="All Products"
+              isCurrent={isActivePath('/products')}
             />
           </SidebarGroup>
 

@@ -1,3 +1,4 @@
+import 'dotenv/config'; // Load environment variables from .env file
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
@@ -7,12 +8,27 @@ import { fileURLToPath } from 'url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const projectRoot = join(__dirname, '../../..');
 
+// Get database connection details from environment variables
+const DB_HOST = process.env.DB_HOST || 'localhost';
+const DB_USER = process.env.DB_USER || 'postgres';
+const DB_PASSWORD = process.env.DB_PASSWORD || 'postgres';
+const DB_NAME = process.env.DB_NAME || 'affiliate_db';
+const DB_PORT = parseInt(process.env.DB_PORT || '5432');
+
+// Log connection details (without password)
+console.log('Database connection:', {
+  host: DB_HOST,
+  user: DB_USER,
+  database: DB_NAME,
+  port: DB_PORT
+});
+
 const pool = new Pool({
-  host: 'localhost',
-  user: 'postgres',
-  password: 'datta1234',
-  database: 'affiliate_db',
-  port: 5432,
+  host: DB_HOST,
+  user: DB_USER,
+  password: DB_PASSWORD,
+  database: DB_NAME,
+  port: DB_PORT,
 });
 
 const db = drizzle(pool);
