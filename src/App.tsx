@@ -10,6 +10,7 @@ import Affiliates from '@/pages/affiliates';
 import AffiliateProfile from '@/pages/affiliates/profile';
 import PendingAffiliates from '@/pages/affiliates/pending';
 import AffiliateTiers from '@/pages/affiliates/tiers';
+import InviteAffiliate from '@/pages/affiliates/invite';
 import TrackingLinks from '@/pages/tracking-links';
 import CommissionTiers from '@/pages/commissions/tiers';
 import ProductCommissions from '@/pages/commissions/products';
@@ -72,6 +73,7 @@ function App() {
               <Route path=":id" element={<AffiliateProfile />} />
               <Route path="pending" element={<PendingAffiliates />} />
               <Route path="tiers" element={<AffiliateTiers />} />
+              <Route path="invite" element={<InviteAffiliate />} />
             </Route>
             
             {/* Tracking Links */}

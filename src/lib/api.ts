@@ -8,6 +8,7 @@ class ApiClient {
     // Initialize token from localStorage on client creation
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('token');
+      console.log('API client initialized with token:', this.token ? `${this.token.substring(0, 10)}...` : 'none');
     }
   }
 
@@ -16,7 +17,7 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token);
     }
-    console.log('API client setToken called:', token);
+    console.log('API client setToken called:', token ? `${token.substring(0, 10)}...` : 'none');
   }
 
   getToken() {
@@ -28,72 +29,64 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
     }
+    console.log('API client token cleared');
   }
 
-  private async request(endpoint: string, options: RequestInit = {}) {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string> || {}),
-    };
-
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-      console.log('Making authenticated request to:', endpoint, 'with token:', this.token.substring(0, 10) + '...');
-    } else {
-      console.log('Making unauthenticated request to:', endpoint);
-    }
-
+  async request(method: string, endpoint: string, data?: any) {
+    console.log(`Making ${method} request to ${endpoint}`, data);
+    
     try {
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        ...options,
-        headers,
-      });
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'An error occurred' }));
-        console.error('API Error:', {
-          endpoint,
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData,
-          headers: Object.fromEntries(response.headers.entries())
-        });
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      const token = this.getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const data = await response.json();
-      return { data }; // Wrap the response in a data property
-    } catch (error) {
-      console.error('API Request Failed:', {
-        endpoint,
-        error: error instanceof Error ? error.message : 'Unknown error'
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method,
+        headers,
+        body: data ? JSON.stringify(data) : undefined,
       });
+
+      console.log(`Response status for ${endpoint}:`, response.status);
+      
+      const responseData = await response.json().catch(() => null);
+      console.log(`Response data for ${endpoint}:`, responseData);
+
+      if (!response.ok) {
+        const error = new Error(responseData?.error || 'API request failed');
+        (error as any).status = response.status;
+        (error as any).data = responseData;
+        throw error;
+      }
+
+      return {
+        data: responseData,
+        status: response.status,
+      };
+    } catch (error) {
+      console.error(`API Error for ${endpoint}:`, error);
       throw error;
     }
   }
 
   async get(endpoint: string, options: RequestInit = {}) {
-    return this.request(endpoint, { ...options, method: 'GET' });
+    return this.request('GET', endpoint, options.body);
   }
 
   async post(endpoint: string, data: any, options: RequestInit = {}) {
-    return this.request(endpoint, {
-      ...options,
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    return this.request('POST', endpoint, data);
   }
 
   async put(endpoint: string, data: any, options: RequestInit = {}) {
-    return this.request(endpoint, {
-      ...options,
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
+    return this.request('PUT', endpoint, data);
   }
 
   async delete(endpoint: string, options: RequestInit = {}) {
-    return this.request(endpoint, { ...options, method: 'DELETE' });
+    return this.request('DELETE', endpoint, options.body);
   }
 }
 
@@ -138,6 +131,16 @@ export const apiAffiliates = {
 
   delete: (id: string) => {
     return api.delete(`/api/affiliates/${id}`);
+  },
+  
+  invite: (data: {
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    initialTier?: string;
+    commissionRate?: number;
+  }) => {
+    return api.post('/api/affiliates/invite', data);
   },
 };
 

@@ -28,7 +28,8 @@ import {
   MessagesSquare,
   Plus,
   ShoppingCart,
-  Package
+  Package,
+  Mail
 } from 'lucide-react';
 
 import {
@@ -180,6 +181,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<Users className="h-4 w-4" />}
               title="All Affiliates"
               isCurrent={isActivePath('/affiliates')}
+            />
+            <SidebarItem
+              href="/affiliates/invite"
+              icon={<Mail className="h-4 w-4" />}
+              title="Invite Affiliate"
+              isCurrent={isActivePath('/affiliates/invite')}
             />
             <SidebarItem
               href="/affiliates/pending"

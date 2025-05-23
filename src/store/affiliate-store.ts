@@ -1,6 +1,14 @@
 import { create } from 'zustand';
-import { api } from '@/lib/api';
+import { api, apiAffiliates } from '@/lib/api';
 import { Affiliate, TrackingLink, Commission } from '@/types';
+
+interface InviteAffiliateData {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  initialTier?: string;
+  commissionRate?: number;
+}
 
 interface AffiliateState {
   affiliates: Affiliate[];
@@ -14,6 +22,7 @@ interface AffiliateState {
   createAffiliate: (data: Partial<Affiliate>) => Promise<void>;
   updateAffiliate: (id: string, data: Partial<Affiliate>) => Promise<void>;
   deleteAffiliate: (id: string) => Promise<void>;
+  inviteAffiliate: (data: InviteAffiliateData) => Promise<any>;
   
   // Tracking Links
   fetchTrackingLinks: () => Promise<void>;
@@ -39,7 +48,7 @@ export const useAffiliateStore = create<AffiliateState>((set, get) => ({
   fetchAffiliates: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get('/api/affiliates');
+      const response = await apiAffiliates.getAll();
       set({ affiliates: response.data, isLoading: false });
     } catch (error) {
       set({ error: 'Failed to fetch affiliates', isLoading: false });
@@ -49,7 +58,7 @@ export const useAffiliateStore = create<AffiliateState>((set, get) => ({
   createAffiliate: async (data) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.post('/api/affiliates', data);
+      const response = await apiAffiliates.create(data);
       set(state => ({
         affiliates: [...state.affiliates, response.data],
         isLoading: false
@@ -59,10 +68,33 @@ export const useAffiliateStore = create<AffiliateState>((set, get) => ({
     }
   },
 
+  inviteAffiliate: async (data) => {
+    set({ isLoading: true, error: null });
+    try {
+      console.log('Inviting affiliate with data:', data);
+      const response = await apiAffiliates.invite(data);
+      console.log('Invite affiliate response:', response);
+      
+      if (!response.data || !response.data.success) {
+        throw new Error(response.data?.error || 'Failed to invite affiliate');
+      }
+      
+      // Since this creates a pending affiliate, we should refresh the list
+      await get().fetchAffiliates();
+      set({ isLoading: false });
+      return response.data;
+    } catch (error) {
+      console.error('Error inviting affiliate:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to invite affiliate';
+      set({ error: errorMessage, isLoading: false });
+      throw error;
+    }
+  },
+
   updateAffiliate: async (id, data) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.put(`/api/affiliates/${id}`, data);
+      const response = await apiAffiliates.update(id, data);
       set(state => ({
         affiliates: state.affiliates.map(aff => 
           aff.id === id ? response.data : aff
@@ -77,7 +109,7 @@ export const useAffiliateStore = create<AffiliateState>((set, get) => ({
   deleteAffiliate: async (id) => {
     set({ isLoading: true, error: null });
     try {
-      await api.delete(`/api/affiliates/${id}`);
+      await apiAffiliates.delete(id);
       set(state => ({
         affiliates: state.affiliates.filter(aff => aff.id !== id),
         isLoading: false

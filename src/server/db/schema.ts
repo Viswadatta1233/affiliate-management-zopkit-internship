@@ -5,6 +5,7 @@ import { relations } from 'drizzle-orm';
 export const userStatusEnum = pgEnum('user_status', ['active', 'inactive', 'pending']);
 export const tenantStatusEnum = pgEnum('tenant_status', ['trial', 'active', 'suspended']);
 export const productStatusEnum = pgEnum('product_status', ['available', 'unavailable', 'outofstock']);
+export const affiliateStatusEnum = pgEnum('affiliate_status', ['pending', 'active', 'rejected', 'suspended']);
 
 // Tables
 export const tenants = pgTable('tenants', {
@@ -53,6 +54,42 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').notNull().defaultNow()
 });
 
+// Affiliate tiers table
+export const affiliateTiers = pgTable('affiliate_tiers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: varchar('name').notNull(),
+  description: text('description'),
+  commissionRate: decimal('commission_rate', { precision: 5, scale: 2 }).notNull(),
+  minimumSales: decimal('minimum_sales', { precision: 10, scale: 2 }),
+  benefits: jsonb('benefits').default([]),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
+// Affiliates table
+export const affiliates = pgTable('affiliates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  referralCode: varchar('referral_code').notNull().unique(),
+  initialTierId: uuid('initial_tier_id').references(() => affiliateTiers.id),
+  parentAffiliateId: uuid('parent_affiliate_id'),
+  companyName: varchar('company_name'),
+  websiteUrl: varchar('website_url'),
+  socialMedia: jsonb('social_media'),
+  taxId: varchar('tax_id'),
+  taxFormType: varchar('tax_form_type'),
+  paymentThreshold: decimal('payment_threshold', { precision: 10, scale: 2 }).notNull().default('50'),
+  preferredCurrency: varchar('preferred_currency', { length: 3 }).notNull().default('USD'),
+  promotionalMethods: jsonb('promotional_methods').default([]),
+  status: affiliateStatusEnum('status').default('pending'),
+  approvedBy: uuid('approved_by').references(() => users.id),
+  approvedAt: timestamp('approved_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
 // Products table
 export const products = pgTable('products', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -72,7 +109,9 @@ export const products = pgTable('products', {
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   users: many(users),
   roles: many(roles),
-  products: many(products)
+  products: many(products),
+  affiliates: many(affiliates),
+  affiliateTiers: many(affiliateTiers)
 }));
 
 export const rolesRelations = relations(roles, ({ one, many }) => ({
@@ -83,7 +122,7 @@ export const rolesRelations = relations(roles, ({ one, many }) => ({
   users: many(users)
 }));
 
-export const usersRelations = relations(users, ({ one }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   tenant: one(tenants, {
     fields: [users.tenantId],
     references: [tenants.id]
@@ -91,7 +130,8 @@ export const usersRelations = relations(users, ({ one }) => ({
   role: one(roles, {
     fields: [users.roleId],
     references: [roles.id]
-  })
+  }),
+  affiliates: many(affiliates, { relationName: "userToAffiliates" })
 }));
 
 export const productsRelations = relations(products, ({ one }) => ({
@@ -99,4 +139,32 @@ export const productsRelations = relations(products, ({ one }) => ({
     fields: [products.tenantId],
     references: [tenants.id]
   })
+}));
+
+export const affiliatesRelations = relations(affiliates, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [affiliates.tenantId],
+    references: [tenants.id]
+  }),
+  user: one(users, {
+    fields: [affiliates.userId],
+    references: [users.id],
+    relationName: "userToAffiliates"
+  }),
+  currentTier: one(affiliateTiers, {
+    fields: [affiliates.initialTierId],
+    references: [affiliateTiers.id]
+  }),
+  parentAffiliate: one(affiliates, {
+    fields: [affiliates.parentAffiliateId],
+    references: [affiliates.id]
+  })
+}));
+
+export const affiliateTiersRelations = relations(affiliateTiers, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [affiliateTiers.tenantId],
+    references: [tenants.id]
+  }),
+  affiliates: many(affiliates)
 }));

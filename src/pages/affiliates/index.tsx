@@ -1,22 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Users, DollarSign, TrendingUp, Link2, Eye } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { useToast } from '@/hooks/use-toast';
+import { PlusCircle, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -24,27 +15,146 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAffiliateStore } from '@/store/affiliate-store';
+
+// Invite Affiliate Form Component
+const InviteAffiliateForm = ({ onClose }: { onClose: () => void }) => {
+  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [initialTier, setInitialTier] = useState('');
+  const [commissionRate, setCommissionRate] = useState<number>(10);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { inviteAffiliate } = useAffiliateStore();
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      await inviteAffiliate({
+        email,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        initialTier: initialTier || undefined,
+        commissionRate: commissionRate || undefined
+      });
+      
+      toast.success(`Invitation sent to ${email}`, {
+        description: "An email with login credentials has been sent to the affiliate."
+      });
+      
+      onClose();
+    } catch (error) {
+      toast.error('Failed to send invitation', {
+        description: error instanceof Error ? error.message : 'An unknown error occurred'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div 
+        className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full"
+        onClick={e => e.stopPropagation()}
+      >
+        <h2 className="text-2xl font-bold mb-1">Invite New Affiliate</h2>
+        <p className="text-gray-500 dark:text-gray-400 mb-4">
+          Send an invitation to a new affiliate to join your program.
+        </p>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email Address*</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="affiliate@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  placeholder="John"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  placeholder="Doe"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="tier">Initial Tier</Label>
+              <Select value={initialTier} onValueChange={setInitialTier}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bronze">Bronze</SelectItem>
+                  <SelectItem value="silver">Silver</SelectItem>
+                  <SelectItem value="gold">Gold</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="commission">Commission Rate (%)</Label>
+              <Input
+                id="commission"
+                type="number"
+                placeholder="10"
+                min="0"
+                max="100"
+                value={commissionRate}
+                onChange={(e) => setCommissionRate(Number(e.target.value))}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-4 mt-6">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Sending...' : 'Send Invitation'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 export default function Affiliates() {
-  const [email, setEmail] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showInviteForm, setShowInviteForm] = useState(false);
   const [selectedAffiliate, setSelectedAffiliate] = useState<string | null>(null);
-  const { toast } = useToast();
+  
+  const { affiliates, fetchAffiliates, isLoading, error } = useAffiliateStore();
+  
+  useEffect(() => {
+    fetchAffiliates();
+  }, [fetchAffiliates]);
 
-  const handleInviteSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    toast({
-      title: "Invitation Sent",
-      description: `An invitation has been sent to ${email}`,
-    });
-    
-    setIsDialogOpen(false);
-    setEmail('');
-  };
-
-  // Sample affiliate data
-  const affiliates = [
+  // Sample affiliate data - replace with actual data from store when available
+  const displayAffiliates = affiliates.length > 0 ? affiliates : [
     {
       id: '1',
       name: 'Jane Smith',
@@ -108,67 +218,20 @@ export default function Affiliates() {
           <h1 className="text-3xl font-bold tracking-tight">Affiliates</h1>
           <p className="text-muted-foreground">Manage your affiliate partners</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Invite Affiliate
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Invite New Affiliate</DialogTitle>
-              <DialogDescription>
-                Send an invitation to a new affiliate to join your program.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleInviteSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="affiliate@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="tier">Initial Tier</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select tier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bronze">Bronze</SelectItem>
-                      <SelectItem value="silver">Silver</SelectItem>
-                      <SelectItem value="gold">Gold</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="commission">Commission Rate (%)</Label>
-                  <Input
-                    id="commission"
-                    type="number"
-                    placeholder="10"
-                    min="0"
-                    max="100"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Send Invitation</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => setShowInviteForm(true)}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Invite Affiliate
+        </Button>
       </div>
+
+      {/* Render invite form modal when showInviteForm is true */}
+      {showInviteForm && <InviteAffiliateForm onClose={() => setShowInviteForm(false)} />}
+
+      {error && (
+        <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
+          Error: {error}
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -176,40 +239,52 @@ export default function Affiliates() {
           <CardDescription>View and manage your affiliate partners</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {affiliates.map((affiliate) => (
-              <div 
-                key={affiliate.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"
-              >
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src="" />
-                    <AvatarFallback>{affiliate.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-medium">{affiliate.name}</h3>
-                    <p className="text-sm text-muted-foreground">{affiliate.email}</p>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="ml-2">Loading affiliates...</span>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {displayAffiliates.map((affiliate) => (
+                <div 
+                  key={affiliate.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"
+                >
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src="" />
+                      <AvatarFallback>
+                        {affiliate.name 
+                          ? affiliate.name.split(' ').map((n: string) => n[0]).join('') 
+                          : affiliate.user?.firstName?.charAt(0) + (affiliate.user?.lastName?.charAt(0) || '')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="font-medium">
+                        {affiliate.name || `${affiliate.user?.firstName || ''} ${affiliate.user?.lastName || ''}`}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">{affiliate.email || affiliate.user?.email}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="font-medium">${affiliate.earnings.toLocaleString()}</p>
-                    <p className="text-sm text-muted-foreground">Total Earnings</p>
-                  </div>
-                  <Badge variant={affiliate.status === 'active' ? 'default' : 'secondary'}>
-                    {affiliate.status}
-                  </Badge>
-                  <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="font-medium">${affiliate.earnings?.toLocaleString() || '0'}</p>
+                      <p className="text-sm text-muted-foreground">Total Earnings</p>
+                    </div>
+                    <Badge variant={affiliate.status === 'active' ? 'default' : 'secondary'}>
+                      {affiliate.status || 'pending'}
+                    </Badge>
                     <Link to={`/affiliates/${affiliate.id}`}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      View Profile
+                      <Button variant="ghost" size="icon">
+                        <Eye className="h-4 w-4" />
+                      </Button>
                     </Link>
-                  </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
