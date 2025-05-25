@@ -105,6 +105,18 @@ export const products = pgTable('products', {
   updatedAt: timestamp('updated_at').notNull().defaultNow()
 });
 
+// Affiliate Product Commissions table
+export const affiliateProductCommissions = pgTable('affiliate_product_commissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  affiliateId: uuid('affiliate_id').notNull().references(() => affiliates.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  commissionRate: decimal('commission_rate', { precision: 5, scale: 2 }).notNull(),
+  commissionType: varchar('commission_type', { length: 20 }).notNull().default('percentage'),
+  status: varchar('status', { length: 20 }).notNull().default('active'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
 // Relations
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   users: many(users),
@@ -167,4 +179,15 @@ export const affiliateTiersRelations = relations(affiliateTiers, ({ one, many })
     references: [tenants.id]
   }),
   affiliates: many(affiliates)
+}));
+
+export const affiliateProductCommissionsRelations = relations(affiliateProductCommissions, ({ one }) => ({
+  affiliate: one(affiliates, {
+    fields: [affiliateProductCommissions.affiliateId],
+    references: [affiliates.id]
+  }),
+  product: one(products, {
+    fields: [affiliateProductCommissions.productId],
+    references: [products.id]
+  })
 }));

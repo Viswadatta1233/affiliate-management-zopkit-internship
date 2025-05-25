@@ -2,12 +2,19 @@ import { create } from 'zustand';
 import { api, apiAffiliates } from '@/lib/api';
 import { Affiliate, TrackingLink, Commission } from '@/types';
 
+interface ProductCommission {
+  productId: string;
+  commissionRate: number;
+  commissionType: 'percentage' | 'fixed';
+}
+
 interface InviteAffiliateData {
   email: string;
   firstName?: string;
   lastName?: string;
   initialTier?: string;
   commissionRate?: number;
+  productCommissions?: ProductCommission[];
 }
 
 interface AffiliateState {
@@ -49,9 +56,10 @@ export const useAffiliateStore = create<AffiliateState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiAffiliates.getAll();
-      set({ affiliates: response.data, isLoading: false });
+      set({ affiliates: response.data.affiliates, isLoading: false });
     } catch (error) {
       set({ error: 'Failed to fetch affiliates', isLoading: false });
+      throw error;
     }
   },
 
@@ -68,54 +76,42 @@ export const useAffiliateStore = create<AffiliateState>((set, get) => ({
     }
   },
 
-  inviteAffiliate: async (data) => {
+  inviteAffiliate: async (data: InviteAffiliateData) => {
     set({ isLoading: true, error: null });
     try {
-      console.log('Inviting affiliate with data:', data);
       const response = await apiAffiliates.invite(data);
-      console.log('Invite affiliate response:', response);
-      
-      if (!response.data || !response.data.success) {
-        throw new Error(response.data?.error || 'Failed to invite affiliate');
-      }
-      
-      // Since this creates a pending affiliate, we should refresh the list
       await get().fetchAffiliates();
       set({ isLoading: false });
       return response.data;
     } catch (error) {
-      console.error('Error inviting affiliate:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to invite affiliate';
-      set({ error: errorMessage, isLoading: false });
+      set({ error: 'Failed to invite affiliate', isLoading: false });
       throw error;
     }
   },
 
-  updateAffiliate: async (id, data) => {
+  updateAffiliate: async (id: string, data: Partial<Affiliate>) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiAffiliates.update(id, data);
-      set(state => ({
-        affiliates: state.affiliates.map(aff => 
-          aff.id === id ? response.data : aff
-        ),
-        isLoading: false
-      }));
+      await apiAffiliates.update(id, data);
+      await get().fetchAffiliates();
+      set({ isLoading: false });
     } catch (error) {
       set({ error: 'Failed to update affiliate', isLoading: false });
+      throw error;
     }
   },
 
-  deleteAffiliate: async (id) => {
+  deleteAffiliate: async (id: string) => {
     set({ isLoading: true, error: null });
     try {
       await apiAffiliates.delete(id);
       set(state => ({
-        affiliates: state.affiliates.filter(aff => aff.id !== id),
+        affiliates: state.affiliates.filter(affiliate => affiliate.id !== id),
         isLoading: false
       }));
     } catch (error) {
       set({ error: 'Failed to delete affiliate', isLoading: false });
+      throw error;
     }
   },
 

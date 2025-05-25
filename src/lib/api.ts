@@ -32,7 +32,7 @@ class ApiClient {
     console.log('API client token cleared');
   }
 
-  async request(method: string, endpoint: string, data?: any) {
+  async request(method: string, endpoint: string, data?: any, options: RequestInit = {}) {
     console.log(`Making ${method} request to ${endpoint}`, data);
     
     try {
@@ -44,6 +44,13 @@ class ApiClient {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
+
+      // Add any custom headers from options
+      if (options.headers) {
+        Object.assign(headers, options.headers);
+      }
+
+      console.log('Request headers:', headers);
 
       const response = await fetch(`${API_URL}${endpoint}`, {
         method,
@@ -74,19 +81,19 @@ class ApiClient {
   }
 
   async get(endpoint: string, options: RequestInit = {}) {
-    return this.request('GET', endpoint, options.body);
+    return this.request('GET', endpoint, undefined, options);
   }
 
   async post(endpoint: string, data: any, options: RequestInit = {}) {
-    return this.request('POST', endpoint, data);
+    return this.request('POST', endpoint, data, options);
   }
 
   async put(endpoint: string, data: any, options: RequestInit = {}) {
-    return this.request('PUT', endpoint, data);
+    return this.request('PUT', endpoint, data, options);
   }
 
   async delete(endpoint: string, options: RequestInit = {}) {
-    return this.request('DELETE', endpoint, options.body);
+    return this.request('DELETE', endpoint, undefined, options);
   }
 }
 
@@ -95,7 +102,11 @@ export const api = new ApiClient();
 // Auth endpoints
 export const apiAuth = {
   login: (email: string, password: string, tenant?: string) => {
-    return api.post('/api/auth/login', { email, password, tenant });
+    const endpoint = tenant 
+      ? `/api/auth/login?tenant=${encodeURIComponent(tenant)}`
+      : '/api/auth/login';
+      
+    return api.post(endpoint, { email, password });
   },
   
   register: (data: {
@@ -139,6 +150,11 @@ export const apiAffiliates = {
     lastName?: string;
     initialTier?: string;
     commissionRate?: number;
+    productCommissions?: Array<{
+      productId: string;
+      commissionRate: number;
+      commissionType: 'percentage' | 'fixed';
+    }>;
   }) => {
     return api.post('/api/affiliates/invite', data);
   },

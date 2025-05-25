@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db';
-import { users, roles, affiliates, tenants, affiliateTiers } from '../db/schema';
+import { users, roles, affiliates, tenants, affiliateTiers, affiliateProductCommissions } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { emailService } from '../services/email';
 import { generateRandomPassword, hashPassword } from '../utils/password';
@@ -15,9 +15,11 @@ const affiliateSchema = z.object({
   socialMedia: z.record(z.string(), z.any()).optional(),
   taxId: z.string().optional(),
   taxFormType: z.string().optional(),
-  paymentThreshold: z.number().min(0),
+  paymentThreshold: z.number().min(0).transform(val => val.toString()),
   preferredCurrency: z.string().length(3),
-  promotionalMethods: z.array(z.string())
+  promotionalMethods: z.array(z.string()),
+  status: z.enum(['pending', 'active', 'rejected', 'suspended']).optional(),
+  initialTierId: z.string().uuid().optional()
 });
 
 const inviteAffiliateSchema = z.object({
@@ -26,7 +28,35 @@ const inviteAffiliateSchema = z.object({
   lastName: z.string().min(2).optional(),
   initialTier: z.string().optional(),
   commissionRate: z.number().min(0).max(100).optional(),
+  productCommissions: z.array(z.object({
+    productId: z.string().uuid(),
+    commissionRate: z.number().min(0).max(100),
+    commissionType: z.enum(['percentage', 'fixed']).default('percentage')
+  })).optional()
 });
+
+// Helper function to get or create affiliate role
+async function getAffiliateRoleId(tenantId: string): Promise<string> {
+  let affiliateRole = await db.query.roles.findFirst({
+    where: and(
+      eq(roles.tenantId, tenantId),
+      eq(roles.roleName, 'Affiliate')
+    )
+  });
+
+  if (!affiliateRole) {
+    const [newRole] = await db.insert(roles).values({
+      tenantId,
+      roleName: 'Affiliate',
+      description: 'Affiliate role with limited access',
+      permissions: ['view_dashboard', 'manage_links', 'view_commissions'],
+      isCustom: false,
+    }).returning();
+    affiliateRole = newRole;
+  }
+
+  return affiliateRole.id;
+}
 
 export const affiliateRoutes = async (server: FastifyInstance) => {
   // Get all affiliates for a tenant
@@ -64,17 +94,7 @@ export const affiliateRoutes = async (server: FastifyInstance) => {
       ),
       with: {
         user: true,
-        currentTier: true,
-        trackingLinks: true,
-        sales: {
-          orderBy: [{ createdAt: 'desc' }],
-          limit: 10
-        },
-        campaignParticipations: {
-          with: {
-            campaign: true
-          }
-        }
+        currentTier: true
       }
     });
 
@@ -87,201 +107,146 @@ export const affiliateRoutes = async (server: FastifyInstance) => {
 
   // Create new affiliate
   server.post('/', async (request, reply) => {
-    const body = affiliateSchema.parse(request.body);
+    const parsedBody = affiliateSchema.parse(request.body);
+    
+    // Convert paymentThreshold to string if it exists
+    const body = {
+      ...parsedBody,
+      paymentThreshold: parsedBody.paymentThreshold?.toString(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
     
     const result = await db.insert(affiliates).values(body).returning();
-    
     return result[0];
   });
 
   // Invite a new affiliate by email
   server.post('/invite', async (request, reply) => {
     try {
-      console.log('Received invite request with body:', request.body);
+      console.log('Received invite request:', request.body);
       
-      const { email, firstName, lastName, initialTier, commissionRate } = inviteAffiliateSchema.parse(request.body);
-      console.log('Parsed data:', { email, firstName, lastName, initialTier, commissionRate });
+      const { email, firstName, lastName, initialTier, commissionRate, productCommissions } = inviteAffiliateSchema.parse(request.body);
       
       const tenantId = request.tenantId;
-      console.log('TenantId from request:', tenantId);
-      
       if (!tenantId) {
-        console.error('No tenant ID in request');
         return reply.code(400).send({ error: 'Tenant ID is required' });
       }
 
-      // Ensure default tiers exist
-      await ensureDefaultTiers(tenantId);
-      
+      // Get tenant information for email
+      const tenant = await db.query.tenants.findFirst({
+        where: eq(tenants.id, tenantId)
+      });
+
+      if (!tenant) {
+        return reply.code(404).send({ error: 'Tenant not found' });
+      }
+
       try {
         // Check if user with this email already exists
         const existingUser = await db.query.users.findFirst({
-          where: eq(users.email, email)
+          where: eq(users.email, email),
+          with: {
+            tenant: true,
+            role: true
+          }
         });
-        
+
+        // Check if user is already an affiliate
         if (existingUser) {
-          // Check if user is already an affiliate
           const existingAffiliate = await db.query.affiliates.findFirst({
             where: eq(affiliates.userId, existingUser.id)
           });
 
           if (existingAffiliate) {
-            console.log('User is already an affiliate:', email);
             return reply.code(400).send({ 
               error: 'User is already an affiliate',
               details: 'This email address is already registered as an affiliate.'
             });
           }
-
-          // If user exists but is not an affiliate, we can convert them
-          console.log('Converting existing user to affiliate:', email);
-          
-          // Find or create affiliate role
-          let affiliateRole = await db.query.roles.findFirst({
-            where: and(
-              eq(roles.tenantId, tenantId),
-              eq(roles.roleName, 'Affiliate')
-            )
-          });
-
-          if (!affiliateRole) {
-            console.log('Creating new Affiliate role');
-            try {
-              const [newRole] = await db.insert(roles).values({
-                tenantId,
-                roleName: 'Affiliate',
-                description: 'Affiliate role with limited access',
-                permissions: ['view_dashboard', 'manage_links', 'view_commissions'],
-                isCustom: false,
-              }).returning();
-              affiliateRole = newRole;
-            } catch (roleError) {
-              console.error('Error creating affiliate role:', roleError);
-              throw new Error('Failed to create affiliate role');
-            }
-          }
-
-          // Update user's role and affiliate status
-          await db.update(users)
-            .set({ 
-              roleId: affiliateRole.id,
-              isAffiliate: true 
-            })
-            .where(eq(users.id, existingUser.id));
-
-          // Generate referral code
-          const referralCode = `${(firstName || email.split('@')[0]).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-          
-          // Create affiliate record
-          const [affiliate] = await db.insert(affiliates).values({
-            tenantId,
-            userId: existingUser.id,
-            referralCode,
-            initialTierId: initialTier ? await getAffiliateTierId(initialTier, tenantId) : null,
-            paymentThreshold: 50,
-            preferredCurrency: 'USD',
-            promotionalMethods: ['website', 'social_media'],
-            status: 'pending',
-          }).returning();
-
-          return {
-            success: true,
-            message: 'Existing user converted to affiliate successfully',
-            affiliate: {
-              id: affiliate.id,
-              email,
-              status: 'pending',
-            }
-          };
         }
-        
-        // Get tenant information
-        const tenant = await db.query.tenants.findFirst({
-          where: eq(tenants.id, tenantId)
-        });
-        
-        if (!tenant) {
-          console.error('Tenant not found for ID:', tenantId);
-          return reply.code(404).send({ error: 'Tenant not found' });
-        }
-        
-        console.log('Found tenant:', tenant.tenantName);
-        
-        // Find affiliate role
-        let affiliateRole = await db.query.roles.findFirst({
-          where: and(
-            eq(roles.tenantId, tenantId),
-            eq(roles.roleName, 'Affiliate')
-          )
-        });
-        
-        // If affiliate role doesn't exist, create it
-        if (!affiliateRole) {
-          console.log('Creating new Affiliate role');
-          try {
-            const [newRole] = await db.insert(roles).values({
-              tenantId,
-              roleName: 'Affiliate',
-              description: 'Affiliate role with limited access',
-              permissions: ['view_dashboard', 'manage_links', 'view_commissions'],
-              isCustom: false,
-            }).returning();
-            affiliateRole = newRole;
-          } catch (roleError) {
-            console.error('Error creating affiliate role:', roleError);
-            throw new Error('Failed to create affiliate role');
-          }
-        }
-        
-        if (!affiliateRole) {
-          throw new Error('Failed to get or create affiliate role');
-        }
-        
-        console.log('Using role:', affiliateRole.id);
-        
-        // Generate random password
-        const randomPassword = generateRandomPassword();
-        const hashedPassword = await hashPassword(randomPassword);
-        
-        console.log('Generated password and hashed it');
-        
+
+        // Generate random password and hash it
+        const generatedPassword = generateRandomPassword();
+        const hashedPassword = await hashPassword(generatedPassword);
+
+        // Create or update user
         let user;
         try {
-          // Create user with affiliate role
-          [user] = await db.insert(users).values({
-            tenantId,
-            email,
-            firstName: firstName || email.split('@')[0],
-            lastName: lastName || '',
-            password: hashedPassword,
-            roleId: affiliateRole.id,
-            isAffiliate: true,
-            termsAccepted: true,
-          }).returning();
-          
-          console.log('Created user:', user.id);
-        } catch (userError) {
-          console.error('Error creating user:', userError);
-          throw new Error('Failed to create user account');
+          if (existingUser) {
+            // Update existing user
+            const [updatedUser] = await db.update(users)
+              .set({
+                roleId: await getAffiliateRoleId(tenantId),
+                isAffiliate: true
+              })
+              .where(eq(users.id, existingUser.id))
+              .returning();
+            user = updatedUser;
+          } else {
+            // Create new user
+            const [newUser] = await db.insert(users)
+              .values({
+                email,
+                firstName: firstName || email.split('@')[0],
+                lastName: lastName || 'Affiliate',
+                password: hashedPassword,
+                tenantId,
+                roleId: await getAffiliateRoleId(tenantId),
+                isAffiliate: true
+              })
+              .returning();
+            user = newUser;
+          }
+        } catch (dbError) {
+          console.error('Error creating/updating user:', dbError);
+          return reply.code(500).send({ 
+            error: 'Failed to create user account',
+            details: dbError instanceof Error ? dbError.message : 'Database error'
+          });
         }
+
+        // Generate referral code
+        const referralCode = `${(firstName || email.split('@')[0]).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
         
         try {
-          // Generate referral code
-          const referralCode = `${(firstName || email.split('@')[0]).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-          
           // Create affiliate record
-          const [affiliate] = await db.insert(affiliates).values({
-            tenantId,
-            userId: user.id,
-            referralCode,
-            initialTierId: initialTier ? await getAffiliateTierId(initialTier, tenantId) : null,
-            paymentThreshold: 50,
-            preferredCurrency: 'USD',
-            promotionalMethods: ['website', 'social_media'],
-            status: 'pending',
-          }).returning();
-          
-          console.log('Created affiliate record:', affiliate.id);
+          const [affiliate] = await db.insert(affiliates)
+            .values({
+              tenantId: tenantId,
+              userId: user.id,
+              referralCode: referralCode,
+              initialTierId: initialTier ? await getAffiliateTierId(initialTier, tenantId) : null,
+              paymentThreshold: '50',
+              preferredCurrency: 'USD',
+              promotionalMethods: ['website', 'social_media'],
+              status: 'pending',
+              createdAt: new Date(),
+              updatedAt: new Date()
+            })
+            .returning();
+
+          // Create product-specific commission rates if provided
+          if (productCommissions && productCommissions.length > 0) {
+            try {
+              const commissionValues = productCommissions.map(pc => ({
+                affiliateId: affiliate.id,
+                productId: pc.productId,
+                commissionRate: pc.commissionRate.toString(),
+                commissionType: pc.commissionType,
+                status: 'active',
+                createdAt: new Date(),
+                updatedAt: new Date()
+              }));
+              
+              await db.insert(affiliateProductCommissions)
+                .values(commissionValues);
+            } catch (commissionError) {
+              console.error('Error creating product commissions:', commissionError);
+              // Don't fail the whole process if product commissions fail
+              // We'll still create the affiliate without product-specific rates
+            }
+          }
           
           // Generate invite link
           const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -289,14 +254,12 @@ export const affiliateRoutes = async (server: FastifyInstance) => {
           
           // Send invitation email
           try {
-            console.log('Attempting to send invitation email');
             await emailService.sendAffiliateInvitation({
               email,
-              password: randomPassword,
+              password: generatedPassword,
               tenantName: tenant.tenantName,
               inviteLink,
             });
-            console.log('Email sent successfully');
           } catch (emailError) {
             console.error('Error sending email:', emailError);
             // Continue with the process even if email fails
@@ -304,7 +267,7 @@ export const affiliateRoutes = async (server: FastifyInstance) => {
           
           return {
             success: true,
-            message: 'Invitation sent successfully',
+            message: existingUser ? 'Existing user converted to affiliate successfully' : 'Invitation sent successfully',
             affiliate: {
               id: affiliate.id,
               email,
@@ -312,18 +275,17 @@ export const affiliateRoutes = async (server: FastifyInstance) => {
             }
           };
         } catch (affiliateError) {
-          console.error('Error creating affiliate record:', affiliateError);
-          // If affiliate creation fails, clean up the user
-          if (user) {
-            await db.delete(users).where(eq(users.id, user.id));
-          }
-          throw new Error('Failed to create affiliate record');
+          console.error('Error creating affiliate:', affiliateError);
+          return reply.code(500).send({ 
+            error: 'Failed to create affiliate record',
+            details: affiliateError instanceof Error ? affiliateError.message : 'Database error'
+          });
         }
       } catch (dbError) {
-        console.error('Database error:', dbError);
+        console.error('Database operation error:', dbError);
         return reply.code(500).send({ 
           error: 'Database operation failed',
-          details: dbError instanceof Error ? dbError.message : 'Unknown database error' 
+          details: dbError instanceof Error ? dbError.message : 'Unknown database error'
         });
       }
     } catch (error) {
@@ -336,7 +298,7 @@ export const affiliateRoutes = async (server: FastifyInstance) => {
       }
       return reply.code(500).send({ 
         error: 'Failed to send invitation',
-        details: error instanceof Error ? error.message : 'Unknown error' 
+        details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
@@ -344,12 +306,19 @@ export const affiliateRoutes = async (server: FastifyInstance) => {
   // Update affiliate
   server.put('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = affiliateSchema.partial().parse(request.body);
+    const parsedBody = affiliateSchema.partial().parse(request.body);
     const tenantId = request.user?.tenantId;
 
     if (!tenantId) {
       return reply.code(400).send({ error: 'Tenant ID is required' });
     }
+
+    // Convert paymentThreshold to string if it exists
+    const body = {
+      ...parsedBody,
+      paymentThreshold: parsedBody.paymentThreshold?.toString(),
+      updatedAt: new Date()
+    };
 
     const result = await db.update(affiliates)
       .set(body)
@@ -437,22 +406,22 @@ async function ensureDefaultTiers(tenantId: string) {
     {
       name: 'bronze',
       description: 'Entry level affiliate tier',
-      commissionRate: 5,
-      minimumSales: 0,
+      commissionRate: '5',
+      minimumSales: '0',
       benefits: ['Basic commission rates', 'Standard support']
     },
     {
       name: 'silver',
       description: 'Mid-level affiliate tier',
-      commissionRate: 10,
-      minimumSales: 1000,
+      commissionRate: '10',
+      minimumSales: '1000',
       benefits: ['Higher commission rates', 'Priority support', 'Monthly newsletter']
     },
     {
       name: 'gold',
       description: 'Top-level affiliate tier',
-      commissionRate: 15,
-      minimumSales: 5000,
+      commissionRate: '15',
+      minimumSales: '5000',
       benefits: ['Premium commission rates', 'VIP support', 'Early access to promotions', 'Custom marketing materials']
     }
   ];
@@ -467,14 +436,17 @@ async function ensureDefaultTiers(tenantId: string) {
 
     if (!existingTier) {
       console.log(`Creating default tier: ${tier.name}`);
-      await db.insert(affiliateTiers).values({
-        tenantId,
-        name: tier.name,
-        description: tier.description,
-        commissionRate: tier.commissionRate,
-        minimumSales: tier.minimumSales,
-        benefits: tier.benefits
-      });
+      await db.insert(affiliateTiers)
+        .values({
+          name: tier.name,
+          description: tier.description,
+          commissionRate: tier.commissionRate,
+          minimumSales: tier.minimumSales,
+          benefits: tier.benefits,
+          tenantId: tenantId,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
     }
   }
 }

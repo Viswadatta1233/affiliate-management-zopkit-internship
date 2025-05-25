@@ -32,6 +32,8 @@ type RoutePermissions = typeof routePermissions;
 const PUBLIC_ROUTES = [
   '/api/auth/login',
   '/api/auth/register',
+  '/api/auth/test-user',
+  '/api/auth/create-test-user'
 ];
 
 // Skip tenant isolation for these paths
@@ -39,6 +41,8 @@ const PUBLIC_PATHS = [
   '/health',
   '/api/auth/login',
   '/api/auth/register',
+  '/api/auth/test-user',
+  '/api/auth/create-test-user'
 ];
 
 // Skip authentication check for these specific endpoints

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Mail, Send } from 'lucide-react';
+import { Mail, Send, Plus, Trash } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -13,6 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAffiliateStore } from '@/store/affiliate-store';
+import { useProductStore } from '@/store/product-store';
+import { Product } from '@/types';
+
+interface ProductCommission {
+  productId: string;
+  commissionRate: number;
+  commissionType: 'percentage' | 'fixed';
+}
 
 export default function InviteAffiliate() {
   const [email, setEmail] = useState('');
@@ -20,12 +28,18 @@ export default function InviteAffiliate() {
   const [lastName, setLastName] = useState('');
   const [initialTier, setInitialTier] = useState('');
   const [commissionRate, setCommissionRate] = useState<number>(10);
+  const [productCommissions, setProductCommissions] = useState<ProductCommission[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
   
   const { inviteAffiliate } = useAffiliateStore();
+  const { products, fetchProducts } = useProductStore();
   
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
@@ -46,9 +60,39 @@ export default function InviteAffiliate() {
     if (commissionRate < 0 || commissionRate > 100) {
       newErrors.commissionRate = 'Commission rate must be between 0 and 100';
     }
+
+    productCommissions.forEach((commission, index) => {
+      if (commission.commissionRate < 0 || commission.commissionRate > 100) {
+        newErrors[`productCommission${index}`] = 'Commission rate must be between 0 and 100';
+      }
+    });
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0 ? {} : newErrors;
+  };
+
+  const addProductCommission = () => {
+    setProductCommissions([
+      ...productCommissions,
+      {
+        productId: '',
+        commissionRate: 10,
+        commissionType: 'percentage'
+      }
+    ]);
+  };
+
+  const removeProductCommission = (index: number) => {
+    setProductCommissions(productCommissions.filter((_, i) => i !== index));
+  };
+
+  const updateProductCommission = (index: number, field: keyof ProductCommission, value: string | number) => {
+    const updatedCommissions = [...productCommissions];
+    updatedCommissions[index] = {
+      ...updatedCommissions[index],
+      [field]: field === 'commissionRate' ? parseFloat(value as string) : value
+    };
+    setProductCommissions(updatedCommissions);
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +101,6 @@ export default function InviteAffiliate() {
     setError('');
 
     try {
-      // Validate form
       const validationErrors = validateForm();
       if (Object.keys(validationErrors).length > 0) {
         setErrors(validationErrors);
@@ -70,7 +113,8 @@ export default function InviteAffiliate() {
         firstName,
         lastName,
         initialTier: initialTier || undefined,
-        commissionRate: parseFloat(commissionRate.toString())
+        commissionRate: parseFloat(commissionRate.toString()),
+        productCommissions: productCommissions.length > 0 ? productCommissions : undefined
       };
 
       console.log('Submitting invite form with data:', data);
@@ -92,6 +136,7 @@ export default function InviteAffiliate() {
       setLastName('');
       setInitialTier('');
       setCommissionRate(10);
+      setProductCommissions([]);
       setErrors({});
     } catch (error) {
       console.error('Error submitting invite form:', error);
@@ -136,76 +181,46 @@ export default function InviteAffiliate() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="email" className={`text-base ${errors.email ? 'text-red-500' : ''}`}>
-                  Email Address*
-                </Label>
+                <Label htmlFor="email">Email Address*</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="affiliate@example.com"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (errors.email) {
-                      setErrors({ ...errors, email: '' });
-                    }
-                  }}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="affiliate@example.com"
                   required
-                  className={`mt-1 ${errors.email ? 'border-red-500' : ''}`}
                 />
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-                )}
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName" className={`text-base ${errors.firstName ? 'text-red-500' : ''}`}>
-                    First Name
-                  </Label>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
                     id="firstName"
-                    placeholder="John"
                     value={firstName}
-                    onChange={(e) => {
-                      setFirstName(e.target.value);
-                      if (errors.firstName) {
-                        setErrors({ ...errors, firstName: '' });
-                      }
-                    }}
-                    className={`mt-1 ${errors.firstName ? 'border-red-500' : ''}`}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="John"
                   />
-                  {errors.firstName && (
-                    <p className="mt-1 text-sm text-red-500">{errors.firstName}</p>
-                  )}
+                  {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="lastName" className={`text-base ${errors.lastName ? 'text-red-500' : ''}`}>
-                    Last Name
-                  </Label>
+                  <Label htmlFor="lastName">Last Name</Label>
                   <Input
                     id="lastName"
-                    placeholder="Doe"
                     value={lastName}
-                    onChange={(e) => {
-                      setLastName(e.target.value);
-                      if (errors.lastName) {
-                        setErrors({ ...errors, lastName: '' });
-                      }
-                    }}
-                    className={`mt-1 ${errors.lastName ? 'border-red-500' : ''}`}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Doe"
                   />
-                  {errors.lastName && (
-                    <p className="mt-1 text-sm text-red-500">{errors.lastName}</p>
-                  )}
+                  {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
                 </div>
               </div>
               
               <div>
-                <Label htmlFor="tier" className="text-base">Initial Tier</Label>
+                <Label htmlFor="initialTier">Initial Tier</Label>
                 <Select value={initialTier} onValueChange={setInitialTier}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select tier" />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select initial tier" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="bronze">Bronze</SelectItem>
@@ -216,39 +231,114 @@ export default function InviteAffiliate() {
               </div>
               
               <div>
-                <Label htmlFor="commission" className={`text-base ${errors.commissionRate ? 'text-red-500' : ''}`}>
-                  Commission Rate (%)
-                </Label>
+                <Label htmlFor="commissionRate">Default Commission Rate (%)</Label>
                 <Input
-                  id="commission"
+                  id="commissionRate"
                   type="number"
-                  placeholder="10"
+                  value={commissionRate}
+                  onChange={(e) => setCommissionRate(parseFloat(e.target.value))}
                   min="0"
                   max="100"
-                  value={commissionRate}
-                  onChange={(e) => {
-                    setCommissionRate(Number(e.target.value));
-                    if (errors.commissionRate) {
-                      setErrors({ ...errors, commissionRate: '' });
-                    }
-                  }}
-                  className={`mt-1 ${errors.commissionRate ? 'border-red-500' : ''}`}
+                  step="0.1"
                 />
-                {errors.commissionRate && (
-                  <p className="mt-1 text-sm text-red-500">{errors.commissionRate}</p>
-                )}
+                {errors.commissionRate && <p className="text-red-500 text-sm mt-1">{errors.commissionRate}</p>}
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Label>Product-Specific Commission Rates</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addProductCommission}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Product
+                  </Button>
+                </div>
+
+                {productCommissions.map((commission, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-4 items-start border p-4 rounded-lg">
+                    <div className="col-span-5">
+                      <Label>Product</Label>
+                      <Select
+                        value={commission.productId}
+                        onValueChange={(value) => updateProductCommission(index, 'productId', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a product" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="col-span-3">
+                      <Label>Commission Type</Label>
+                      <Select
+                        value={commission.commissionType}
+                        onValueChange={(value) => updateProductCommission(index, 'commissionType', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Percentage</SelectItem>
+                          <SelectItem value="fixed">Fixed Amount</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="col-span-3">
+                      <Label>Rate</Label>
+                      <Input
+                        type="number"
+                        value={commission.commissionRate}
+                        onChange={(e) => updateProductCommission(index, 'commissionRate', e.target.value)}
+                        min="0"
+                        max="100"
+                        step="0.1"
+                      />
+                      {errors[`productCommission${index}`] && (
+                        <p className="text-red-500 text-sm mt-1">{errors[`productCommission${index}`]}</p>
+                      )}
+                    </div>
+
+                    <div className="col-span-1 pt-6">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeProductCommission(index)}
+                      >
+                        <Trash className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-            
-            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>Sending Invitation...</>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  Send Invitation
-                </>
-              )}
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full flex items-center justify-center gap-2"
+              disabled={isSubmitting}
+            >
+              <Send className="h-4 w-4" />
+              {isSubmitting ? 'Sending Invitation...' : 'Send Invitation'}
             </Button>
           </form>
         </CardContent>

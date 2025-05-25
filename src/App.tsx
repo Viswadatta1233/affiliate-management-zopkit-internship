@@ -38,6 +38,7 @@ import Login from '@/pages/auth/login';
 import Register from '@/pages/auth/register';
 import NotFound from '@/pages/not-found';
 import ProductsPage from '@/pages/products';
+import CompleteAffiliateProfile from '@/pages/affiliates/profile/complete';
 
 // Route guard for authenticated routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -74,6 +75,7 @@ function App() {
               <Route path="pending" element={<PendingAffiliates />} />
               <Route path="tiers" element={<AffiliateTiers />} />
               <Route path="invite" element={<InviteAffiliate />} />
+              <Route path="profile/complete" element={<CompleteAffiliateProfile />} />
             </Route>
             
             {/* Tracking Links */}

@@ -8,6 +8,13 @@
       "when": 1747967938694,
       "tag": "0000_big_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1748134841385,
+      "tag": "0001_normal_chimera",
+      "breakpoints": true
     }
   ]
 }

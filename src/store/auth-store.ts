@@ -13,7 +13,7 @@ type AuthState = {
   token: string | null;
   
   // Actions
-  login: (email: string, password: string) => Promise<void>;
+  login: (credentials: { email: string; password: string; tenant?: string; remember?: boolean }) => Promise<{ success: boolean }>;
   register: (data: {
     email: string;
     password: string;
@@ -107,36 +107,55 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      login: async (email, password) => {
+      login: async (credentials) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await api.post('/api/auth/login', {
-            email,
-            password,
-          });
-
+          // Only include tenant in request if it's provided
+          const loginData = {
+            email: credentials.email,
+            password: credentials.password,
+            remember: credentials.remember
+          };
+          
+          if (credentials.tenant) {
+            Object.assign(loginData, { tenant: credentials.tenant });
+          }
+          
+          const response = await api.post('/api/auth/login', loginData);
+          
+          // The response contains token, user, tenant, and role directly
           const { token, user, tenant, role } = response.data;
-          api.setToken(token);
-          set((state) => ({
-            ...state,
-            user,
-            tenant,
-            role,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-            token
-          }));
+          
+          if (token) {
+            localStorage.setItem('token', token);
+            api.setToken(token);
+            
+            set({
+              isAuthenticated: true,
+              user,
+              tenant,
+              role,
+              token,
+              isLoading: false,
+              error: null
+            });
+            
+            return { success: true };
+          } else {
+            throw new Error('No token received from server');
+          }
         } catch (error) {
-          set((state) => ({
-            ...state,
-            error: error instanceof Error ? error.message : "An error occurred during login",
-            isLoading: false,
-            isAuthenticated: false,
-            user: null,
-            tenant: null,
-            role: null
-          }));
+          let errorMessage = 'Invalid email or password';
+          
+          if (error instanceof Error) {
+            if (error.message.includes('tenant')) {
+              errorMessage = 'Please specify your tenant subdomain';
+            } else if (error.message.includes('temporary password')) {
+              errorMessage = 'Please change your temporary password';
+            }
+          }
+          
+          set({ isLoading: false, error: errorMessage });
           throw error;
         }
       },
@@ -172,26 +191,50 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        set({ isLoading: true });
         try {
+          const token = localStorage.getItem('token');
+          
+          // Try to call the logout endpoint, but don't fail if it doesn't exist
+          try {
+            if (token) {
+              await api.post('/api/auth/logout', {}, { 
+                headers: { Authorization: `Bearer ${token}` } 
+              });
+            }
+          } catch (error) {
+            // Log but don't throw the error if the endpoint doesn't exist
+            console.log('Logout endpoint not available:', error);
+          }
+          
+          // Always clear local state and tokens
+          localStorage.removeItem('token');
           api.clearToken();
-          set((state) => ({
-            ...state,
+          
+          set({
+            isAuthenticated: false,
             user: null,
             tenant: null,
             role: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: null,
-            token: null
-          }));
+            token: null,
+            error: null
+          });
+
+          // Return to login page
+          window.location.href = '/login';
         } catch (error) {
-          set((state) => ({
-            ...state,
-            error: error instanceof Error ? error.message : "An error occurred during logout",
-            isLoading: false
-          }));
-          throw error;
+          console.error('Error during logout cleanup:', error);
+          // Still try to clear everything even if there's an error
+          localStorage.removeItem('token');
+          api.clearToken();
+          set({
+            isAuthenticated: false,
+            user: null,
+            tenant: null,
+            role: null,
+            token: null,
+            error: null
+          });
+          window.location.href = '/login';
         }
       },
 
