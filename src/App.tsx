@@ -47,6 +47,7 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuthStore();
 
   if (isLoading) {
+    console.log('Loading...');
     return <div>Loading...</div>;
   }
 
