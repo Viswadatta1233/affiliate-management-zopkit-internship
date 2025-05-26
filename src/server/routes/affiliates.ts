@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db';
-import { affiliateInvites, trackingLinks, users, products, commissionTiers, commissionRules, roles, affiliateProductCommissions } from '../db/schema';
+import { affiliateInvites, trackingLinks, users, products, commissionTiers, commissionRules, roles, affiliateProductCommissions, affiliateDetails, tenants } from '../db/schema';
 import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { UserJwtPayload } from '../security';
 import nodemailer from 'nodemailer';
@@ -12,6 +12,12 @@ import bcrypt from 'bcrypt';
 const inviteAffiliateSchema = z.object({
   email: z.string().email('Invalid email address'),
   productId: z.string().uuid('Invalid product ID'),
+});
+
+const affiliateDetailsSchema = z.object({
+  websiteUrl: z.string().url().optional(),
+  socialMedia: z.record(z.string(), z.string()).optional(),
+  promotionalMethods: z.array(z.string()).optional(),
 });
 
 // Create nodemailer transporter
@@ -361,6 +367,242 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (error) {
       fastify.log.error('Error fetching product commissions:', error);
       return reply.status(500).send({ error: 'Failed to fetch product commissions' });
+    }
+  });
+
+  // Get pending affiliate invites
+  fastify.get('/pending-invites', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const tenantId = request.user.tenantId;
+
+      // Fetch pending invites with product details
+      const pendingInvites = await db.query.affiliateInvites.findMany({
+        where: and(
+          eq(affiliateInvites.tenantId, tenantId),
+          eq(affiliateInvites.status, 'pending')
+        ),
+        with: {
+          product: {
+            columns: {
+              id: true,
+              name: true,
+              description: true,
+              commissionPercent: true
+            }
+          }
+        },
+        orderBy: (invites) => invites.createdAt
+      });
+
+      return pendingInvites;
+    } catch (error) {
+      fastify.log.error('Error fetching pending invites:', error);
+      return reply.status(500).send({ error: 'Failed to fetch pending invites' });
+    }
+  });
+
+  // Approve affiliate invite
+  fastify.post('/approve/:id', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const tenantId = request.user.tenantId;
+      const inviteId = (request.params as { id: string }).id;
+
+      // Find invite
+      const invite = await db.query.affiliateInvites.findFirst({
+        where: and(
+          eq(affiliateInvites.id, inviteId),
+          eq(affiliateInvites.tenantId, tenantId),
+          eq(affiliateInvites.status, 'pending')
+        ),
+      });
+
+      if (!invite) {
+        return reply.status(404).send({ error: 'Invite not found' });
+      }
+
+      // Update invite status
+      await db.update(affiliateInvites)
+        .set({ 
+          status: 'accepted',
+          acceptedAt: new Date(),
+        })
+        .where(eq(affiliateInvites.id, inviteId));
+
+      return { message: 'Invite approved successfully' };
+    } catch (error) {
+      fastify.log.error('Error approving invite:', error);
+      return reply.status(500).send({ error: 'Failed to approve invite' });
+    }
+  });
+
+  // Reject affiliate invite
+  fastify.post('/reject/:id', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const tenantId = request.user.tenantId;
+      const inviteId = (request.params as { id: string }).id;
+
+      // Find invite
+      const invite = await db.query.affiliateInvites.findFirst({
+        where: and(
+          eq(affiliateInvites.id, inviteId),
+          eq(affiliateInvites.tenantId, tenantId),
+          eq(affiliateInvites.status, 'pending')
+        ),
+      });
+
+      if (!invite) {
+        return reply.status(404).send({ error: 'Invite not found' });
+      }
+
+      // Update invite status
+      await db.update(affiliateInvites)
+        .set({ 
+          status: 'rejected',
+        })
+        .where(eq(affiliateInvites.id, inviteId));
+
+      return { message: 'Invite rejected successfully' };
+    } catch (error) {
+      fastify.log.error('Error rejecting invite:', error);
+      return reply.status(500).send({ error: 'Failed to reject invite' });
+    }
+  });
+
+  // Get commission tiers for tenant
+  fastify.get('/commission-tiers', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const tenantId = request.user.tenantId;
+
+      // Fetch all commission tiers for this tenant
+      const tiers = await db.query.commissionTiers.findMany({
+        where: eq(commissionTiers.tenantId, tenantId),
+        orderBy: (tier) => tier.minSales
+      });
+
+      return tiers;
+    } catch (error) {
+      fastify.log.error('Error fetching commission tiers:', error);
+      return reply.status(500).send({ error: 'Failed to fetch commission tiers' });
+    }
+  });
+
+  // Get all affiliates with their tier information
+  fastify.get('/affiliates', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const tenantId = request.user.tenantId;
+
+      // Fetch all users who are affiliates for this tenant
+      const affiliates = await db.query.users.findMany({
+        where: and(
+          eq(users.tenantId, tenantId),
+          eq(users.isAffiliate, true)
+        ),
+        with: {
+          role: true
+        }
+      });
+
+      // Get commission tier information for each affiliate
+      const affiliatesWithTiers = await Promise.all(
+        affiliates.map(async (affiliate) => {
+          // Get the latest commission tier for this affiliate
+          const latestCommission = await db.query.affiliateProductCommissions.findFirst({
+            where: eq(affiliateProductCommissions.affiliateId, affiliate.id),
+            orderBy: (commissions) => commissions.createdAt,
+            with: {
+              commissionTier: true
+            }
+          });
+
+          return {
+            id: affiliate.id,
+            firstName: affiliate.firstName,
+            lastName: affiliate.lastName,
+            email: affiliate.email,
+            commissionTierId: latestCommission?.commissionTierId || null,
+            commissionTier: latestCommission?.commissionTier || null
+          };
+        })
+      );
+
+      return affiliatesWithTiers;
+    } catch (error) {
+      fastify.log.error('Error fetching affiliates:', error);
+      return reply.status(500).send({ error: 'Failed to fetch affiliates' });
+    }
+  });
+
+  // Get current affiliate's details (or by userId query param)
+  fastify.get('/details', async (request, reply) => {
+    try {
+      // Accept userId from query param for admin view, or fallback to authenticated user
+      const userId = (request.query as any).userId || request.user?.userId;
+      if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
+      // Try to find details
+      let details = await db.query.affiliateDetails.findFirst({ where: eq(affiliateDetails.userId, userId) });
+      if (!details) {
+        // Auto-fill from backend
+        const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+        if (!user) return reply.status(404).send({ error: 'User not found' });
+        const tenant = await db.query.tenants.findFirst({ where: eq(tenants.id, user.tenantId) });
+        // Get referral code from trackingLinks
+        const tracking = await db.query.trackingLinks.findFirst({ where: eq(trackingLinks.affiliateId, userId) });
+        // Get current tier from affiliateProductCommissions
+        const commission = await db.query.affiliateProductCommissions.findFirst({ where: eq(affiliateProductCommissions.affiliateId, userId) });
+        details = await db.insert(affiliateDetails).values({
+          tenantId: user.tenantId,
+          tenantName: tenant?.tenantName || '',
+          userId: user.id,
+          referralCode: tracking?.trackingCode || '',
+          currentTier: commission?.commissionTierId || null,
+          websiteUrl: '',
+          socialMedia: {},
+          promotionalMethods: [],
+        }).returning().then(r => r[0]);
+      }
+      return details;
+    } catch (error) {
+      fastify.log.error('Error fetching affiliate details:', error);
+      return reply.status(500).send({ error: 'Failed to fetch affiliate details' });
+    }
+  });
+
+  // Update affiliate details (only editable fields)
+  fastify.put('/details', async (request, reply) => {
+    try {
+      if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
+      const userId = request.user.userId;
+      const body = affiliateDetailsSchema.safeParse(request.body);
+      if (!body.success) return reply.status(400).send({ error: body.error.flatten() });
+      const { websiteUrl, socialMedia, promotionalMethods } = body.data;
+      const [updated] = await db.update(affiliateDetails)
+        .set({ websiteUrl, socialMedia, promotionalMethods, updatedAt: new Date() })
+        .where(eq(affiliateDetails.userId, userId))
+        .returning();
+      return updated;
+    } catch (error) {
+      fastify.log.error('Error updating affiliate details:', error);
+      return reply.status(500).send({ error: 'Failed to update affiliate details' });
     }
   });
 };

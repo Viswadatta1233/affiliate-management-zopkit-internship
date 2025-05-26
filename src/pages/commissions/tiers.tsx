@@ -30,7 +30,12 @@ export default function CommissionTiers() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (payload: any) => apiCommissionTiers.create(payload),
+    mutationFn: (payload: any) =>
+      apiCommissionTiers.create({
+        tierName: payload.tier_name,
+        commissionPercent: parseFloat(payload.commission_percent),
+        minSales: parseInt(payload.min_sales, 10),
+      }),
     onSuccess: () => {
       toast({ title: 'Tier created' });
       setIsDialogOpen(false);
@@ -41,7 +46,12 @@ export default function CommissionTiers() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...payload }: any) => apiCommissionTiers.update(id, payload),
+    mutationFn: ({ id, ...payload }: any) =>
+      apiCommissionTiers.update(id, {
+        tierName: payload.tier_name,
+        commissionPercent: parseFloat(payload.commission_percent),
+        minSales: parseInt(payload.min_sales, 10),
+      }),
     onSuccess: () => {
       toast({ title: 'Tier updated' });
       setEditTier(null);
@@ -156,36 +166,38 @@ export default function CommissionTiers() {
         </Dialog>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md p-6 w-full overflow-x-auto">
+      <div className="bg-card rounded-xl shadow-md p-6 w-full overflow-x-auto">
         <div className="mb-4">
           <h2 className="text-xl font-semibold">Commission Tiers</h2>
           <p className="text-muted-foreground">Configure tier-based commission rates</p>
         </div>
         {isLoading ? (
-          <div>Loading...</div>
+          <div className="text-center py-6">Loading...</div>
+        ) : !data || data.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground text-lg">No commission tiers found.</div>
         ) : (
           <table className="min-w-full table-auto border-separate border-spacing-y-2">
             <thead>
               <tr>
-                <th className="text-left px-4 py-2 font-semibold">Tier Name</th>
-                <th className="text-left px-4 py-2 font-semibold">Commission (%)</th>
-                <th className="text-left px-4 py-2 font-semibold">Min Sales</th>
-                <th className="text-right px-4 py-2 font-semibold">Actions</th>
+                <th className="text-left px-4 py-2 font-semibold text-foreground">Tier Name</th>
+                <th className="text-left px-4 py-2 font-semibold text-foreground">Commission (%)</th>
+                <th className="text-left px-4 py-2 font-semibold text-foreground">Min Sales</th>
+                <th className="text-right px-4 py-2 font-semibold text-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
               {data?.map((tier: any) => (
-                <tr key={tier.id} className="bg-gray-50 hover:bg-gray-100 rounded-lg">
-                  <td className="px-4 py-3 rounded-l-lg">{tier.tier_name}</td>
-                  <td className="px-4 py-3">{tier.commission_percent}</td>
-                  <td className="px-4 py-3">{tier.min_sales}</td>
+                <tr key={tier.id} className="bg-muted/50 hover:bg-muted rounded-lg">
+                  <td className="px-4 py-3 rounded-l-lg text-foreground">{tier.tier_name || tier.tierName || '-'}</td>
+                  <td className="px-4 py-3 text-foreground">{tier.commission_percent || tier.commissionPercent || '-'}%</td>
+                  <td className="px-4 py-3 text-foreground">{tier.min_sales || tier.minSales || '-'}</td>
                   <td className="px-4 py-3 text-right rounded-r-lg">
                     <div className="flex justify-end gap-2">
                       <Button
                         size="icon"
                         variant="ghost"
                         onClick={() => setEditTier({ ...tier })}
-                        className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200"
+                        className="text-muted-foreground hover:text-primary hover:bg-primary/10"
                         aria-label="Edit"
                       >
                         <Pencil className="h-5 w-5" />
@@ -194,7 +206,7 @@ export default function CommissionTiers() {
                         size="icon"
                         variant="ghost"
                         onClick={() => setDeleteId(tier.id)}
-                        className="text-gray-600 hover:text-red-600 hover:bg-red-50 border border-gray-200"
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         aria-label="Delete"
                       >
                         <Trash2 className="h-5 w-5" />

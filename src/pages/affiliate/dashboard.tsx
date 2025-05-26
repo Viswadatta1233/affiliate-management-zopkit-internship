@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 import { apiProducts } from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface TrackingLink {
   id: string;
@@ -18,10 +20,63 @@ interface TrackingLink {
   product: any | null;
 }
 
+interface AffiliateDetails {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  userId: string;
+  referralCode: string;
+  currentTier: string;
+  websiteUrl: string;
+  socialMedia: Record<string, string>;
+  promotionalMethods: string[];
+}
+
+const SOCIAL_MEDIA_OPTIONS = [
+  { label: 'Facebook', value: 'facebook' },
+  { label: 'Twitter', value: 'twitter' },
+  { label: 'LinkedIn', value: 'linkedin' },
+  { label: 'Instagram', value: 'instagram' },
+  { label: 'YouTube', value: 'youtube' },
+  { label: 'TikTok', value: 'tiktok' },
+];
+
+const PROMO_METHOD_OPTIONS = [
+  'Blog',
+  'YouTube',
+  'Instagram',
+  'Facebook',
+  'Twitter',
+  'Email Marketing',
+  'Paid Ads',
+  'SEO',
+  'Other',
+];
+
+function isValidUrl(url: string) {
+  if (!url) return false;
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default function AffiliateDashboard() {
   const { toast } = useToast();
   const [productMap, setProductMap] = useState<Record<string, any>>({});
   const tenant = useAuthStore((state) => state.tenant);
+  const queryClient = useQueryClient();
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    websiteUrl: '',
+    socialMedia: {} as Record<string, string>,
+    promotionalMethods: [] as string[],
+    selectedSocial: '',
+    socialUrl: '',
+  });
+  const [formError, setFormError] = useState('');
 
   const { data: trackingLinks, isLoading, error } = useQuery<TrackingLink[]>({
     queryKey: ['affiliate-dashboard'],
@@ -46,6 +101,103 @@ export default function AffiliateDashboard() {
       return response.data;
     },
   });
+
+  // Fetch affiliate details
+  const { data: affiliateDetails } = useQuery<AffiliateDetails>({
+    queryKey: ['affiliate-details'],
+    queryFn: async () => (await api.get('/api/affiliates/details')).data,
+    onSuccess: (data: AffiliateDetails) => {
+      setProfileForm(f => ({
+        ...f,
+        websiteUrl: data.websiteUrl || '',
+        socialMedia: data.socialMedia || {},
+        promotionalMethods: data.promotionalMethods || [],
+      }));
+    },
+  });
+
+  // Fetch commission tier name if currentTier is present
+  const { data: tierName } = useQuery<string>({
+    queryKey: ['commission-tier-name', affiliateDetails?.currentTier],
+    queryFn: async () => {
+      if (!affiliateDetails?.currentTier) return '';
+      const res = await api.get(`/api/commissions/tiers`);
+      const tier = res.data.find((t: any) => t.id === affiliateDetails.currentTier);
+      return tier ? tier.tierName || tier.tier_name : affiliateDetails.currentTier;
+    },
+    enabled: !!affiliateDetails?.currentTier,
+  });
+
+  // Update affiliate details mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (payload: any) => api.put('/api/affiliates/details', payload),
+    onSuccess: () => {
+      setFormError('');
+      toast({ title: 'Profile updated' });
+      setShowProfileForm(false);
+      queryClient.invalidateQueries({ queryKey: ['affiliate-details'] });
+    },
+    onError: () => setFormError('Please check your inputs. Website and social media URLs must be valid.'),
+  });
+
+  // Handle add social media
+  const handleAddSocial = () => {
+    if (!profileForm.selectedSocial) return;
+    if (!isValidUrl(profileForm.socialUrl)) {
+      setFormError('Please enter a valid URL for the selected social media.');
+      return;
+    }
+    setProfileForm(f => ({
+      ...f,
+      socialMedia: { ...f.socialMedia, [f.selectedSocial]: f.socialUrl },
+      selectedSocial: '',
+      socialUrl: '',
+    }));
+    setFormError('');
+  };
+
+  // Handle remove social media
+  const handleRemoveSocial = (platform: string) => {
+    setProfileForm(f => {
+      const updated = { ...f.socialMedia };
+      delete updated[platform];
+      return { ...f, socialMedia: updated };
+    });
+  };
+
+  // Handle promo method toggle
+  const handlePromoToggle = (method: string) => {
+    setProfileForm(f =>
+      f.promotionalMethods.includes(method)
+        ? { ...f, promotionalMethods: f.promotionalMethods.filter(m => m !== method) }
+        : { ...f, promotionalMethods: [...f.promotionalMethods, method] }
+    );
+  };
+
+  // Handle form submit
+  const handleProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Validate website URL if present
+    if (profileForm.websiteUrl && !isValidUrl(profileForm.websiteUrl)) {
+      setFormError('Please enter a valid website URL or leave it blank.');
+      return;
+    }
+    // Validate all social media URLs
+    for (const url of Object.values(profileForm.socialMedia)) {
+      if (url && !isValidUrl(url)) {
+        setFormError('Please enter valid URLs for all social media links.');
+        return;
+      }
+    }
+    setFormError('');
+    // Only send non-empty, valid fields
+    const payload: any = {
+      promotionalMethods: profileForm.promotionalMethods,
+    };
+    if (profileForm.websiteUrl) payload.websiteUrl = profileForm.websiteUrl;
+    if (Object.keys(profileForm.socialMedia).length > 0) payload.socialMedia = profileForm.socialMedia;
+    updateProfileMutation.mutate(payload);
+  };
 
   // Fetch missing product details
   useEffect(() => {
@@ -112,6 +264,91 @@ export default function AffiliateDashboard() {
               Welcome to the affiliate dashboard for <span className="font-semibold">{tenant?.tenantName || 'your program'}</span>.
             </CardDescription>
           </CardHeader>
+        </Card>
+        {/* Affiliate Profile Card */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Affiliate Profile</CardTitle>
+            <CardDescription>Manage your affiliate details</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {affiliateDetails && !showProfileForm ? (
+              <div className="space-y-2">
+                <div><b>Referral Code:</b> {affiliateDetails.referralCode}</div>
+                <div><b>Current Tier:</b> {tierName || affiliateDetails.currentTier || 'N/A'}</div>
+                <div><b>Website URL:</b> {affiliateDetails.websiteUrl || 'N/A'}</div>
+                <div><b>Social Media:</b> {Object.entries(affiliateDetails.socialMedia || {}).map(([k, v]) => v ? `${k}: ${v}` : null).filter(Boolean).join(', ') || 'N/A'}</div>
+                <div><b>Promotional Methods:</b> {affiliateDetails.promotionalMethods?.join(', ') || 'N/A'}</div>
+                <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowProfileForm(true)}>
+                  Update Profile
+                </Button>
+              </div>
+            ) : (
+              <form className="space-y-4" onSubmit={handleProfileSubmit}>
+                {formError && <div className="text-red-600 text-sm mb-2">{formError}</div>}
+                <div>
+                  <label className="block font-medium mb-1">Website URL</label>
+                  <input
+                    type="url"
+                    className="input input-bordered w-full"
+                    value={profileForm.websiteUrl}
+                    onChange={e => setProfileForm(f => ({ ...f, websiteUrl: e.target.value }))}
+                    placeholder="https://yourwebsite.com"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium mb-1">Add Social Media</label>
+                  <div className="flex gap-2 items-center mb-2">
+                    <Select value={profileForm.selectedSocial} onValueChange={val => setProfileForm(f => ({ ...f, selectedSocial: val }))}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Select platform" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SOCIAL_MEDIA_OPTIONS.filter(opt => !profileForm.socialMedia[opt.value]).map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <input
+                      type="url"
+                      className="input input-bordered flex-1"
+                      placeholder="https://social.com/yourprofile"
+                      value={profileForm.socialUrl}
+                      onChange={e => setProfileForm(f => ({ ...f, socialUrl: e.target.value }))}
+                    />
+                    <Button type="button" size="sm" onClick={handleAddSocial}>Add</Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(profileForm.socialMedia).map(([platform, url]) => (
+                      <div key={platform} className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
+                        <span className="text-xs font-medium">{SOCIAL_MEDIA_OPTIONS.find(opt => opt.value === platform)?.label || platform}:</span>
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs underline text-blue-600">{url}</a>
+                        <Button type="button" size="xs" variant="ghost" onClick={() => handleRemoveSocial(platform)}>x</Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block font-medium mb-1">Promotional Methods</label>
+                  <div className="flex flex-wrap gap-3">
+                    {PROMO_METHOD_OPTIONS.map(opt => (
+                      <label key={opt} className="flex items-center gap-1 text-sm">
+                        <Checkbox
+                          checked={profileForm.promotionalMethods.includes(opt)}
+                          onCheckedChange={() => handlePromoToggle(opt)}
+                        />
+                        {opt}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={updateProfileMutation.isPending}>Save</Button>
+                  <Button type="button" variant="outline" onClick={() => setShowProfileForm(false)}>Cancel</Button>
+                </div>
+              </form>
+            )}
+          </CardContent>
         </Card>
         <div className="grid gap-6">
           <Card>

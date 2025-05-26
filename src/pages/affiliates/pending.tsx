@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,52 +14,76 @@ import {
 } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { CheckCircle, XCircle, UserPlus } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import api from '@/lib/axios';
 
-// Sample pending affiliates data
-const pendingAffiliates = [
-  {
-    id: '1',
-    name: 'Sarah Wilson',
-    email: 'sarah@example.com',
-    companyName: 'Wilson Marketing',
-    websiteUrl: 'https://wilson-marketing.com',
-    appliedAt: new Date(2025, 2, 15),
-    promotionalMethods: ['Social Media', 'Blog', 'Email'],
-    initials: 'SW'
-  },
-  {
-    id: '2',
-    name: 'Michael Chen',
-    email: 'michael@example.com',
-    companyName: 'Chen Digital',
-    websiteUrl: 'https://chen-digital.com',
-    appliedAt: new Date(2025, 2, 14),
-    promotionalMethods: ['Social Media', 'Paid Ads'],
-    initials: 'MC'
-  },
-  {
-    id: '3',
-    name: 'Emma Davis',
-    email: 'emma@example.com',
-    companyName: 'Davis & Associates',
-    websiteUrl: 'https://davis-associates.com',
-    appliedAt: new Date(2025, 2, 13),
-    promotionalMethods: ['Blog', 'Email', 'Content Marketing'],
-    initials: 'ED'
-  }
-];
+interface PendingInvite {
+  id: string;
+  email: string;
+  product: {
+    name: string;
+    description: string | null;
+  };
+  createdAt: string;
+  expiresAt: string;
+}
 
 const PendingAffiliates: React.FC = () => {
-  const { user, tenant } = useAuthStore();
+  const { toast } = useToast();
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleApprove = (id: string) => {
-    // Handle affiliate approval
-    console.log('Approve affiliate:', id);
+  useEffect(() => {
+    fetchPendingInvites();
+  }, []);
+
+  const fetchPendingInvites = async () => {
+    try {
+      const response = await api.get('/affiliates/pending-invites');
+      setPendingInvites(response.data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch pending invites",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleReject = (id: string) => {
-    // Handle affiliate rejection
-    console.log('Reject affiliate:', id);
+  const handleApprove = async (id: string) => {
+    try {
+      await api.post(`/affiliates/approve/${id}`);
+      toast({
+        title: "Success",
+        description: "Affiliate invite approved successfully",
+      });
+      fetchPendingInvites(); // Refresh the list
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to approve affiliate invite",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await api.post(`/affiliates/reject/${id}`);
+      toast({
+        title: "Success",
+        description: "Affiliate invite rejected successfully",
+      });
+      fetchPendingInvites(); // Refresh the list
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject affiliate invite",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -82,83 +106,69 @@ const PendingAffiliates: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Affiliate</TableHead>
-                <TableHead className="hidden md:table-cell">Company</TableHead>
-                <TableHead className="hidden lg:table-cell">Website</TableHead>
-                <TableHead className="hidden md:table-cell">Applied</TableHead>
-                <TableHead>Methods</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead className="hidden md:table-cell">Product</TableHead>
+                <TableHead className="hidden lg:table-cell">Invited</TableHead>
+                <TableHead className="hidden md:table-cell">Expires</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pendingAffiliates.map((affiliate) => (
-                <TableRow key={affiliate.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src="" />
-                        <AvatarFallback>{affiliate.initials}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{affiliate.name}</div>
-                        <div className="text-xs text-muted-foreground">{affiliate.email}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {affiliate.companyName}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <a 
-                      href={affiliate.websiteUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      {new URL(affiliate.websiteUrl).hostname}
-                    </a>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {format(affiliate.appliedAt, 'MMM d, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {affiliate.promotionalMethods.map((method, index) => (
-                        <Badge 
-                          key={index} 
-                          variant="secondary" 
-                          className="text-xs"
-                        >
-                          {method}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-green-500 hover:text-green-600"
-                        onClick={() => handleApprove(affiliate.id)}
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive hover:text-destructive/90"
-                        onClick={() => handleReject(affiliate.id)}
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-6">
+                    Loading...
                   </TableCell>
                 </TableRow>
-              ))}
-              {pendingAffiliates.length === 0 && (
+              ) : pendingInvites.length > 0 ? (
+                pendingInvites.map((invite) => (
+                  <TableRow key={invite.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            {invite.email.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{invite.email}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {invite.product.name}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {format(new Date(invite.createdAt), 'MMM d, yyyy')}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {format(new Date(invite.expiresAt), 'MMM d, yyyy')}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-green-500 hover:text-green-600"
+                          onClick={() => handleApprove(invite.id)}
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive hover:text-destructive/90"
+                          onClick={() => handleReject(invite.id)}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6">
+                  <TableCell colSpan={5} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <UserPlus className="h-8 w-8 mb-2" />
                       <p>No pending applications</p>

@@ -45,7 +45,12 @@ export function LoginForm() {
     try {
       await login(data.email, data.password, data.tenant);
       setTimeout(() => {
-        navigate('/');
+        const { user } = useAuthStore.getState();
+        if (user?.isAffiliate) {
+          navigate('/affiliate/dashboard');
+        } else {
+          navigate('/');
+        }
         toast({
           title: 'Login Successful',
           description: 'Welcome back!',

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, Tenant, Role } from '@/types';
-import { api } from '@/lib/api';
+import api from '@/lib/axios';
 
 type AuthState = {
   user: User | null;
@@ -68,8 +68,7 @@ export const useAuthStore = create<AuthState>()(
           
           // Only make the API call if we have a token and no user data
           if (!get().user || !get().tenant || !get().role) {
-            api.setToken(token);
-            const response = await api.get('/api/auth/me');
+            const response = await api.get('/auth/me');
             const { user, tenant, role } = response.data;
             
             console.log('User data loaded successfully:', { user, tenant, role });
@@ -91,7 +90,6 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Error loading user data:', error);
           // Clear invalid token
-          api.clearToken();
           localStorage.removeItem('token');
           
           set((state) => ({
@@ -110,13 +108,13 @@ export const useAuthStore = create<AuthState>()(
       login: async (email, password) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await api.post('/api/auth/login', {
+          const response = await api.post('/auth/login', {
             email,
             password,
           });
 
           const { token, user, tenant, role } = response.data;
-          api.setToken(token);
+          localStorage.setItem('token', token);
           set((state) => ({
             ...state,
             user,
@@ -144,9 +142,9 @@ export const useAuthStore = create<AuthState>()(
       register: async (data) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await api.post('/api/auth/register', data);
+          const response = await api.post('/auth/register', data);
           const { token, user, tenant, role } = response.data;
-          api.setToken(token);
+          localStorage.setItem('token', token);
           set((state) => ({
             ...state,
             user,
@@ -174,7 +172,7 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         set({ isLoading: true });
         try {
-          api.clearToken();
+          localStorage.removeItem('token');
           set((state) => ({
             ...state,
             user: null,
@@ -206,14 +204,6 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         token: state.token,
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state?.token) {
-          console.log('Rehydrating token from storage:', state.token);
-          api.setToken(state.token);
-        } else {
-          console.log('No token found in storage during rehydration');
-        }
-      },
     }
   )
 );

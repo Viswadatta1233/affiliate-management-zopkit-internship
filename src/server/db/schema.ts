@@ -134,10 +134,26 @@ export const affiliateProductCommissions = pgTable('affiliate_product_commission
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const affiliateDetails = pgTable('affiliate_details', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  tenantName: varchar('tenant_name').notNull(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  referralCode: varchar('referral_code'), // tracking_code from tracking_links
+  currentTier: uuid('current_tier').references(() => commissionTiers.id, { onDelete: 'set null' }),
+  websiteUrl: varchar('website_url'),
+  socialMedia: jsonb('social_media'),
+  promotionalMethods: jsonb('promotional_methods'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 // Relations
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   users: many(users),
-  roles: many(roles)
+  roles: many(roles),
+  products: many(products),
+  affiliateInvites: many(affiliateInvites)
 }));
 
 export const rolesRelations = relations(roles, ({ one, many }) => ({
@@ -156,5 +172,39 @@ export const usersRelations = relations(users, ({ one }) => ({
   role: one(roles, {
     fields: [users.roleId],
     references: [roles.id]
+  })
+}));
+
+export const productsRelations = relations(products, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [products.tenantId],
+    references: [tenants.id]
+  }),
+  affiliateInvites: many(affiliateInvites)
+}));
+
+export const affiliateInvitesRelations = relations(affiliateInvites, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [affiliateInvites.tenantId],
+    references: [tenants.id]
+  }),
+  product: one(products, {
+    fields: [affiliateInvites.productId],
+    references: [products.id]
+  })
+}));
+
+export const affiliateDetailsRelations = relations(affiliateDetails, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [affiliateDetails.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [affiliateDetails.userId],
+    references: [users.id],
+  }),
+  tier: one(commissionTiers, {
+    fields: [affiliateDetails.currentTier],
+    references: [commissionTiers.id],
   })
 }));

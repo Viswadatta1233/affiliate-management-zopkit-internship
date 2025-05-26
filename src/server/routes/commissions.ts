@@ -1,7 +1,7 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db';
-import { commissionTiers, products, commissionRules } from '../db/schema';
+import { commissionTiers, products, commissionRules, affiliateProductCommissions, users } from '../db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
 const commissionTierSchema = z.object({
@@ -23,94 +23,171 @@ const commissionRuleSchema = z.object({
   endDate: z.string().optional().nullable(),
 });
 
-export async function commissionRoutes(server: FastifyInstance) {
-  // Get commission tiers
-  server.get('/tiers', async (request, reply) => {
-    const user = request.user;
-    if (!user?.tenantId) return reply.status(401).send({ error: 'Unauthorized' });
-    const tiers = await db.select().from(commissionTiers).where(eq(commissionTiers.tenantId, user.tenantId));
-    // Map to snake_case for frontend
-    return tiers.map(tier => ({
-      id: tier.id,
-      tier_name: tier.tierName,
-      commission_percent: parseFloat(tier.commissionPercent),
-      min_sales: tier.minSales,
-      created_at: tier.createdAt
-    }));
+export const commissionRoutes: FastifyPluginAsync = async (fastify) => {
+  // Get all commission tiers for tenant
+  fastify.get('/tiers', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const tenantId = request.user.tenantId;
+
+      // Fetch all commission tiers for this tenant
+      const tiers = await db.query.commissionTiers.findMany({
+        where: eq(commissionTiers.tenantId, tenantId),
+        orderBy: (tier) => tier.minSales
+      });
+
+      // For each tier, fetch the associated affiliates
+      const tiersWithAffiliates = await Promise.all(
+        tiers.map(async (tier) => {
+          try {
+            // Get all affiliate commissions for this tier
+            const affiliateCommissions = await db
+              .select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                email: users.email
+              })
+              .from(affiliateProductCommissions)
+              .innerJoin(users, eq(affiliateProductCommissions.affiliateId, users.id))
+              .where(
+                and(
+                  eq(affiliateProductCommissions.commissionTierId, tier.id),
+                  eq(affiliateProductCommissions.tenantId, tenantId),
+                  eq(users.isAffiliate, true)
+                )
+              );
+
+            // Get unique affiliates
+            const uniqueAffiliates = Array.from(
+              new Map(affiliateCommissions.map(aff => [aff.id, aff])).values()
+            );
+
+            return {
+              id: tier.id,
+              tierName: tier.tierName,
+              commissionPercent: tier.commissionPercent,
+              minSales: tier.minSales,
+              createdAt: tier.createdAt,
+              affiliates: uniqueAffiliates,
+              affiliateCount: uniqueAffiliates.length
+            };
+          } catch (error) {
+            fastify.log.error(`Error fetching affiliates for tier ${tier.id}:`, error);
+            // Return tier without affiliate information if there's an error
+            return {
+              id: tier.id,
+              tierName: tier.tierName,
+              commissionPercent: tier.commissionPercent,
+              minSales: tier.minSales,
+              createdAt: tier.createdAt,
+              affiliates: [],
+              affiliateCount: 0
+            };
+          }
+        })
+      );
+
+      return tiersWithAffiliates;
+    } catch (error) {
+      fastify.log.error('Error fetching commission tiers:', error);
+      return reply.status(500).send({ error: 'Failed to fetch commission tiers' });
+    }
   });
 
-  // Create commission tier
-  server.post('/tiers', async (request, reply) => {
-    const user = request.user;
-    if (!user?.tenantId) return reply.status(401).send({ error: 'Unauthorized' });
-    const schema = z.object({
-      tier_name: z.string().min(1, 'Tier name is required'),
-      commission_percent: z.coerce.number().min(0, 'Commission must be at least 0').max(100, 'Commission cannot exceed 100'),
-      min_sales: z.coerce.number().min(0, 'Minimum sales must be at least 0'),
-    });
-    const body = schema.safeParse(request.body);
-    if (!body.success) return reply.status(400).send({ error: body.error.flatten() });
-    const [tier] = await db.insert(commissionTiers).values({
-      tenantId: user.tenantId,
-      tierName: body.data.tier_name,
-      commissionPercent: body.data.commission_percent.toString(),
-      minSales: body.data.min_sales,
-    }).returning();
-    // Map to snake_case for frontend
-    return reply.status(201).send({
-      id: tier.id,
-      tier_name: tier.tierName,
-      commission_percent: parseFloat(tier.commissionPercent),
-      min_sales: tier.minSales,
-      created_at: tier.createdAt
-    });
+  // Create new commission tier
+  fastify.post('/tiers', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const tenantId = request.user.tenantId;
+      const { tierName, commissionPercent, minSales } = request.body as {
+        tierName: string;
+        commissionPercent: number;
+        minSales: number;
+      };
+
+      const [tier] = await db.insert(commissionTiers).values({
+        tenantId,
+        tierName,
+        commissionPercent: commissionPercent.toString(),
+        minSales
+      }).returning();
+
+      return tier;
+    } catch (error) {
+      fastify.log.error('Error creating commission tier:', error);
+      return reply.status(500).send({ error: 'Failed to create commission tier' });
+    }
   });
 
   // Update commission tier
-  server.put('/tiers/:id', async (request, reply) => {
-    const user = request.user;
-    if (!user?.tenantId) return reply.status(401).send({ error: 'Unauthorized' });
-    const { id } = request.params as { id: string };
-    const schema = z.object({
-      tier_name: z.string().min(1, 'Tier name is required'),
-      commission_percent: z.coerce.number().min(0, 'Commission must be at least 0').max(100, 'Commission cannot exceed 100'),
-      min_sales: z.coerce.number().min(0, 'Minimum sales must be at least 0'),
-    });
-    const body = schema.safeParse(request.body);
-    if (!body.success) return reply.status(400).send({ error: body.error.flatten() });
-    const [tier] = await db.update(commissionTiers)
-      .set({
-        tierName: body.data.tier_name,
-        commissionPercent: body.data.commission_percent.toString(),
-        minSales: body.data.min_sales,
-      })
-      .where(and(eq(commissionTiers.id, id), eq(commissionTiers.tenantId, user.tenantId)))
-      .returning();
-    if (!tier) return reply.status(404).send({ error: 'Tier not found' });
-    // Map to snake_case for frontend
-    return {
-      id: tier.id,
-      tier_name: tier.tierName,
-      commission_percent: parseFloat(tier.commissionPercent),
-      min_sales: tier.minSales,
-      created_at: tier.createdAt
-    };
+  fastify.put('/tiers/:id', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const tenantId = request.user.tenantId;
+      const tierId = (request.params as { id: string }).id;
+      const { tierName, commissionPercent, minSales } = request.body as {
+        tierName: string;
+        commissionPercent: number;
+        minSales: number;
+      };
+
+      const [tier] = await db.update(commissionTiers)
+        .set({
+          tierName,
+          commissionPercent: commissionPercent.toString(),
+          minSales
+        })
+        .where(eq(commissionTiers.id, tierId))
+        .returning();
+
+      if (!tier) {
+        return reply.status(404).send({ error: 'Commission tier not found' });
+      }
+
+      return tier;
+    } catch (error) {
+      fastify.log.error('Error updating commission tier:', error);
+      return reply.status(500).send({ error: 'Failed to update commission tier' });
+    }
   });
 
   // Delete commission tier
-  server.delete('/tiers/:id', async (request, reply) => {
-    const user = request.user;
-    if (!user?.tenantId) return reply.status(401).send({ error: 'Unauthorized' });
-    const { id } = request.params as { id: string };
-    const [tier] = await db.delete(commissionTiers)
-      .where(and(eq(commissionTiers.id, id), eq(commissionTiers.tenantId, user.tenantId)))
-      .returning();
-    if (!tier) return reply.status(404).send({ error: 'Tier not found' });
-    return tier;
+  fastify.delete('/tiers/:id', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const tenantId = request.user.tenantId;
+      const tierId = (request.params as { id: string }).id;
+
+      const [tier] = await db.delete(commissionTiers)
+        .where(eq(commissionTiers.id, tierId))
+        .returning();
+
+      if (!tier) {
+        return reply.status(404).send({ error: 'Commission tier not found' });
+      }
+
+      return { message: 'Commission tier deleted successfully' };
+    } catch (error) {
+      fastify.log.error('Error deleting commission tier:', error);
+      return reply.status(500).send({ error: 'Failed to delete commission tier' });
+    }
   });
 
   // List all products with commission_percent set for the tenant
-  server.get('/products', async (request, reply) => {
+  fastify.get('/products', async (request, reply) => {
     const user = request.user;
     if (!user?.tenantId) return reply.status(401).send({ error: 'Unauthorized' });
     const prods = await db.select().from(products)
@@ -119,7 +196,7 @@ export async function commissionRoutes(server: FastifyInstance) {
   });
 
   // Update commission_percent for a product
-  server.put('/products/:id', async (request, reply) => {
+  fastify.put('/products/:id', async (request, reply) => {
     const user = request.user;
     if (!user?.tenantId) return reply.status(401).send({ error: 'Unauthorized' });
     const { id } = request.params as { id: string };
@@ -135,7 +212,7 @@ export async function commissionRoutes(server: FastifyInstance) {
   });
 
   // Get commission rules
-  server.get('/rules', async (request, reply) => {
+  fastify.get('/rules', async (request, reply) => {
     const user = request.user;
     if (!user?.tenantId) return reply.status(401).send({ error: 'Unauthorized' });
     const rules = await db.select().from(commissionRules).where(eq(commissionRules.tenantId, user.tenantId));
@@ -157,7 +234,7 @@ export async function commissionRoutes(server: FastifyInstance) {
   });
 
   // Create commission rule
-  server.post('/rules', async (request, reply) => {
+  fastify.post('/rules', async (request, reply) => {
     const user = request.user;
     if (!user?.tenantId) return reply.status(401).send({ error: 'Unauthorized' });
     const schema = z.object({
@@ -205,7 +282,7 @@ export async function commissionRoutes(server: FastifyInstance) {
   });
 
   // Update commission rule
-  server.put('/rules/:id', async (request, reply) => {
+  fastify.put('/rules/:id', async (request, reply) => {
     const user = request.user;
     if (!user?.tenantId) return reply.status(401).send({ error: 'Unauthorized' });
     const { id } = request.params as { id: string };
@@ -257,7 +334,7 @@ export async function commissionRoutes(server: FastifyInstance) {
   });
 
   // Delete commission rule
-  server.delete('/rules/:id', async (request, reply) => {
+  fastify.delete('/rules/:id', async (request, reply) => {
     const user = request.user;
     if (!user?.tenantId) return reply.status(401).send({ error: 'Unauthorized' });
     const { id } = request.params as { id: string };
@@ -267,4 +344,4 @@ export async function commissionRoutes(server: FastifyInstance) {
     if (!rule) return reply.status(404).send({ error: 'Rule not found' });
     return rule;
   });
-}
+};

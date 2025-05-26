@@ -10,6 +10,20 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "affiliate_details" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"tenant_id" uuid NOT NULL,
+	"tenant_name" varchar NOT NULL,
+	"user_id" uuid NOT NULL,
+	"referral_code" varchar,
+	"current_tier" uuid,
+	"website_url" varchar,
+	"social_media" jsonb,
+	"promotional_methods" jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "affiliate_invites" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
@@ -135,6 +149,24 @@ CREATE TABLE IF NOT EXISTS "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email"),
 	CONSTRAINT "users_referral_code_unique" UNIQUE("referral_code")
 );
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "affiliate_details" ADD CONSTRAINT "affiliate_details_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "affiliate_details" ADD CONSTRAINT "affiliate_details_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "affiliate_details" ADD CONSTRAINT "affiliate_details_current_tier_commission_tiers_id_fk" FOREIGN KEY ("current_tier") REFERENCES "commission_tiers"("id") ON DELETE set null ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "affiliate_invites" ADD CONSTRAINT "affiliate_invites_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE cascade ON UPDATE no action;
