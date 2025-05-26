@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, jsonb, boolean, text, integer, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, jsonb, boolean, text, integer, pgEnum, numeric } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Enums
@@ -50,6 +50,88 @@ export const users = pgTable('users', {
   isAffiliate: boolean('is_affiliate').default(false),
   password: varchar('password').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow()
+});
+
+export const products = pgTable('products', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: varchar('name').notNull(),
+  description: text('description'),
+  price: numeric('price', { precision: 10, scale: 2 }).notNull(),
+  sku: varchar('sku'),
+  commissionPercent: numeric('commission_percent', { precision: 5, scale: 2 }),
+  status: varchar('status').default('active'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const commissionTiers = pgTable('commission_tiers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  tierName: varchar('tier_name').notNull(),
+  commissionPercent: numeric('commission_percent', { precision: 5, scale: 2 }).notNull(),
+  minSales: integer('min_sales').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const commissionRules = pgTable('commission_rules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: varchar('name').notNull(),
+  description: text('description'),
+  type: varchar('type').notNull(),
+  condition: varchar('condition').notNull(),
+  value: numeric('value', { precision: 10, scale: 2 }).notNull(),
+  valueType: varchar('value_type').notNull(),
+  status: varchar('status').notNull(),
+  priority: integer('priority').notNull(),
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// New tables for affiliate management
+export const affiliateInvites = pgTable('affiliate_invites', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  email: varchar('email').notNull(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  status: varchar('status').default('pending'),
+  token: varchar('token').notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  acceptedAt: timestamp('accepted_at'),
+});
+
+export const trackingLinks = pgTable('tracking_links', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // Add tenant_id column (linked to tenants.id)
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id, { onDelete: 'cascade' }), // ✅ Corrected
+  affiliateId: uuid('affiliate_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id')
+    .notNull()
+    .references(() => products.id, { onDelete: 'cascade' }),
+  trackingCode: varchar('tracking_code').notNull().unique(),
+  totalClicks: integer('total_clicks').default(0),
+  totalConversions: integer('total_conversions').default(0),
+  totalSales: numeric('total_sales', { precision: 10, scale: 2 }).default('0'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const affiliateProductCommissions = pgTable('affiliate_product_commissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  affiliateId: uuid('affiliate_id').references(() => users.id, { onDelete: 'set null' }), // initially null, set on accept
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  trackingLinkId: uuid('tracking_link_id').references(() => trackingLinks.id, { onDelete: 'set null' }), // initially null, set on accept
+  commissionTierId: uuid('commission_tier_id').notNull().references(() => commissionTiers.id, { onDelete: 'cascade' }),
+  commissionPercent: numeric('commission_percent', { precision: 5, scale: 2 }).notNull(),
+  productCommission: numeric('product_commission', { precision: 10, scale: 2 }).notNull(),
+  finalCommission: numeric('final_commission', { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 // Relations

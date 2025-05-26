@@ -1,30 +1,21 @@
 // API client for backend services
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL ='http://localhost:3000';
 
 class ApiClient {
-  private token: string | null = null;
-
-  constructor() {
-    // Initialize token from localStorage on client creation
+  getToken() {
     if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('token');
+      return localStorage.getItem('token');
     }
+    return null;
   }
 
   setToken(token: string) {
-    this.token = token;
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token);
     }
-    console.log('API client setToken called:', token);
-  }
-
-  getToken() {
-    return this.token;
   }
 
   clearToken() {
-    this.token = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
     }
@@ -36,9 +27,10 @@ class ApiClient {
       ...(options.headers as Record<string, string> || {}),
     };
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-      console.log('Making authenticated request to:', endpoint, 'with token:', this.token.substring(0, 10) + '...');
+    const token = this.getToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      console.log('Making authenticated request to:', endpoint, 'with token:', token.substring(0, 10) + '...');
     } else {
       console.log('Making unauthenticated request to:', endpoint);
     }
@@ -122,6 +114,43 @@ export const apiAuth = {
   },
 };
 
+// Product endpoints
+export const apiProducts = {
+  getAll: () => {
+    return api.get('/api/products');
+  },
+
+  getById: (id: string) => {
+    return api.get(`/api/products/${id}`);
+  },
+
+  create: (data: {
+    name: string;
+    description?: string;
+    price: number;
+    sku: string;
+    commission_percent: number;
+    status: 'active' | 'inactive';
+  }) => {
+    return api.post('/api/products', data);
+  },
+
+  update: (id: string, data: {
+    name?: string;
+    description?: string;
+    price?: number;
+    sku?: string;
+    commission_percent?: number;
+    status?: 'active' | 'inactive';
+  }) => {
+    return api.put(`/api/products/${id}`, data);
+  },
+
+  delete: (id: string) => {
+    return api.delete(`/api/products/${id}`);
+  },
+};
+
 // Affiliate endpoints
 export const apiAffiliates = {
   getAll: () => {
@@ -160,4 +189,27 @@ export const apiCampaigns = {
   }
 };
 
-// Add more API endpoints as needed
+// Commission Tiers endpoints
+export const apiCommissionTiers = {
+  getAll: () => api.get('/api/commissions/tiers'),
+  create: (data: { tier_name: string; commission_percent: number; min_sales: number }) =>
+    api.post('/api/commissions/tiers', data),
+  update: (id: string, data: { tier_name?: string; commission_percent?: number; min_sales?: number }) =>
+    api.put(`/api/commissions/tiers/${id}`, data),
+  delete: (id: string) => api.delete(`/api/commissions/tiers/${id}`),
+};
+
+// Product Commissions endpoints
+export const apiProductCommissions = {
+  getAll: () => api.get('/api/commissions/products'),
+  update: (id: string, data: { commissionPercent: number }) =>
+    api.put(`/api/commissions/products/${id}`, data),
+};
+
+// Commission Rules endpoints
+export const apiCommissionRules = {
+  getAll: () => api.get('/api/commissions/rules'),
+  create: (data: any) => api.post('/api/commissions/rules', data),
+  update: (id: string, data: any) => api.put(`/api/commissions/rules/${id}`, data),
+  delete: (id: string) => api.delete(`/api/commissions/rules/${id}`),
+};

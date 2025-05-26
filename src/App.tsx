@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 
 // Import pages
 import Dashboard from '@/pages/dashboard';
-import Affiliates from '@/pages/affiliates';
+import Affiliates from '@/pages/affiliates/index';
 import AffiliateProfile from '@/pages/affiliates/profile';
 import PendingAffiliates from '@/pages/affiliates/pending';
 import AffiliateTiers from '@/pages/affiliates/tiers';
@@ -36,6 +36,11 @@ import Billing from '@/pages/settings/billing';
 import Login from '@/pages/auth/login';
 import Register from '@/pages/auth/register';
 import NotFound from '@/pages/not-found';
+import Products from '@/pages/products';
+import CreateProduct from '@/pages/products/create';
+import EditProduct from '@/pages/products/edit';
+import AcceptInvite from '@/pages/affiliate/accept';
+import AffiliateDashboard from '@/pages/affiliate/dashboard';
 
 // Route guard for authenticated routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -61,9 +66,22 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           
-          {/* App routes - protected */}
+          {/* Public affiliate accept route */}
+          <Route path="/affiliate/accept" element={<AcceptInvite />} />
+          
+          {/* Public affiliate dashboard route (no AppShell/sidebar) */}
+          <Route path="/affiliate/dashboard" element={<AffiliateDashboard />} />
+          
+          {/* App routes - protected, with AppShell/sidebar */}
           <Route path="/" element={<PrivateRoute><AppShell /></PrivateRoute>}>
             <Route index element={<Dashboard />} />
+            
+            {/* Products */}
+            <Route path="products">
+              <Route index element={<Products />} />
+              <Route path="create" element={<CreateProduct />} />
+              <Route path=":id/edit" element={<EditProduct />} />
+            </Route>
             
             {/* Affiliate Management */}
             <Route path="affiliates">

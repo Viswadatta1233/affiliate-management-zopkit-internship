@@ -1,8 +1,8 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { authenticateJWT, enforceTenantIsolation } from './security';
-import { authRoutes } from './routes/auth';
 import { pool } from './db';
+import { configureRoutes } from './routes';
 
 // Ensure JWT secret is set
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -24,8 +24,8 @@ server.register(cors, {
 server.addHook('onRequest', authenticateJWT);
 server.addHook('onRequest', enforceTenantIsolation);
 
-// Register routes
-server.register(authRoutes, { prefix: '/api/auth' });
+// Register all routes
+configureRoutes(server);
 
 // Health check route
 server.get('/health', async () => {

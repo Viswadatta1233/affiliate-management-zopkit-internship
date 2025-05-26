@@ -32,6 +32,7 @@ type RoutePermissions = typeof routePermissions;
 const PUBLIC_ROUTES = [
   '/api/auth/login',
   '/api/auth/register',
+  '/api/affiliates/accept',
 ];
 
 // Skip tenant isolation for these paths
@@ -39,6 +40,7 @@ const PUBLIC_PATHS = [
   '/health',
   '/api/auth/login',
   '/api/auth/register',
+  '/api/affiliates/accept',
 ];
 
 interface UserJwtPayload extends JwtPayload {

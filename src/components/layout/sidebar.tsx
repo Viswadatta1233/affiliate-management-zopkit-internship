@@ -26,7 +26,8 @@ import {
   Globe,
   Megaphone,
   MessagesSquare,
-  Plus
+  Plus,
+  Package
 } from 'lucide-react';
 
 import {
@@ -165,6 +166,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
             icon={<BarChart3 className="h-4 w-4" />}
             title="Dashboard"
             isCurrent={isActivePath('/')} />
+
+          {/* Products Management */}
+          <SidebarGroup 
+            title="Products" 
+            icon={<Package className="h-5 w-5" />}
+            defaultOpen={isActivePath('/products')}
+          >
+            <SidebarItem
+              href="/products"
+              icon={<Package className="h-4 w-4" />}
+              title="All Products"
+              isCurrent={isActivePath('/products')}
+            />
+            <SidebarItem
+              href="/products/create"
+              icon={<Plus className="h-4 w-4" />}
+              title="Add Product"
+              isCurrent={isActivePath('/products/create')}
+            />
+          </SidebarGroup>
 
           {/* Affiliate Management */}
           <SidebarGroup 
