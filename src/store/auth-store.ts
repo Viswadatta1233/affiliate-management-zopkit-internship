@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, Tenant, Role } from '@/types';
-import { api } from '@/lib/api';
+import api from '@/lib/axios';
 
 type AuthState = {
   user: User | null;
@@ -13,7 +13,7 @@ type AuthState = {
   token: string | null;
   
   // Actions
-  login: (credentials: { email: string; password: string; tenant?: string; remember?: boolean }) => Promise<{ success: boolean }>;
+  login: (email: string, password: string) => Promise<void>;
   register: (data: {
     email: string;
     password: string;
@@ -68,8 +68,7 @@ export const useAuthStore = create<AuthState>()(
           
           // Only make the API call if we have a token and no user data
           if (!get().user || !get().tenant || !get().role) {
-            api.setToken(token);
-            const response = await api.get('/api/auth/me');
+            const response = await api.get('/auth/me');
             const { user, tenant, role } = response.data;
             
             console.log('User data loaded successfully:', { user, tenant, role });
@@ -91,7 +90,6 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Error loading user data:', error);
           // Clear invalid token
-          api.clearToken();
           localStorage.removeItem('token');
           
           set((state) => ({
@@ -107,55 +105,36 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      login: async (credentials) => {
+      login: async (email, password) => {
         set({ isLoading: true, error: null });
         try {
-          // Only include tenant in request if it's provided
-          const loginData = {
-            email: credentials.email,
-            password: credentials.password,
-            remember: credentials.remember
-          };
-          
-          if (credentials.tenant) {
-            Object.assign(loginData, { tenant: credentials.tenant });
-          }
-          
-          const response = await api.post('/api/auth/login', loginData);
-          
-          // The response contains token, user, tenant, and role directly
+          const response = await api.post('/auth/login', {
+            email,
+            password,
+          });
+
           const { token, user, tenant, role } = response.data;
-          
-          if (token) {
-            localStorage.setItem('token', token);
-            api.setToken(token);
-            
-            set({
-              isAuthenticated: true,
-              user,
-              tenant,
-              role,
-              token,
-              isLoading: false,
-              error: null
-            });
-            
-            return { success: true };
-          } else {
-            throw new Error('No token received from server');
-          }
+          localStorage.setItem('token', token);
+          set((state) => ({
+            ...state,
+            user,
+            tenant,
+            role,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+            token
+          }));
         } catch (error) {
-          let errorMessage = 'Invalid email or password';
-          
-          if (error instanceof Error) {
-            if (error.message.includes('tenant')) {
-              errorMessage = 'Please specify your tenant subdomain';
-            } else if (error.message.includes('temporary password')) {
-              errorMessage = 'Please change your temporary password';
-            }
-          }
-          
-          set({ isLoading: false, error: errorMessage });
+          set((state) => ({
+            ...state,
+            error: error instanceof Error ? error.message : "An error occurred during login",
+            isLoading: false,
+            isAuthenticated: false,
+            user: null,
+            tenant: null,
+            role: null
+          }));
           throw error;
         }
       },
@@ -163,9 +142,9 @@ export const useAuthStore = create<AuthState>()(
       register: async (data) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await api.post('/api/auth/register', data);
+          const response = await api.post('/auth/register', data);
           const { token, user, tenant, role } = response.data;
-          api.setToken(token);
+          localStorage.setItem('token', token);
           set((state) => ({
             ...state,
             user,
@@ -191,50 +170,26 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
+        set({ isLoading: true });
         try {
-          const token = localStorage.getItem('token');
-          
-          // Try to call the logout endpoint, but don't fail if it doesn't exist
-          try {
-            if (token) {
-              await api.post('/api/auth/logout', {}, { 
-                headers: { Authorization: `Bearer ${token}` } 
-              });
-            }
-          } catch (error) {
-            // Log but don't throw the error if the endpoint doesn't exist
-            console.log('Logout endpoint not available:', error);
-          }
-          
-          // Always clear local state and tokens
           localStorage.removeItem('token');
-          api.clearToken();
-          
-          set({
-            isAuthenticated: false,
+          set((state) => ({
+            ...state,
             user: null,
             tenant: null,
             role: null,
-            token: null,
-            error: null
-          });
-
-          // Return to login page
-          window.location.href = '/login';
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+            token: null
+          }));
         } catch (error) {
-          console.error('Error during logout cleanup:', error);
-          // Still try to clear everything even if there's an error
-          localStorage.removeItem('token');
-          api.clearToken();
-          set({
-            isAuthenticated: false,
-            user: null,
-            tenant: null,
-            role: null,
-            token: null,
-            error: null
-          });
-          window.location.href = '/login';
+          set((state) => ({
+            ...state,
+            error: error instanceof Error ? error.message : "An error occurred during logout",
+            isLoading: false
+          }));
+          throw error;
         }
       },
 
@@ -249,14 +204,6 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         token: state.token,
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state?.token) {
-          console.log('Rehydrating token from storage:', state.token);
-          api.setToken(state.token);
-        } else {
-          console.log('No token found in storage during rehydration');
-        }
-      },
     }
   )
 );

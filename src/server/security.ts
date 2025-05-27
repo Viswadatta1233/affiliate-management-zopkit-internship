@@ -32,8 +32,7 @@ type RoutePermissions = typeof routePermissions;
 const PUBLIC_ROUTES = [
   '/api/auth/login',
   '/api/auth/register',
-  '/api/auth/test-user',
-  '/api/auth/create-test-user'
+  '/api/affiliates/accept',
 ];
 
 // Skip tenant isolation for these paths
@@ -41,13 +40,7 @@ const PUBLIC_PATHS = [
   '/health',
   '/api/auth/login',
   '/api/auth/register',
-  '/api/auth/test-user',
-  '/api/auth/create-test-user'
-];
-
-// Skip authentication check for these specific endpoints
-const SKIP_AUTH_ENDPOINTS = [
-  '/api/affiliates/invite',
+  '/api/affiliates/accept',
 ];
 
 interface UserJwtPayload extends JwtPayload {
@@ -146,38 +139,9 @@ export const configureSecurity = (server: FastifyInstance) => {
 };
 
 export const authenticateJWT = async (request: FastifyRequest, reply: FastifyReply) => {
-  // Skip authentication for public routes and specific endpoints
-  if (PUBLIC_ROUTES.includes(request.url) || 
-      PUBLIC_PATHS.some(path => request.url.startsWith(path)) ||
-      SKIP_AUTH_ENDPOINTS.includes(request.url)) {
-    console.log('Skipping authentication for route:', request.url);
-    
-    // For specific endpoints that need a default tenant, set one
-    if (SKIP_AUTH_ENDPOINTS.includes(request.url)) {
-      try {
-        // Set a default tenant ID for testing purposes
-        const defaultTenant = await db.query.tenants.findFirst();
-        if (defaultTenant) {
-          console.log('Found default tenant:', defaultTenant.id);
-          request.user = {
-            userId: 'default',
-            tenantId: defaultTenant.id,
-            email: 'default@example.com',
-            iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour expiration
-          };
-          request.tenantId = defaultTenant.id;
-          console.log('Set default tenant for endpoint:', request.url, 'tenant:', defaultTenant.id);
-        } else {
-          console.error('No default tenant found for endpoint:', request.url);
-          return reply.code(500).send({ error: 'No default tenant available' });
-        }
-      } catch (error) {
-        console.error('Error finding default tenant:', error);
-        return reply.code(500).send({ error: 'Failed to set default tenant' });
-      }
-    }
-    
+  // Skip authentication for public routes
+  if (PUBLIC_ROUTES.includes(request.url) || PUBLIC_PATHS.some(path => request.url.startsWith(path))) {
+    console.log('Skipping authentication for public route:', request.url);
     return;
   }
 
@@ -245,10 +209,8 @@ export const authenticateJWT = async (request: FastifyRequest, reply: FastifyRep
 };
 
 export const enforceTenantIsolation = async (request: FastifyRequest, reply: FastifyReply) => {
-  // Skip tenant isolation for public routes and specific endpoints
-  if (PUBLIC_ROUTES.includes(request.url) || 
-      PUBLIC_PATHS.some(path => request.url.startsWith(path)) ||
-      SKIP_AUTH_ENDPOINTS.includes(request.url)) {
+  // Skip tenant isolation for public routes
+  if (PUBLIC_ROUTES.includes(request.url) || PUBLIC_PATHS.some(path => request.url.startsWith(path))) {
     return;
   }
 

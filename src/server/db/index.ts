@@ -2,20 +2,13 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
 
-// Get database connection details from environment variables
-const DB_HOST = process.env.DB_HOST || 'localhost';
-const DB_USER = process.env.DB_USER || 'postgres';
-const DB_PASSWORD = process.env.DB_PASSWORD || 'postgres';
-const DB_NAME = process.env.DB_NAME || 'affiliate_db';
-const DB_PORT = parseInt(process.env.DB_PORT || '5432');
-
 // Create a new pool instance
 const pool = new Pool({
-  host: DB_HOST,
-  user: DB_USER,
-  password: DB_PASSWORD,
-  database: DB_NAME,
-  port: DB_PORT,
+  host: 'localhost',
+  user: 'postgres',
+  password: 'datta1234', // Make sure this is a string
+  database: 'affiliate_db',
+  port: 5432,
 });
 
 // Test the connection

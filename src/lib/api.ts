@@ -1,99 +1,91 @@
 // API client for backend services
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL ='http://localhost:3000';
 
 class ApiClient {
-  private token: string | null = null;
-
-  constructor() {
-    // Initialize token from localStorage on client creation
+  getToken() {
     if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('token');
-      console.log('API client initialized with token:', this.token ? `${this.token.substring(0, 10)}...` : 'none');
+      return localStorage.getItem('token');
     }
+    return null;
   }
 
   setToken(token: string) {
-    this.token = token;
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token);
     }
-    console.log('API client setToken called:', token ? `${token.substring(0, 10)}...` : 'none');
-  }
-
-  getToken() {
-    return this.token;
   }
 
   clearToken() {
-    this.token = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
     }
-    console.log('API client token cleared');
   }
 
-  async request(method: string, endpoint: string, data?: any, options: RequestInit = {}) {
-    console.log(`Making ${method} request to ${endpoint}`, data);
-    
+  private async request(endpoint: string, options: RequestInit = {}) {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string> || {}),
+    };
+
+    const token = this.getToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      console.log('Making authenticated request to:', endpoint, 'with token:', token.substring(0, 10) + '...');
+    } else {
+      console.log('Making unauthenticated request to:', endpoint);
+    }
+
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      const token = this.getToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      // Add any custom headers from options
-      if (options.headers) {
-        Object.assign(headers, options.headers);
-      }
-
-      console.log('Request headers:', headers);
-
       const response = await fetch(`${API_URL}${endpoint}`, {
-        method,
+        ...options,
         headers,
-        body: data ? JSON.stringify(data) : undefined,
       });
 
-      console.log(`Response status for ${endpoint}:`, response.status);
-      
-      const responseData = await response.json().catch(() => null);
-      console.log(`Response data for ${endpoint}:`, responseData);
-
       if (!response.ok) {
-        const error = new Error(responseData?.error || 'API request failed');
-        (error as any).status = response.status;
-        (error as any).data = responseData;
-        throw error;
+        const errorData = await response.json().catch(() => ({ message: 'An error occurred' }));
+        console.error('API Error:', {
+          endpoint,
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      return {
-        data: responseData,
-        status: response.status,
-      };
+      const data = await response.json();
+      return { data }; // Wrap the response in a data property
     } catch (error) {
-      console.error(`API Error for ${endpoint}:`, error);
+      console.error('API Request Failed:', {
+        endpoint,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       throw error;
     }
   }
 
   async get(endpoint: string, options: RequestInit = {}) {
-    return this.request('GET', endpoint, undefined, options);
+    return this.request(endpoint, { ...options, method: 'GET' });
   }
 
   async post(endpoint: string, data: any, options: RequestInit = {}) {
-    return this.request('POST', endpoint, data, options);
+    return this.request(endpoint, {
+      ...options,
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   async put(endpoint: string, data: any, options: RequestInit = {}) {
-    return this.request('PUT', endpoint, data, options);
+    return this.request(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   async delete(endpoint: string, options: RequestInit = {}) {
-    return this.request('DELETE', endpoint, undefined, options);
+    return this.request(endpoint, { ...options, method: 'DELETE' });
   }
 }
 
@@ -102,11 +94,7 @@ export const api = new ApiClient();
 // Auth endpoints
 export const apiAuth = {
   login: (email: string, password: string, tenant?: string) => {
-    const endpoint = tenant 
-      ? `/api/auth/login?tenant=${encodeURIComponent(tenant)}`
-      : '/api/auth/login';
-      
-    return api.post(endpoint, { email, password });
+    return api.post('/api/auth/login', { email, password, tenant });
   },
   
   register: (data: {
@@ -126,6 +114,43 @@ export const apiAuth = {
   },
 };
 
+// Product endpoints
+export const apiProducts = {
+  getAll: () => {
+    return api.get('/api/products');
+  },
+
+  getById: (id: string) => {
+    return api.get(`/api/products/${id}`);
+  },
+
+  create: (data: {
+    name: string;
+    description?: string;
+    price: number;
+    sku: string;
+    commission_percent: number;
+    status: 'active' | 'inactive';
+  }) => {
+    return api.post('/api/products', data);
+  },
+
+  update: (id: string, data: {
+    name?: string;
+    description?: string;
+    price?: number;
+    sku?: string;
+    commission_percent?: number;
+    status?: 'active' | 'inactive';
+  }) => {
+    return api.put(`/api/products/${id}`, data);
+  },
+
+  delete: (id: string) => {
+    return api.delete(`/api/products/${id}`);
+  },
+};
+
 // Affiliate endpoints
 export const apiAffiliates = {
   getAll: () => {
@@ -142,21 +167,6 @@ export const apiAffiliates = {
 
   delete: (id: string) => {
     return api.delete(`/api/affiliates/${id}`);
-  },
-  
-  invite: (data: {
-    email: string;
-    firstName?: string;
-    lastName?: string;
-    initialTier?: string;
-    commissionRate?: number;
-    productCommissions?: Array<{
-      productId: string;
-      commissionRate: number;
-      commissionType: 'percentage' | 'fixed';
-    }>;
-  }) => {
-    return api.post('/api/affiliates/invite', data);
   },
 };
 
@@ -179,4 +189,27 @@ export const apiCampaigns = {
   }
 };
 
-// Add more API endpoints as needed
+// Commission Tiers endpoints
+export const apiCommissionTiers = {
+  getAll: () => api.get('/api/commissions/tiers'),
+  create: (data: { tier_name: string; commission_percent: number; min_sales: number }) =>
+    api.post('/api/commissions/tiers', data),
+  update: (id: string, data: { tier_name?: string; commission_percent?: number; min_sales?: number }) =>
+    api.put(`/api/commissions/tiers/${id}`, data),
+  delete: (id: string) => api.delete(`/api/commissions/tiers/${id}`),
+};
+
+// Product Commissions endpoints
+export const apiProductCommissions = {
+  getAll: () => api.get('/api/commissions/products'),
+  update: (id: string, data: { commissionPercent: number }) =>
+    api.put(`/api/commissions/products/${id}`, data),
+};
+
+// Commission Rules endpoints
+export const apiCommissionRules = {
+  getAll: () => api.get('/api/commissions/rules'),
+  create: (data: any) => api.post('/api/commissions/rules', data),
+  update: (id: string, data: any) => api.put(`/api/commissions/rules/${id}`, data),
+  delete: (id: string) => api.delete(`/api/commissions/rules/${id}`),
+};

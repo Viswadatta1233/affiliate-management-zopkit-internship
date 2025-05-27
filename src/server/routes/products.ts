@@ -1,182 +1,193 @@
-import { FastifyInstance, FastifyRequest } from 'fastify';
+import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db';
 import { products } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { UserJwtPayload } from '../security';
 
-// Product validation schema
-const productSchema = z.object({
-  name: z.string().min(2, 'Product name must be at least 2 characters'),
+// Validation schemas
+const createProductSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
-  imageUrl: z.string().url('Must be a valid URL').optional(),
-  price: z.number().positive('Price must be positive'),
-  currency: z.string().length(3, 'Currency must be a 3-letter code'),
-  category: z.string().optional(),
-  status: z.enum(['available', 'unavailable', 'outofstock']),
+  price: z.coerce.number().positive('Price must be positive'),
+  sku: z.string().min(1, 'SKU is required'),
+  commission_percent: z.coerce.number().min(0, 'Commission must be at least 0').max(100, 'Commission cannot exceed 100'),
+  status: z.enum(['active', 'inactive']),
 });
 
-type ProductBody = z.infer<typeof productSchema>;
+const updateProductSchema = createProductSchema.partial();
 
-export const productRoutes = async (server: FastifyInstance) => {
-  // Get all products for a tenant
-  server.get('/', async (request: FastifyRequest, reply) => {
+// Extend FastifyRequest to include user
+declare module 'fastify' {
+  interface FastifyRequest {
+    user?: UserJwtPayload;
+  }
+}
+
+const productRoutes: FastifyPluginAsync = async (fastify) => {
+  // Get all products for tenant
+  fastify.get('/', async (request, reply) => {
     try {
-      // Get tenant ID from authenticated user
-      if (!request.user || !request.user.tenantId) {
-        return reply.code(401).send({ error: 'Unauthorized' });
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
       }
-      
       const tenantId = request.user.tenantId;
-      
-      const productList = await db.query.products.findMany({
+      const allProducts = await db.query.products.findMany({
         where: eq(products.tenantId, tenantId),
-        orderBy: [products.createdAt],
       });
       
-      return { products: productList };
+      // Convert string values to numbers for the frontend
+      return allProducts.map(product => ({
+        ...product,
+        price: parseFloat(product.price || '0'),
+        commission_percent: parseFloat(product.commissionPercent || '0'),
+      }));
     } catch (error) {
-      console.error('Error fetching products:', error);
-      return reply.code(500).send({ error: 'Failed to fetch products' });
+      fastify.log.error('Error fetching products:', error);
+      return reply.status(500).send({ error: 'Failed to fetch products' });
     }
   });
-  
-  // Get product by ID
-  server.get('/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
+
+  // Get single product
+  fastify.get('/:id', async (request, reply) => {
     try {
-      const { id } = request.params;
-      
-      // Get tenant ID from authenticated user
-      if (!request.user || !request.user.tenantId) {
-        return reply.code(401).send({ error: 'Unauthorized' });
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
       }
-      
+      const { id } = request.params as { id: string };
       const tenantId = request.user.tenantId;
       
       const product = await db.query.products.findFirst({
-        where: and(
-          eq(products.id, id),
-          eq(products.tenantId, tenantId)
-        ),
+        where: eq(products.id, id),
       });
-      
-      if (!product) {
-        return reply.code(404).send({ error: 'Product not found' });
+
+      if (!product || product.tenantId !== tenantId) {
+        return reply.status(404).send({ error: 'Product not found' });
       }
-      
-      return { product };
+
+      // Convert string values to numbers for the frontend
+      return {
+        ...product,
+        price: parseFloat(product.price || '0'),
+        commission_percent: parseFloat(product.commissionPercent || '0'),
+      };
     } catch (error) {
-      console.error('Error fetching product:', error);
-      return reply.code(500).send({ error: 'Failed to fetch product' });
+      fastify.log.error('Error fetching product:', error);
+      return reply.status(500).send({ error: 'Failed to fetch product' });
     }
   });
-  
-  // Create new product
-  server.post('/', async (request: FastifyRequest<{ Body: ProductBody }>, reply) => {
+
+  // Create product
+  fastify.post('/', async (request, reply) => {
     try {
-      const body = productSchema.parse(request.body);
-      
-      // Get tenant ID from authenticated user
-      if (!request.user || !request.user.tenantId) {
-        return reply.code(401).send({ error: 'Unauthorized' });
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
       }
-      
       const tenantId = request.user.tenantId;
-      
-      const [product] = await db.insert(products).values({
-        ...body,
-        tenantId,
+      const validatedData = createProductSchema.parse(request.body);
+
+      const [newProduct] = await db.insert(products).values({
+        ...validatedData,
+        tenantId: tenantId,
+        price: validatedData.price.toString(),
+        commissionPercent: validatedData.commission_percent.toString(),
       }).returning();
-      
-      return { product };
+
+      // Convert string values to numbers for the frontend
+      return reply.status(201).send({
+        ...newProduct,
+        price: parseFloat(newProduct.price || '0'),
+        commission_percent: parseFloat(newProduct.commissionPercent || '0'),
+      });
     } catch (error) {
-      console.error('Error creating product:', error);
       if (error instanceof z.ZodError) {
-        return reply.code(400).send({ error: error.errors });
+        return reply.status(400).send({ 
+          error: 'Validation error',
+          details: error.errors 
+        });
       }
-      return reply.code(500).send({ error: 'Failed to create product' });
+      fastify.log.error('Error creating product:', error);
+      return reply.status(500).send({ error: 'Failed to create product' });
     }
   });
-  
+
   // Update product
-  server.put('/:id', async (request: FastifyRequest<{ Params: { id: string }, Body: ProductBody }>, reply) => {
+  fastify.put('/:id', async (request, reply) => {
     try {
-      const { id } = request.params;
-      const body = productSchema.parse(request.body);
-      
-      // Get tenant ID from authenticated user
-      if (!request.user || !request.user.tenantId) {
-        return reply.code(401).send({ error: 'Unauthorized' });
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
       }
-      
+      const { id } = request.params as { id: string };
       const tenantId = request.user.tenantId;
-      
+      const validatedData = updateProductSchema.parse(request.body);
+
       // Check if product exists and belongs to tenant
       const existingProduct = await db.query.products.findFirst({
-        where: and(
-          eq(products.id, id),
-          eq(products.tenantId, tenantId)
-        ),
+        where: eq(products.id, id),
       });
-      
-      if (!existingProduct) {
-        return reply.code(404).send({ error: 'Product not found' });
+
+      if (!existingProduct || existingProduct.tenantId !== tenantId) {
+        return reply.status(404).send({ error: 'Product not found' });
       }
-      
-      const [updatedProduct] = await db.update(products)
-        .set({
-          ...body,
-          updatedAt: new Date(),
-        })
-        .where(and(
-          eq(products.id, id),
-          eq(products.tenantId, tenantId)
-        ))
+
+      const updateData = {
+        ...validatedData,
+        price: validatedData.price?.toString(),
+        commissionPercent: validatedData.commission_percent?.toString(),
+      };
+
+      const [updatedProduct] = await db
+        .update(products)
+        .set(updateData)
+        .where(eq(products.id, id))
         .returning();
-      
-      return { product: updatedProduct };
+
+      // Convert string values to numbers for the frontend
+      return {
+        ...updatedProduct,
+        price: parseFloat(updatedProduct.price || '0'),
+        commission_percent: parseFloat(updatedProduct.commissionPercent || '0'),
+      };
     } catch (error) {
-      console.error('Error updating product:', error);
       if (error instanceof z.ZodError) {
-        return reply.code(400).send({ error: error.errors });
+        return reply.status(400).send({ 
+          error: 'Validation error',
+          details: error.errors 
+        });
       }
-      return reply.code(500).send({ error: 'Failed to update product' });
+      fastify.log.error('Error updating product:', error);
+      return reply.status(500).send({ error: 'Failed to update product' });
     }
   });
-  
+
   // Delete product
-  server.delete('/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
+  fastify.delete('/:id', async (request, reply) => {
     try {
-      const { id } = request.params;
-      
-      // Get tenant ID from authenticated user
-      if (!request.user || !request.user.tenantId) {
-        return reply.code(401).send({ error: 'Unauthorized' });
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
       }
-      
+      const { id } = request.params as { id: string };
       const tenantId = request.user.tenantId;
-      
+
       // Check if product exists and belongs to tenant
       const existingProduct = await db.query.products.findFirst({
-        where: and(
-          eq(products.id, id),
-          eq(products.tenantId, tenantId)
-        ),
+        where: eq(products.id, id),
       });
-      
-      if (!existingProduct) {
-        return reply.code(404).send({ error: 'Product not found' });
+
+      if (!existingProduct || existingProduct.tenantId !== tenantId) {
+        return reply.status(404).send({ error: 'Product not found' });
       }
-      
-      await db.delete(products)
-        .where(and(
-          eq(products.id, id),
-          eq(products.tenantId, tenantId)
-        ));
-      
-      return { success: true, message: 'Product deleted successfully' };
+
+      await db
+        .delete(products)
+        .where(eq(products.id, id));
+
+      return { message: 'Product deleted successfully' };
     } catch (error) {
-      console.error('Error deleting product:', error);
-      return reply.code(500).send({ error: 'Failed to delete product' });
+      fastify.log.error('Error deleting product:', error);
+      return reply.status(500).send({ error: 'Failed to delete product' });
     }
   });
-}; 
+};
+
+export default productRoutes; 

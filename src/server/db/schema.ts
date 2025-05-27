@@ -1,11 +1,9 @@
-import { pgTable, uuid, varchar, timestamp, jsonb, boolean, text, integer, pgEnum, decimal } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, jsonb, boolean, text, integer, pgEnum, numeric } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Enums
 export const userStatusEnum = pgEnum('user_status', ['active', 'inactive', 'pending']);
 export const tenantStatusEnum = pgEnum('tenant_status', ['trial', 'active', 'suspended']);
-export const productStatusEnum = pgEnum('product_status', ['available', 'unavailable', 'outofstock']);
-export const affiliateStatusEnum = pgEnum('affiliate_status', ['pending', 'active', 'rejected', 'suspended']);
 
 // Tables
 export const tenants = pgTable('tenants', {
@@ -54,67 +52,100 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').notNull().defaultNow()
 });
 
-// Affiliate tiers table
-export const affiliateTiers = pgTable('affiliate_tiers', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  name: varchar('name').notNull(),
-  description: text('description'),
-  commissionRate: decimal('commission_rate', { precision: 5, scale: 2 }).notNull(),
-  minimumSales: decimal('minimum_sales', { precision: 10, scale: 2 }),
-  benefits: jsonb('benefits').default([]),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow()
-});
-
-// Affiliates table
-export const affiliates = pgTable('affiliates', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  referralCode: varchar('referral_code').notNull().unique(),
-  initialTierId: uuid('initial_tier_id').references(() => affiliateTiers.id),
-  parentAffiliateId: uuid('parent_affiliate_id'),
-  companyName: varchar('company_name'),
-  websiteUrl: varchar('website_url'),
-  socialMedia: jsonb('social_media'),
-  taxId: varchar('tax_id'),
-  taxFormType: varchar('tax_form_type'),
-  paymentThreshold: decimal('payment_threshold', { precision: 10, scale: 2 }).notNull().default('50'),
-  preferredCurrency: varchar('preferred_currency', { length: 3 }).notNull().default('USD'),
-  promotionalMethods: jsonb('promotional_methods').default([]),
-  status: affiliateStatusEnum('status').default('pending'),
-  approvedBy: uuid('approved_by').references(() => users.id),
-  approvedAt: timestamp('approved_at'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow()
-});
-
-// Products table
 export const products = pgTable('products', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: varchar('name').notNull(),
   description: text('description'),
-  imageUrl: varchar('image_url'),
-  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
-  currency: varchar('currency', { length: 3 }).notNull().default('USD'),
-  category: varchar('category'),
-  status: productStatusEnum('status').default('available'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow()
+  price: numeric('price', { precision: 10, scale: 2 }).notNull(),
+  sku: varchar('sku'),
+  commissionPercent: numeric('commission_percent', { precision: 5, scale: 2 }),
+  status: varchar('status').default('active'),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
-// Affiliate Product Commissions table
+export const commissionTiers = pgTable('commission_tiers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  tierName: varchar('tier_name').notNull(),
+  commissionPercent: numeric('commission_percent', { precision: 5, scale: 2 }).notNull(),
+  minSales: integer('min_sales').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const commissionRules = pgTable('commission_rules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: varchar('name').notNull(),
+  description: text('description'),
+  type: varchar('type').notNull(),
+  condition: varchar('condition').notNull(),
+  value: numeric('value', { precision: 10, scale: 2 }).notNull(),
+  valueType: varchar('value_type').notNull(),
+  status: varchar('status').notNull(),
+  priority: integer('priority').notNull(),
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// New tables for affiliate management
+export const affiliateInvites = pgTable('affiliate_invites', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  email: varchar('email').notNull(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  status: varchar('status').default('pending'),
+  token: varchar('token').notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  acceptedAt: timestamp('accepted_at'),
+});
+
+export const trackingLinks = pgTable('tracking_links', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // Add tenant_id column (linked to tenants.id)
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id, { onDelete: 'cascade' }), // ✅ Corrected
+  affiliateId: uuid('affiliate_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id')
+    .notNull()
+    .references(() => products.id, { onDelete: 'cascade' }),
+  trackingCode: varchar('tracking_code').notNull().unique(),
+  totalClicks: integer('total_clicks').default(0),
+  totalConversions: integer('total_conversions').default(0),
+  totalSales: numeric('total_sales', { precision: 10, scale: 2 }).default('0'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const affiliateProductCommissions = pgTable('affiliate_product_commissions', {
   id: uuid('id').primaryKey().defaultRandom(),
-  affiliateId: uuid('affiliate_id').notNull().references(() => affiliates.id, { onDelete: 'cascade' }),
+  affiliateId: uuid('affiliate_id').references(() => users.id, { onDelete: 'set null' }), // initially null, set on accept
   productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
-  commissionRate: decimal('commission_rate', { precision: 5, scale: 2 }).notNull(),
-  commissionType: varchar('commission_type', { length: 20 }).notNull().default('percentage'),
-  status: varchar('status', { length: 20 }).notNull().default('active'),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  trackingLinkId: uuid('tracking_link_id').references(() => trackingLinks.id, { onDelete: 'set null' }), // initially null, set on accept
+  commissionTierId: uuid('commission_tier_id').notNull().references(() => commissionTiers.id, { onDelete: 'cascade' }),
+  commissionPercent: numeric('commission_percent', { precision: 5, scale: 2 }).notNull(),
+  productCommission: numeric('product_commission', { precision: 10, scale: 2 }).notNull(),
+  finalCommission: numeric('final_commission', { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const affiliateDetails = pgTable('affiliate_details', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  tenantName: varchar('tenant_name').notNull(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  referralCode: varchar('referral_code'), // tracking_code from tracking_links
+  currentTier: uuid('current_tier').references(() => commissionTiers.id, { onDelete: 'set null' }),
+  websiteUrl: varchar('website_url'),
+  socialMedia: jsonb('social_media'),
+  promotionalMethods: jsonb('promotional_methods'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow()
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 // Relations
@@ -122,8 +153,7 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   users: many(users),
   roles: many(roles),
   products: many(products),
-  affiliates: many(affiliates),
-  affiliateTiers: many(affiliateTiers)
+  affiliateInvites: many(affiliateInvites)
 }));
 
 export const rolesRelations = relations(roles, ({ one, many }) => ({
@@ -134,7 +164,7 @@ export const rolesRelations = relations(roles, ({ one, many }) => ({
   users: many(users)
 }));
 
-export const usersRelations = relations(users, ({ one, many }) => ({
+export const usersRelations = relations(users, ({ one }) => ({
   tenant: one(tenants, {
     fields: [users.tenantId],
     references: [tenants.id]
@@ -142,52 +172,39 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   role: one(roles, {
     fields: [users.roleId],
     references: [roles.id]
-  }),
-  affiliates: many(affiliates, { relationName: "userToAffiliates" })
+  })
 }));
 
-export const productsRelations = relations(products, ({ one }) => ({
+export const productsRelations = relations(products, ({ one, many }) => ({
   tenant: one(tenants, {
     fields: [products.tenantId],
     references: [tenants.id]
-  })
+  }),
+  affiliateInvites: many(affiliateInvites)
 }));
 
-export const affiliatesRelations = relations(affiliates, ({ one, many }) => ({
+export const affiliateInvitesRelations = relations(affiliateInvites, ({ one }) => ({
   tenant: one(tenants, {
-    fields: [affiliates.tenantId],
+    fields: [affiliateInvites.tenantId],
     references: [tenants.id]
-  }),
-  user: one(users, {
-    fields: [affiliates.userId],
-    references: [users.id],
-    relationName: "userToAffiliates"
-  }),
-  currentTier: one(affiliateTiers, {
-    fields: [affiliates.initialTierId],
-    references: [affiliateTiers.id]
-  }),
-  parentAffiliate: one(affiliates, {
-    fields: [affiliates.parentAffiliateId],
-    references: [affiliates.id]
-  })
-}));
-
-export const affiliateTiersRelations = relations(affiliateTiers, ({ one, many }) => ({
-  tenant: one(tenants, {
-    fields: [affiliateTiers.tenantId],
-    references: [tenants.id]
-  }),
-  affiliates: many(affiliates)
-}));
-
-export const affiliateProductCommissionsRelations = relations(affiliateProductCommissions, ({ one }) => ({
-  affiliate: one(affiliates, {
-    fields: [affiliateProductCommissions.affiliateId],
-    references: [affiliates.id]
   }),
   product: one(products, {
-    fields: [affiliateProductCommissions.productId],
+    fields: [affiliateInvites.productId],
     references: [products.id]
+  })
+}));
+
+export const affiliateDetailsRelations = relations(affiliateDetails, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [affiliateDetails.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [affiliateDetails.userId],
+    references: [users.id],
+  }),
+  tier: one(commissionTiers, {
+    fields: [affiliateDetails.currentTier],
+    references: [commissionTiers.id],
   })
 }));

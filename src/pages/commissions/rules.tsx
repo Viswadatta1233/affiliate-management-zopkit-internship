@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuthStore } from '@/store/auth-store';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,95 +12,31 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Search, MoreHorizontal, FileText, PlusCircle } from 'lucide-react';
+import { Search, PlusCircle, Pencil, Trash2 } from 'lucide-react';
+import { apiCommissionRules } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
-// Sample commission rules data
-const sampleCommissionRules = [
-  {
-    id: '1',
-    name: 'First Sale Bonus',
-    description: 'Extra commission for affiliate\'s first successful sale',
-    type: 'bonus',
-    condition: 'first_sale',
-    value: 50,
-    valueType: 'fixed',
+const defaultForm = {
+  name: '',
+  description: '',
+  type: '',
+  condition: '',
+  value: '',
+  value_type: '',
     status: 'active',
     priority: 1,
-    startDate: '2025-01-01',
-    endDate: null
-  },
-  {
-    id: '2',
-    name: 'Volume Multiplier',
-    description: 'Increased commission rate for high-volume sales',
-    type: 'multiplier',
-    condition: 'monthly_sales > 10000',
-    value: 1.5,
-    valueType: 'multiplier',
-    status: 'active',
-    priority: 2,
-    startDate: '2025-01-01',
-    endDate: '2025-12-31'
-  },
-  {
-    id: '3',
-    name: 'Seasonal Promotion',
-    description: 'Holiday season commission boost',
-    type: 'bonus',
-    condition: 'date_range',
-    value: 25,
-    valueType: 'percentage',
-    status: 'inactive',
-    priority: 3,
-    startDate: '2025-11-01',
-    endDate: '2025-12-31'
-  }
-];
+  start_date: '',
+  end_date: '',
+};
 
-const CommissionRules: React.FC = () => {
-  const { user, tenant } = useAuthStore();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-
-  // Filter rules based on search query and status filter
-  const filteredRules = sampleCommissionRules.filter(rule => {
-    const matchesSearch = 
-      rule.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rule.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = 
-      statusFilter === 'all' || 
-      rule.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  // Format rule value
-  const formatRuleValue = (value: number, type: string) => {
-    switch (type) {
-      case 'fixed':
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD'
-        }).format(value);
-      case 'percentage':
-        return `${value}%`;
-      case 'multiplier':
-        return `${value}x`;
-      default:
-        return value;
-    }
-  };
-
-  // Get status badge
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -114,7 +50,6 @@ const CommissionRules: React.FC = () => {
     }
   };
 
-  // Get type badge
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'bonus':
@@ -126,32 +61,219 @@ const CommissionRules: React.FC = () => {
     }
   };
 
+const formatRuleValue = (value: any, type: string) => {
+  if (value === null || value === undefined) return '';
+  switch (type) {
+    case 'fixed':
+      return `$${parseFloat(value).toLocaleString()}`;
+    case 'percentage':
+      return `${value}%`;
+    case 'multiplier':
+      return `${value}x`;
+    default:
+      return value;
+  }
+};
+
+export default function CommissionRules() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editRule, setEditRule] = useState<any | null>(null);
+  const [form, setForm] = useState(defaultForm);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['commission-rules'],
+    queryFn: async () => (await apiCommissionRules.getAll()).data,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (payload: any) => apiCommissionRules.create(payload),
+    onSuccess: () => {
+      toast({ title: 'Rule created' });
+      setIsDialogOpen(false);
+      setForm(defaultForm);
+      queryClient.invalidateQueries({ queryKey: ['commission-rules'] });
+    },
+    onError: () => toast({ title: 'Error creating rule', variant: 'destructive' }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, ...payload }: any) => apiCommissionRules.update(id, payload),
+    onSuccess: () => {
+      toast({ title: 'Rule updated' });
+      setEditRule(null);
+      queryClient.invalidateQueries({ queryKey: ['commission-rules'] });
+    },
+    onError: () => toast({ title: 'Error updating rule', variant: 'destructive' }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiCommissionRules.delete(id),
+    onSuccess: () => {
+      toast({ title: 'Rule deleted' });
+      setDeleteId(null);
+      queryClient.invalidateQueries({ queryKey: ['commission-rules'] });
+    },
+    onError: () => toast({ title: 'Error deleting rule', variant: 'destructive' }),
+  });
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate({
+      ...form,
+      value: parseFloat(form.value),
+      priority: parseInt(form.priority as any, 10),
+    });
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editRule) return;
+    updateMutation.mutate({
+      id: editRule.id,
+      ...editRule,
+      value: parseFloat(editRule.value),
+      priority: parseInt(editRule.priority as any, 10),
+    });
+  };
+
+  // Filter rules based on search query and status filter
+  const filteredRules = (data || []).filter((rule: any) => {
+    const matchesSearch =
+      rule.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (rule.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      statusFilter === 'all' || rule.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="container mx-auto p-8 max-w-5xl">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Commission Rules</h1>
-          <p className="text-muted-foreground">
-            Manage special commission rules and bonus conditions.
-          </p>
+          <p className="text-muted-foreground">Manage special commission rules and bonus conditions.</p>
         </div>
-        
-        <Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="shadow-md">
           <PlusCircle className="mr-2 h-4 w-4" />
           Create New Rule
         </Button>
+          </DialogTrigger>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create New Commission Rule</DialogTitle>
+              <DialogDescription>Set up a new commission rule for your tenant.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Rule Name</label>
+                  <Input name="name" value={form.name} onChange={handleFormChange} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Type</label>
+                  <select
+                    name="type"
+                    value={form.type}
+                    onChange={handleFormChange}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    required
+                  >
+                    <option value="">Select Type</option>
+                    <option value="bonus">Bonus</option>
+                    <option value="multiplier">Multiplier</option>
+                    <option value="percentage">Percentage</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">Description</label>
+                <Input name="description" value={form.description} onChange={handleFormChange} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Value</label>
+                  <Input name="value" type="number" value={form.value} onChange={handleFormChange} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Value Type</label>
+                  <select
+                    name="value_type"
+                    value={form.value_type}
+                    onChange={handleFormChange}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    required
+                  >
+                    <option value="">Select Value Type</option>
+                    <option value="fixed">Fixed Amount</option>
+                    <option value="percentage">Percentage</option>
+                    <option value="multiplier">Multiplier</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">Condition</label>
+                <Input name="condition" value={form.condition} onChange={handleFormChange} required />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Status</label>
+                  <select
+                    name="status"
+                    value={form.status}
+                    onChange={handleFormChange}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    required
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="expired">Expired</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Priority</label>
+                  <Input name="priority" type="number" min="1" value={form.priority} onChange={handleFormChange} required />
+                </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <CardTitle>Commission Rules</CardTitle>
-              <CardDescription>
-                Configure special commission rules and bonus conditions.
-              </CardDescription>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Start Date</label>
+                  <Input name="start_date" type="date" value={form.start_date} onChange={handleFormChange} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">End Date (Optional)</label>
+                  <Input name="end_date" type="date" value={form.end_date} onChange={handleFormChange} />
+                </div>
             </div>
             
+              <div className="flex justify-end gap-4 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createMutation.isPending}>Create Rule</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-md p-6 w-full overflow-x-auto">
+        <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex gap-2 w-full sm:w-auto">
               <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -163,112 +285,202 @@ const CommissionRules: React.FC = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="shrink-0">
-                    {statusFilter === 'all' ? 'All Status' : 
-                     statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setStatusFilter('all')}>
-                    All Status
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter('active')}>
-                    Active
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
-                    Inactive
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter('expired')}>
-                    Expired
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="expired">Expired</option>
+            </select>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Rule</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead className="hidden md:table-cell">Condition</TableHead>
-                <TableHead className="hidden lg:table-cell">Priority</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        </div>
+        {isLoading ? (
+          <div>Loading...</div>
+        ) : (
+          <table className="min-w-full table-auto border-separate border-spacing-y-2">
+            <thead>
+              <tr>
+                <th className="text-left px-4 py-2 font-semibold">Rule</th>
+                <th className="text-left px-4 py-2 font-semibold">Type</th>
+                <th className="text-left px-4 py-2 font-semibold">Value</th>
+                <th className="text-left px-4 py-2 font-semibold hidden md:table-cell">Condition</th>
+                <th className="text-left px-4 py-2 font-semibold hidden lg:table-cell">Priority</th>
+                <th className="text-left px-4 py-2 font-semibold">Status</th>
+                <th className="text-right px-4 py-2 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
               {filteredRules.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-6">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <FileText className="h-8 w-8 mb-2" />
-                      <p>No commission rules found</p>
-                      <p className="text-sm">Try adjusting your search or filter</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <tr>
+                  <td colSpan={7} className="text-center py-6 text-muted-foreground">No commission rules found</td>
+                </tr>
               ) : (
-                filteredRules.map((rule) => (
-                  <TableRow key={rule.id}>
-                    <TableCell>
-                      <div>
+                filteredRules.map((rule: any) => (
+                  <tr key={rule.id} className="bg-gray-50 hover:bg-gray-100 rounded-lg">
+                    <td className="px-4 py-3 rounded-l-lg">
                         <div className="font-medium">{rule.name}</div>
                         <div className="text-xs text-muted-foreground">{rule.description}</div>
+                    </td>
+                    <td className="px-4 py-3">{getTypeBadge(rule.type)}</td>
+                    <td className="px-4 py-3">{formatRuleValue(rule.value, rule.value_type)}</td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <code className="text-xs bg-muted px-1 py-0.5 rounded">{rule.condition}</code>
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">{rule.priority}</td>
+                    <td className="px-4 py-3">{getStatusBadge(rule.status)}</td>
+                    <td className="px-4 py-3 text-right rounded-r-lg">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setEditRule({ ...rule })}
+                          className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200"
+                          aria-label="Edit"
+                        >
+                          <Pencil className="h-5 w-5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setDeleteId(rule.id)}
+                          className="text-gray-600 hover:text-red-600 hover:bg-red-50 border border-gray-200"
+                          aria-label="Delete"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </Button>
                       </div>
-                    </TableCell>
-                    <TableCell>{getTypeBadge(rule.type)}</TableCell>
-                    <TableCell>
-                      {formatRuleValue(rule.value, rule.valueType)}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                        {rule.condition}
-                      </code>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {rule.priority}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(rule.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>Edit Rule</DropdownMenuItem>
-                          <DropdownMenuItem>View History</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {rule.status === 'active' ? (
-                            <DropdownMenuItem className="text-destructive focus:text-destructive">
-                              Deactivate
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem>
-                              Activate
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))
               )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editRule} onOpenChange={(open) => !open && setEditRule(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Commission Rule</DialogTitle>
+          </DialogHeader>
+          {editRule && (
+            <form onSubmit={handleEditSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Rule Name</label>
+                  <Input name="name" value={editRule.name} onChange={e => setEditRule({ ...editRule, name: e.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Type</label>
+                  <select
+                    name="type"
+                    value={editRule.type}
+                    onChange={e => setEditRule({ ...editRule, type: e.target.value })}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    required
+                  >
+                    <option value="bonus">Bonus</option>
+                    <option value="multiplier">Multiplier</option>
+                    <option value="percentage">Percentage</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">Description</label>
+                <Input name="description" value={editRule.description} onChange={e => setEditRule({ ...editRule, description: e.target.value })} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Value</label>
+                  <Input name="value" type="number" value={editRule.value} onChange={e => setEditRule({ ...editRule, value: e.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Value Type</label>
+                  <select
+                    name="value_type"
+                    value={editRule.value_type}
+                    onChange={e => setEditRule({ ...editRule, value_type: e.target.value })}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    required
+                  >
+                    <option value="fixed">Fixed Amount</option>
+                    <option value="percentage">Percentage</option>
+                    <option value="multiplier">Multiplier</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">Condition</label>
+                <Input name="condition" value={editRule.condition} onChange={e => setEditRule({ ...editRule, condition: e.target.value })} required />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Status</label>
+                  <select
+                    name="status"
+                    value={editRule.status}
+                    onChange={e => setEditRule({ ...editRule, status: e.target.value })}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    required
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="expired">Expired</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Priority</label>
+                  <Input name="priority" type="number" min="1" value={editRule.priority} onChange={e => setEditRule({ ...editRule, priority: e.target.value })} required />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Start Date</label>
+                  <Input name="start_date" type="date" value={editRule.start_date} onChange={e => setEditRule({ ...editRule, start_date: e.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">End Date (Optional)</label>
+                  <Input name="end_date" type="date" value={editRule.end_date} onChange={e => setEditRule({ ...editRule, end_date: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 pt-4">
+                <Button type="button" variant="outline" onClick={() => setEditRule(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updateMutation.isPending}>Save Changes</Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Rule</DialogTitle>
+            <DialogDescription>Are you sure you want to delete this rule?</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-4">
+            <Button variant="outline" onClick={() => setDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => deleteId && deleteMutation.mutate(deleteId)} disabled={deleteMutation.isPending}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default CommissionRules;
+}

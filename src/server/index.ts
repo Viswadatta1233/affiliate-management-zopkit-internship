@@ -1,31 +1,12 @@
-import 'dotenv/config'; // Load environment variables from .env file
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { authenticateJWT, enforceTenantIsolation } from './security';
-import { authRoutes } from './routes/auth';
-import { productRoutes } from './routes/products';
-import { affiliateRoutes } from './routes/affiliates';
 import { pool } from './db';
+import { configureRoutes } from './routes';
 
 // Ensure JWT secret is set
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 console.log('Using JWT_SECRET:', JWT_SECRET);
-
-// Log database connection details (without showing password)
-console.log('Database connection:', {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
-});
-
-// Log email configuration (without showing password)
-console.log('Email configuration:', {
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: process.env.SMTP_SECURE,
-  user: process.env.SMTP_USER,
-});
 
 const server = Fastify({
   logger: true
@@ -43,10 +24,8 @@ server.register(cors, {
 server.addHook('onRequest', authenticateJWT);
 server.addHook('onRequest', enforceTenantIsolation);
 
-// Register routes
-server.register(authRoutes, { prefix: '/api/auth' });
-server.register(productRoutes, { prefix: '/api/products' });
-server.register(affiliateRoutes, { prefix: '/api/affiliates' });
+// Register all routes
+configureRoutes(server);
 
 // Health check route
 server.get('/health', async () => {

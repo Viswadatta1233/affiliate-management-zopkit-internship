@@ -17,11 +17,9 @@ async function dropTables() {
   try {
     // Drop tables in correct order (respecting foreign key constraints)
     await pool.query(`
-      DROP TABLE IF EXISTS products CASCADE;
       DROP TABLE IF EXISTS users CASCADE;
       DROP TABLE IF EXISTS roles CASCADE;
       DROP TABLE IF EXISTS tenants CASCADE;
-      DROP TYPE IF EXISTS product_status CASCADE;
       DROP TYPE IF EXISTS user_status CASCADE;
       DROP TYPE IF EXISTS tenant_status CASCADE;
     `);

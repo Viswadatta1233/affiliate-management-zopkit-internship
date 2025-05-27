@@ -1,21 +1,6 @@
 import { create } from 'zustand';
-import { api, apiAffiliates } from '@/lib/api';
+import { api } from '@/lib/api';
 import { Affiliate, TrackingLink, Commission } from '@/types';
-
-interface ProductCommission {
-  productId: string;
-  commissionRate: number;
-  commissionType: 'percentage' | 'fixed';
-}
-
-interface InviteAffiliateData {
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  initialTier?: string;
-  commissionRate?: number;
-  productCommissions?: ProductCommission[];
-}
 
 interface AffiliateState {
   affiliates: Affiliate[];
@@ -29,7 +14,6 @@ interface AffiliateState {
   createAffiliate: (data: Partial<Affiliate>) => Promise<void>;
   updateAffiliate: (id: string, data: Partial<Affiliate>) => Promise<void>;
   deleteAffiliate: (id: string) => Promise<void>;
-  inviteAffiliate: (data: InviteAffiliateData) => Promise<any>;
   
   // Tracking Links
   fetchTrackingLinks: () => Promise<void>;
@@ -55,18 +39,17 @@ export const useAffiliateStore = create<AffiliateState>((set, get) => ({
   fetchAffiliates: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiAffiliates.getAll();
-      set({ affiliates: response.data.affiliates, isLoading: false });
+      const response = await api.get('/api/affiliates');
+      set({ affiliates: response.data, isLoading: false });
     } catch (error) {
       set({ error: 'Failed to fetch affiliates', isLoading: false });
-      throw error;
     }
   },
 
   createAffiliate: async (data) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiAffiliates.create(data);
+      const response = await api.post('/api/affiliates', data);
       set(state => ({
         affiliates: [...state.affiliates, response.data],
         isLoading: false
@@ -76,42 +59,31 @@ export const useAffiliateStore = create<AffiliateState>((set, get) => ({
     }
   },
 
-  inviteAffiliate: async (data: InviteAffiliateData) => {
+  updateAffiliate: async (id, data) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiAffiliates.invite(data);
-      await get().fetchAffiliates();
-      set({ isLoading: false });
-      return response.data;
-    } catch (error) {
-      set({ error: 'Failed to invite affiliate', isLoading: false });
-      throw error;
-    }
-  },
-
-  updateAffiliate: async (id: string, data: Partial<Affiliate>) => {
-    set({ isLoading: true, error: null });
-    try {
-      await apiAffiliates.update(id, data);
-      await get().fetchAffiliates();
-      set({ isLoading: false });
+      const response = await api.put(`/api/affiliates/${id}`, data);
+      set(state => ({
+        affiliates: state.affiliates.map(aff => 
+          aff.id === id ? response.data : aff
+        ),
+        isLoading: false
+      }));
     } catch (error) {
       set({ error: 'Failed to update affiliate', isLoading: false });
-      throw error;
     }
   },
 
-  deleteAffiliate: async (id: string) => {
+  deleteAffiliate: async (id) => {
     set({ isLoading: true, error: null });
     try {
-      await apiAffiliates.delete(id);
+      await api.delete(`/api/affiliates/${id}`);
       set(state => ({
-        affiliates: state.affiliates.filter(affiliate => affiliate.id !== id),
+        affiliates: state.affiliates.filter(aff => aff.id !== id),
         isLoading: false
       }));
     } catch (error) {
       set({ error: 'Failed to delete affiliate', isLoading: false });
-      throw error;
     }
   },
 

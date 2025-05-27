@@ -6,11 +6,10 @@ import { Toaster } from '@/components/ui/sonner';
 
 // Import pages
 import Dashboard from '@/pages/dashboard';
-import Affiliates from '@/pages/affiliates';
+import Affiliates from '@/pages/affiliates/index';
 import AffiliateProfile from '@/pages/affiliates/profile';
 import PendingAffiliates from '@/pages/affiliates/pending';
 import AffiliateTiers from '@/pages/affiliates/tiers';
-import InviteAffiliate from '@/pages/affiliates/invite';
 import TrackingLinks from '@/pages/tracking-links';
 import CommissionTiers from '@/pages/commissions/tiers';
 import ProductCommissions from '@/pages/commissions/products';
@@ -37,14 +36,18 @@ import Billing from '@/pages/settings/billing';
 import Login from '@/pages/auth/login';
 import Register from '@/pages/auth/register';
 import NotFound from '@/pages/not-found';
-import ProductsPage from '@/pages/products';
-import CompleteAffiliateProfile from '@/pages/affiliates/profile/complete';
+import Products from '@/pages/products';
+import CreateProduct from '@/pages/products/create';
+import EditProduct from '@/pages/products/edit';
+import AcceptInvite from '@/pages/affiliate/accept';
+import AffiliateDashboard from '@/pages/affiliate/dashboard';
 
 // Route guard for authenticated routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuthStore();
 
   if (isLoading) {
+    console.log('Loading...');
     return <div>Loading...</div>;
   }
 
@@ -64,9 +67,22 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           
-          {/* App routes - protected */}
+          {/* Public affiliate accept route */}
+          <Route path="/affiliate/accept" element={<AcceptInvite />} />
+          
+          {/* Public affiliate dashboard route (no AppShell/sidebar) */}
+          <Route path="/affiliate/dashboard" element={<AffiliateDashboard />} />
+          
+          {/* App routes - protected, with AppShell/sidebar */}
           <Route path="/" element={<PrivateRoute><AppShell /></PrivateRoute>}>
             <Route index element={<Dashboard />} />
+            
+            {/* Products */}
+            <Route path="products">
+              <Route index element={<Products />} />
+              <Route path="create" element={<CreateProduct />} />
+              <Route path=":id/edit" element={<EditProduct />} />
+            </Route>
             
             {/* Affiliate Management */}
             <Route path="affiliates">
@@ -74,15 +90,10 @@ function App() {
               <Route path=":id" element={<AffiliateProfile />} />
               <Route path="pending" element={<PendingAffiliates />} />
               <Route path="tiers" element={<AffiliateTiers />} />
-              <Route path="invite" element={<InviteAffiliate />} />
-              <Route path="profile/complete" element={<CompleteAffiliateProfile />} />
             </Route>
             
             {/* Tracking Links */}
             <Route path="tracking-links" element={<TrackingLinks />} />
-            
-            {/* Products */}
-            <Route path="products" element={<ProductsPage />} />
             
             {/* Commissions */}
             <Route path="commissions">
