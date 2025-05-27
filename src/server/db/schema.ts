@@ -57,11 +57,15 @@ export const products = pgTable('products', {
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: varchar('name').notNull(),
   description: text('description'),
+  imageUrl: text('image_url'),
   price: numeric('price', { precision: 10, scale: 2 }).notNull(),
-  sku: varchar('sku'),
-  commissionPercent: numeric('commission_percent', { precision: 5, scale: 2 }),
-  status: varchar('status').default('active'),
+  currency: varchar('currency', { length: 3 }).notNull().default('USD'),
+  sku: varchar('sku').notNull(),
+  commissionPercent: numeric('commission_percent', { precision: 5, scale: 2 }).notNull().default('0'),
+  category: varchar('category'),
+  status: varchar('status', { length: 10 }).notNull().default('active'),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const commissionTiers = pgTable('commission_tiers', {

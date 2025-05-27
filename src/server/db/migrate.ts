@@ -3,16 +3,20 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
+import { config } from 'dotenv';
+
+// Load environment variables
+config();
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const projectRoot = join(__dirname, '../../..');
 
 const pool = new Pool({
-  host: 'localhost',
-  user: 'postgres',
-  password: 'datta1234',
-  database: 'affiliate_db',
-  port: 5432,
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres123',
+  database: process.env.DB_NAME || 'affiliate_db',
+  port: parseInt(process.env.DB_PORT || '5432'),
 });
 
 const db = drizzle(pool);
@@ -21,6 +25,12 @@ async function main() {
   console.log('Running migrations...');
   console.log('Project root:', projectRoot);
   console.log('Migrations folder:', join(projectRoot, 'drizzle/migrations'));
+  console.log('Using database configuration:', {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+  });
   
   try {
     // Test database connection

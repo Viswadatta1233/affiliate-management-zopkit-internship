@@ -19,7 +19,9 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string(),
+  tenant: z.string().optional(),
+  remember: z.boolean().optional()
 });
 
 type RegisterBody = z.infer<typeof registerSchema>;
@@ -184,13 +186,36 @@ export const authRoutes = async (server: FastifyInstance) => {
   });
 
   server.post('/login', async (request: FastifyRequest<{ Body: LoginBody }>, reply) => {
-    console.log('Login attempt:', { email: request.body.email });
+    console.log('Login attempt:', { 
+      email: request.body.email, 
+      tenant: request.body.tenant,
+      body: request.body 
+    });
     
     try {
       const body = loginSchema.parse(request.body);
+      console.log('Validated request body:', body);
       
+      let tenantId: string | undefined;
+      
+      // If tenant is specified, find tenant first
+      if (body.tenant) {
+        console.log('Looking up tenant:', body.tenant);
+        const tenant = await db.query.tenants.findFirst({
+          where: eq(tenants.subdomain, body.tenant),
+        });
+
+        if (!tenant) {
+          console.log('Login failed: Tenant not found:', body.tenant);
+          return reply.code(401).send({ error: 'Invalid tenant' });
+        }
+        tenantId = tenant.id;
+        console.log('Found tenant:', tenant.id);
+      }
+
       // Find user with tenant and role
-      const user = await db.query.users.findFirst({
+      console.log('Looking up user:', body.email);
+      const userQuery = db.query.users.findFirst({
         where: eq(users.email, body.email),
         with: {
           tenant: true,
@@ -198,12 +223,22 @@ export const authRoutes = async (server: FastifyInstance) => {
         },
       });
 
+      const user = await userQuery;
+      console.log('User lookup result:', user ? 'Found' : 'Not found');
+
       if (!user) {
         console.log('Login failed: User not found:', body.email);
         return reply.code(401).send({ error: 'Invalid credentials' });
       }
 
+      // If tenant was specified, verify user belongs to that tenant
+      if (tenantId && user.tenantId !== tenantId) {
+        console.log('Login failed: User does not belong to tenant. User tenant:', user.tenantId, 'Requested tenant:', tenantId);
+        return reply.code(401).send({ error: 'Invalid tenant' });
+      }
+
       // Verify password
+      console.log('Verifying password for user:', user.email);
       const validPassword = await bcrypt.compare(body.password, user.password);
       if (!validPassword) {
         console.log('Login failed: Invalid password for user:', body.email);
@@ -211,6 +246,7 @@ export const authRoutes = async (server: FastifyInstance) => {
       }
 
       // Generate JWT
+      console.log('Generating JWT for user:', user.email);
       const token = jwt.sign(
         { 
           userId: user.id,
@@ -218,7 +254,7 @@ export const authRoutes = async (server: FastifyInstance) => {
           email: user.email,
         },
         process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '24h' }
+        { expiresIn: body.remember ? '30d' : '24h' }
       );
 
       console.log('Login successful for:', user.email);
@@ -241,8 +277,10 @@ export const authRoutes = async (server: FastifyInstance) => {
     } catch (error) {
       console.error('Login error:', error);
       if (error instanceof z.ZodError) {
+        console.error('Validation error:', error.errors);
         return reply.code(400).send({ error: error.errors });
       }
+      console.error('Internal server error:', error);
       return reply.code(500).send({ error: 'Internal server error' });
     }
   });

@@ -160,3 +160,19 @@ export interface Commission {
   createdAt: Date;
   paidAt?: Date;
 }
+
+export interface Product {
+  id: string;
+  tenantId: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  price: number;
+  currency: string;
+  sku: string;
+  commission_percent: number;
+  category?: string;
+  status: 'active' | 'inactive';
+  createdAt: Date;
+  updatedAt: Date;
+}

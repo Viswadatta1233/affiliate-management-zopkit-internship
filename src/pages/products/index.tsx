@@ -1,7 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { PlusCircle, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -11,14 +19,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -27,18 +27,18 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { apiProducts } from '@/lib/api';
-import { PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { apiProducts } from '@/lib/api';
+import { Product } from '@/types';
 
 export default function ProductsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [productToDelete, setProductToDelete] = React.useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const { data: products, isLoading, refetch } = useQuery({
+  const { data: products = [], isLoading, error } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
       const response = await apiProducts.getAll();
@@ -46,35 +46,74 @@ export default function ProductsPage() {
     },
   });
 
-  const handleDeleteClick = (id: string) => {
-    setProductToDelete(id);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!productToDelete) return;
-
-    try {
-      await apiProducts.delete(productToDelete);
+  const deleteProductMutation = useMutation({
+    mutationFn: (productId: string) => apiProducts.delete(productId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({
         title: 'Success',
         description: 'Product deleted successfully',
       });
-      refetch();
-    } catch (error) {
+    },
+    onError: (error: any) => {
       toast({
         title: 'Error',
-        description: 'Failed to delete product',
+        description: error.response?.data?.error || 'Failed to delete product',
         variant: 'destructive',
       });
-    } finally {
-      setDeleteDialogOpen(false);
-      setProductToDelete(null);
-    }
-  };
+    },
+  });
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-10">
+            <p className="text-red-600 mb-4">Failed to load products</p>
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['products'] })}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="container mx-auto py-6">
+        <Card>
+          <CardContent className="flex items-center justify-center py-10">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!products.length) {
+    return (
+      <div className="container mx-auto py-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Products</CardTitle>
+              <CardDescription>Manage your products</CardDescription>
+            </div>
+            <Button onClick={() => navigate('/products/create')}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Product
+            </Button>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center py-10">
+            <p className="text-muted-foreground mb-4">No products found</p>
+            <Button onClick={() => navigate('/products/create')}>
+              Create your first product
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -103,37 +142,61 @@ export default function ProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products?.map((product: any) => (
+              {products.map((product: Product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{product.sku}</TableCell>
-                  <TableCell>${product.price.toFixed(2)}</TableCell>
+                  <TableCell>
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: product.currency || 'USD',
+                    }).format(product.price)}
+                  </TableCell>
                   <TableCell>{product.commission_percent}%</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={product.status === 'active' ? 'default' : 'secondary'}
+                    <span 
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        product.status === 'active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}
                     >
                       {product.status}
-                    </Badge>
+                    </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => navigate(`/products/${product.id}/edit`)}
-                        className="h-8 w-8 border border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-primary"
+                        onClick={() => navigate(`/products/edit/${product.id}`)}
                       >
-                        <Pencil className="h-4 w-4 text-gray-700" />
+                        <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleDeleteClick(product.id)}
-                        className="h-8 w-8 border border-gray-300 text-gray-700 hover:bg-red-100 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4 text-gray-700" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{product.name}"? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteProductMutation.mutate(product.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -142,26 +205,6 @@ export default function ProductsPage() {
           </Table>
         </CardContent>
       </Card>
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the product.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 } 

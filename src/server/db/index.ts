@@ -4,11 +4,11 @@ import * as schema from './schema';
 
 // Create a new pool instance
 const pool = new Pool({
-  host: 'localhost',
-  user: 'postgres',
-  password: 'datta1234', // Make sure this is a string
-  database: 'affiliate_db',
-  port: 5432,
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres123',
+  database: process.env.DB_NAME || 'affiliate_db',
+  port: parseInt(process.env.DB_PORT || '5432'),
 });
 
 // Test the connection

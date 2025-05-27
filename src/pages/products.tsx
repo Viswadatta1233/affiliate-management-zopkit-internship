@@ -26,20 +26,24 @@ import { toast } from 'sonner';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Product } from '@/types';
 
+type ProductFormData = Omit<Product, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>;
+
 const ProductsPage: React.FC = () => {
   const { products, isLoading, error, fetchProducts, createProduct, updateProduct, deleteProduct } = useProductStore();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     description: '',
     imageUrl: '',
     price: 0,
     currency: 'USD',
     category: '',
-    status: 'available' as const,
+    sku: '',
+    commission_percent: 0,
+    status: 'active',
   });
 
   useEffect(() => {
@@ -50,7 +54,9 @@ const ProductsPage: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'price' ? parseFloat(value) || 0 : value
+      [name]: ['price', 'commission_percent'].includes(name) 
+        ? parseFloat(value) || 0 
+        : value
     }));
   };
 
@@ -61,6 +67,14 @@ const ProductsPage: React.FC = () => {
     }));
   };
 
+  const validateForm = (data: ProductFormData): string | null => {
+    if (!data.name.trim()) return 'Name is required';
+    if (!data.sku.trim()) return 'SKU is required';
+    if (data.price <= 0) return 'Price must be greater than 0';
+    if (data.commission_percent < 0 || data.commission_percent > 100) return 'Commission percentage must be between 0 and 100';
+    return null;
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -69,18 +83,34 @@ const ProductsPage: React.FC = () => {
       price: 0,
       currency: 'USD',
       category: '',
-      status: 'available',
+      sku: '',
+      commission_percent: 0,
+      status: 'active',
     });
     setCurrentProduct(null);
   };
 
   const handleCreateProduct = async () => {
     try {
-      await createProduct(formData);
+      const validationError = validateForm(formData);
+      if (validationError) {
+        toast.error(validationError);
+        return;
+      }
+
+      const productData = {
+        ...formData,
+        price: Number(formData.price),
+        commission_percent: Number(formData.commission_percent),
+      };
+
+      await createProduct(productData);
       toast.success('Product created successfully');
       setIsCreateDialogOpen(false);
       resetForm();
+      fetchProducts(); // Refresh the products list
     } catch (error) {
+      console.error('Error creating product:', error);
       toast.error('Failed to create product');
     }
   };
@@ -91,9 +121,11 @@ const ProductsPage: React.FC = () => {
       name: product.name,
       description: product.description || '',
       imageUrl: product.imageUrl || '',
-      price: product.price,
+      price: Number(product.price),
       currency: product.currency,
       category: product.category || '',
+      sku: product.sku,
+      commission_percent: Number(product.commission_percent),
       status: product.status,
     });
     setIsEditDialogOpen(true);
@@ -103,11 +135,25 @@ const ProductsPage: React.FC = () => {
     if (!currentProduct) return;
     
     try {
-      await updateProduct(currentProduct.id, formData);
+      const validationError = validateForm(formData);
+      if (validationError) {
+        toast.error(validationError);
+        return;
+      }
+
+      const productData = {
+        ...formData,
+        price: Number(formData.price),
+        commission_percent: Number(formData.commission_percent),
+      };
+
+      await updateProduct(currentProduct.id, productData);
       toast.success('Product updated successfully');
       setIsEditDialogOpen(false);
       resetForm();
+      fetchProducts(); // Refresh the products list
     } catch (error) {
+      console.error('Error updating product:', error);
       toast.error('Failed to update product');
     }
   };
@@ -222,18 +268,40 @@ const ProductsPage: React.FC = () => {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-8">
+                <Label htmlFor="sku" className="text-right text-xl font-medium">SKU</Label>
+                <Input 
+                  id="sku" 
+                  name="sku" 
+                  value={formData.sku} 
+                  onChange={handleInputChange} 
+                  className="col-span-3 h-16 text-xl px-6" 
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-8">
+                <Label htmlFor="commission_percent" className="text-right text-xl font-medium">Commission %</Label>
+                <Input 
+                  id="commission_percent" 
+                  name="commission_percent" 
+                  type="number" 
+                  value={formData.commission_percent || ''} 
+                  onChange={handleInputChange} 
+                  className="col-span-3 h-16 text-xl px-6" 
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-8">
                 <Label htmlFor="status" className="text-right text-xl font-medium">Status</Label>
                 <Select 
                   value={formData.status} 
-                  onValueChange={(value: 'available' | 'unavailable' | 'outofstock') => handleSelectChange('status', value)}
+                  onValueChange={(value: 'active' | 'inactive') => handleSelectChange('status', value)}
                 >
                   <SelectTrigger className="col-span-3 h-16 text-xl">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="available" className="text-xl py-4">Available</SelectItem>
-                    <SelectItem value="unavailable" className="text-xl py-4">Unavailable</SelectItem>
-                    <SelectItem value="outofstock" className="text-xl py-4">Out of Stock</SelectItem>
+                    <SelectItem value="active" className="text-xl py-4">Active</SelectItem>
+                    <SelectItem value="inactive" className="text-xl py-4">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -284,11 +352,9 @@ const ProductsPage: React.FC = () => {
                     <TableCell className="py-6">{product.category || '-'}</TableCell>
                     <TableCell className="py-6">
                       <span className={`px-4 py-2 rounded-full text-sm font-medium ${
-                      product.status === 'available' 
+                      product.status === 'active' 
                         ? 'bg-green-100 text-green-800' 
-                        : product.status === 'unavailable' 
-                          ? 'bg-red-100 text-red-800' 
-                          : 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
                     }`}>
                       {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
                     </span>
@@ -400,18 +466,40 @@ const ProductsPage: React.FC = () => {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-8">
+              <Label htmlFor="edit-sku" className="text-right text-xl font-medium">SKU</Label>
+              <Input 
+                id="edit-sku" 
+                name="sku" 
+                value={formData.sku} 
+                onChange={handleInputChange} 
+                className="col-span-3 h-16 text-xl px-6" 
+                required
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-8">
+              <Label htmlFor="edit-commission_percent" className="text-right text-xl font-medium">Commission %</Label>
+              <Input 
+                id="edit-commission_percent" 
+                name="commission_percent" 
+                type="number" 
+                value={formData.commission_percent || ''} 
+                onChange={handleInputChange} 
+                className="col-span-3 h-16 text-xl px-6" 
+                required
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-8">
               <Label htmlFor="edit-status" className="text-right text-xl font-medium">Status</Label>
               <Select 
                 value={formData.status} 
-                onValueChange={(value: 'available' | 'unavailable' | 'outofstock') => handleSelectChange('status', value)}
+                onValueChange={(value: 'active' | 'inactive') => handleSelectChange('status', value)}
               >
                 <SelectTrigger className="col-span-3 h-16 text-xl">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="available" className="text-xl py-4">Available</SelectItem>
-                  <SelectItem value="unavailable" className="text-xl py-4">Unavailable</SelectItem>
-                  <SelectItem value="outofstock" className="text-xl py-4">Out of Stock</SelectItem>
+                  <SelectItem value="active" className="text-xl py-4">Active</SelectItem>
+                  <SelectItem value="inactive" className="text-xl py-4">Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>
