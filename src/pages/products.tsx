@@ -187,10 +187,7 @@ const ProductsPage: React.FC = () => {
         <h1 className="text-4xl font-bold">Products</h1>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="flex items-center gap-2 h-12 px-6 text-lg">
-              <Plus size={24} />
-              Add Product
-            </Button>
+            
           </DialogTrigger>
           <DialogContent className="max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>

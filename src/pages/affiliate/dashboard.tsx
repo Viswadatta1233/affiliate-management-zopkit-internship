@@ -28,7 +28,8 @@ import {
   Settings,
   BarChart,
   Link,
-  CreditCard
+  CreditCard,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocation, Link as RouterLink } from 'react-router-dom';
@@ -281,6 +282,15 @@ export default function AffiliateDashboard() {
     });
   };
 
+  const handleLogout = () => {
+    // Clear auth state
+    useAuthStore.getState().logout();
+    // Clear query cache
+    queryClient.clear();
+    // Redirect to login
+    window.location.href = '/login';
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -316,7 +326,7 @@ export default function AffiliateDashboard() {
             <h2 className="text-2xl font-bold tracking-tight">Affiliate Panel</h2>
           </div>
           <Separator className="mb-4" />
-          <nav className="flex flex-col gap-2 px-2">
+          <nav className="flex flex-col gap-2 px-2 flex-1">
             {sidebarNavItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -334,6 +344,19 @@ export default function AffiliateDashboard() {
               );
             })}
           </nav>
+          
+          {/* Logout Button */}
+          <div className="px-2 mt-auto">
+            <Separator className="my-4" />
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-100/50"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -341,15 +364,15 @@ export default function AffiliateDashboard() {
       <div className="lg:pl-72 flex flex-col flex-1">
         <main className="flex-1 py-8">
           <div className="px-4 sm:px-8 mx-auto max-w-7xl">
-            {/* Tenant Card */}
+        {/* Tenant Card */}
             <Card className="shadow-lg border-primary/20 hover:border-primary/40 transition-colors mb-8">
               <CardHeader className="text-center">
                 <CardTitle className="text-3xl font-bold text-primary">{tenant?.tenantName || 'Affiliate Program'}</CardTitle>
                 <CardDescription className="text-lg text-muted-foreground">
                   Welcome to the affiliate dashboard for <span className="font-semibold">{tenant?.tenantName || 'your program'}</span>
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            </CardDescription>
+          </CardHeader>
+        </Card>
 
             {/* Stats Overview */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -424,7 +447,7 @@ export default function AffiliateDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-2xl">Affiliate Profile</CardTitle>
-                      <CardDescription>Manage your affiliate details</CardDescription>
+            <CardDescription>Manage your affiliate details</CardDescription>
                     </div>
                     {!showProfileForm && (
                       <Button variant="outline" size="sm" onClick={() => setShowProfileForm(true)}>
@@ -432,9 +455,9 @@ export default function AffiliateDashboard() {
                       </Button>
                     )}
                   </div>
-                </CardHeader>
+          </CardHeader>
                 <CardContent className="p-6">
-                  {affiliateDetails && !showProfileForm ? (
+            {affiliateDetails && !showProfileForm ? (
                     <div className="space-y-4 max-w-2xl mx-auto">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 place-items-center">
                         <div className="p-4 bg-muted/50 rounded-lg w-full text-center">
@@ -458,89 +481,89 @@ export default function AffiliateDashboard() {
                         <div className="font-semibold mb-1">Promotional Methods</div>
                         <div>{affiliateDetails.promotionalMethods?.join(', ') || 'N/A'}</div>
                       </div>
-                    </div>
-                  ) : (
+              </div>
+            ) : (
                     <form className="space-y-6 w-full max-w-lg mx-auto px-4" onSubmit={handleProfileSubmit}>
                       {formError && <div className="text-red-600 text-sm mb-2 text-center">{formError}</div>}
                       <div className="w-full">
                         <label className="block text-center font-medium mb-2">Website URL</label>
-                        <input
-                          type="url"
+                  <input
+                    type="url"
                           className="w-full px-4 py-2 rounded-md border border-input bg-background text-center"
-                          value={profileForm.websiteUrl}
-                          onChange={e => setProfileForm(f => ({ ...f, websiteUrl: e.target.value }))}
-                          placeholder="https://yourwebsite.com"
-                        />
-                      </div>
+                    value={profileForm.websiteUrl}
+                    onChange={e => setProfileForm(f => ({ ...f, websiteUrl: e.target.value }))}
+                    placeholder="https://yourwebsite.com"
+                  />
+                </div>
                       <div className="w-full">
                         <label className="block text-center font-medium mb-2">Add Social Media</label>
                         <div className="flex gap-2 items-center justify-center mb-2">
-                          <Select value={profileForm.selectedSocial} onValueChange={val => setProfileForm(f => ({ ...f, selectedSocial: val }))}>
+                    <Select value={profileForm.selectedSocial} onValueChange={val => setProfileForm(f => ({ ...f, selectedSocial: val }))}>
                             <SelectTrigger className="w-[140px] text-center">
-                              <SelectValue placeholder="Select platform" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {SOCIAL_MEDIA_OPTIONS.filter(opt => !profileForm.socialMedia[opt.value]).map(opt => (
+                        <SelectValue placeholder="Select platform" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SOCIAL_MEDIA_OPTIONS.filter(opt => !profileForm.socialMedia[opt.value]).map(opt => (
                                 <SelectItem key={opt.value} value={opt.value} className="text-center">{opt.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <input
-                            type="url"
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <input
+                      type="url"
                             className="flex-1 px-4 py-2 rounded-md border border-input bg-background text-center"
-                            placeholder="https://social.com/yourprofile"
-                            value={profileForm.socialUrl}
-                            onChange={e => setProfileForm(f => ({ ...f, socialUrl: e.target.value }))}
-                          />
-                          <Button type="button" size="sm" onClick={handleAddSocial}>Add</Button>
-                        </div>
+                      placeholder="https://social.com/yourprofile"
+                      value={profileForm.socialUrl}
+                      onChange={e => setProfileForm(f => ({ ...f, socialUrl: e.target.value }))}
+                    />
+                    <Button type="button" size="sm" onClick={handleAddSocial}>Add</Button>
+                  </div>
                         <div className="flex flex-wrap gap-2 justify-center">
-                          {Object.entries(profileForm.socialMedia).map(([platform, url]) => (
+                    {Object.entries(profileForm.socialMedia).map(([platform, url]) => (
                             <div key={platform} className="flex items-center gap-1 bg-muted px-3 py-1.5 rounded-md">
                               <span className="text-sm font-medium">{SOCIAL_MEDIA_OPTIONS.find(opt => opt.value === platform)?.label || platform}:</span>
                               <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm underline text-blue-600">{url}</a>
                               <Button type="button" size="sm" variant="ghost" onClick={() => handleRemoveSocial(platform)}>×</Button>
-                            </div>
-                          ))}
-                        </div>
                       </div>
+                    ))}
+                  </div>
+                </div>
                       <div className="w-full">
                         <label className="block text-center font-medium mb-2">Promotional Methods</label>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 justify-items-center">
-                          {PROMO_METHOD_OPTIONS.map(opt => (
+                    {PROMO_METHOD_OPTIONS.map(opt => (
                             <label key={opt} className="flex items-center gap-2 text-sm">
-                              <Checkbox
-                                checked={profileForm.promotionalMethods.includes(opt)}
-                                onCheckedChange={() => handlePromoToggle(opt)}
-                              />
+                        <Checkbox
+                          checked={profileForm.promotionalMethods.includes(opt)}
+                          onCheckedChange={() => handlePromoToggle(opt)}
+                        />
                               <span>{opt}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
                       <div className="flex gap-3 justify-center mt-8">
-                        <Button type="submit" disabled={updateProfileMutation.isPending}>Save</Button>
-                        <Button type="button" variant="outline" onClick={() => setShowProfileForm(false)}>Cancel</Button>
-                      </div>
-                    </form>
-                  )}
-                </CardContent>
-              </Card>
+                  <Button type="submit" disabled={updateProfileMutation.isPending}>Save</Button>
+                  <Button type="button" variant="outline" onClick={() => setShowProfileForm(false)}>Cancel</Button>
+                </div>
+              </form>
+            )}
+          </CardContent>
+        </Card>
 
               {/* Tracking Links Card */}
-              <Card>
+          <Card>
                 <CardHeader className="border-b bg-muted/40 px-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-2xl">Tracking Links</CardTitle>
                       <CardDescription>Your product tracking links and their performance</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
+                </div>
+              </div>
+            </CardHeader>
                 <CardContent className="p-6">
                   <div className="rounded-lg border">
-                    <Table>
-                      <TableHeader>
+              <Table>
+                <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead className="text-center">Product</TableHead>
                           <TableHead className="text-center">Tracking Link</TableHead>
@@ -548,81 +571,81 @@ export default function AffiliateDashboard() {
                           <TableHead className="text-center">Conversions</TableHead>
                           <TableHead className="text-center">Sales</TableHead>
                           <TableHead className="text-center">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {trackingLinks?.map((link) => (
-                          <TableRow key={link.id}>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trackingLinks?.map((link) => (
+                    <TableRow key={link.id}>
                             <TableCell className="text-center font-medium">
-                              {link.product
-                                ? link.product.name
-                                : productMap[link.productId]
-                                  ? productMap[link.productId].name
-                                  : 'Unknown Product'}
-                            </TableCell>
+                        {link.product
+                          ? link.product.name
+                          : productMap[link.productId]
+                            ? productMap[link.productId].name
+                            : 'Unknown Product'}
+                      </TableCell>
                             <TableCell className="font-mono text-sm text-center">
-                              {link.trackingCode ? `${window.location.origin}/track/${link.trackingCode}` : 'N/A'}
-                            </TableCell>
+                        {link.trackingCode ? `${window.location.origin}/track/${link.trackingCode}` : 'N/A'}
+                      </TableCell>
                             <TableCell className="text-center">{link.totalClicks}</TableCell>
                             <TableCell className="text-center">{link.totalConversions}</TableCell>
                             <TableCell className="text-center">
                               ${typeof link.totalSales === 'number' && !isNaN(link.totalSales)
-                                ? link.totalSales.toFixed(2)
-                                : '0.00'}
-                            </TableCell>
-                            <TableCell>
+                          ? link.totalSales.toFixed(2)
+                          : '0.00'}
+                      </TableCell>
+                      <TableCell>
                               <div className="flex justify-center">
                                 <Button variant="outline" size="sm" onClick={() => handleCopyLink(link.trackingCode)}>
-                                  Copy Link
-                                </Button>
+                          Copy Link
+                        </Button>
                               </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
                   </div>
-                </CardContent>
-              </Card>
+            </CardContent>
+          </Card>
 
               {/* Product Commissions Card */}
-              <Card>
+          <Card>
                 <CardHeader className="border-b bg-muted/40 px-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-2xl">Product Commissions</CardTitle>
-                      <CardDescription>Your commission details for each product</CardDescription>
+              <CardDescription>Your commission details for each product</CardDescription>
                     </div>
                   </div>
-                </CardHeader>
+            </CardHeader>
                 <CardContent className="p-6">
                   <div className="rounded-lg border">
-                    <Table>
-                      <TableHeader>
+                <Table>
+                  <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead className="text-center">Product</TableHead>
                           <TableHead className="text-center">Tier</TableHead>
                           <TableHead className="text-center">Tier %</TableHead>
                           <TableHead className="text-center">Product %</TableHead>
                           <TableHead className="text-center">Final %</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {productCommissions?.map((comm) => (
-                          <TableRow key={comm.id}>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {productCommissions?.map((comm) => (
+                      <TableRow key={comm.id}>
                             <TableCell className="text-center font-medium">{comm.productName || 'Unknown'}</TableCell>
                             <TableCell className="text-center">{comm.tierName || 'Unknown'}</TableCell>
                             <TableCell className="text-center">{comm.commissionPercent}%</TableCell>
                             <TableCell className="text-center">{comm.productCommission}%</TableCell>
                             <TableCell className="text-center">{comm.finalCommission}%</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+            </CardContent>
+          </Card>
+        </div>
           </div>
         </main>
       </div>

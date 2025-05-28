@@ -175,12 +175,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
             icon={<Package className="h-5 w-5" />}
             defaultOpen={isActivePath('/products')}
           >
+
+
+<SidebarItem
+              href="/products/create"
+              icon={<Plus className="h-4 w-4" />}
+              title="Create Product"
+              isCurrent={isActivePath('/products/create')}
+            />
             <SidebarItem
               href="/products"
               icon={<Package className="h-4 w-4" />}
               title="All Products"
               isCurrent={isActivePath('/products')}
             />
+
+            
             
           </SidebarGroup>
 
