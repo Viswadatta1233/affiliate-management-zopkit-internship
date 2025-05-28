@@ -10,8 +10,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuShortcut,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Menu, X, Settings, LogOut, User } from 'lucide-react';
+import {
+  Bell,
+  Menu,
+  X,
+  Settings,
+  LogOut,
+  User,
+  ChevronDown,
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -42,84 +53,113 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
   };
 
   return (
-    <header className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-30 sticky top-0">
-      <div className="container mx-auto h-full px-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:mr-2">
-            {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+    <header className="fixed top-0 left-0 right-0 z-30 h-16 border-b bg-background">
+      <nav className="h-full px-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleSidebar}
+            className="shrink-0 hover:bg-accent"
+          >
+            {isSidebarOpen ? (
+              <X className="h-5 w-5 text-muted-foreground" />
+            ) : (
+              <Menu className="h-5 w-5 text-muted-foreground" />
+            )}
           </Button>
           
-          <Link to="/" className="flex items-center">
+          <Separator orientation="vertical" className="h-6" />
+          
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             {tenant?.logoUrl ? (
               <img 
                 src={tenant.logoUrl} 
                 alt={`${getTenantName()} Logo`} 
-                className="h-8 w-auto mr-2" 
+                className="h-8 w-auto" 
               />
             ) : (
               <div 
-                className="h-8 w-8 rounded-md flex items-center justify-center text-primary-foreground font-bold"
-                style={{ background: tenant?.primaryColor || '#3667CE' }}
+                className="h-8 w-8 rounded-md flex items-center justify-center text-primary-foreground font-medium shadow-sm"
+                style={{ background: tenant?.primaryColor || 'hsl(var(--primary))' }}
               >
                 {getTenantInitial()}
               </div>
             )}
-            <span className="text-lg font-semibold hidden sm:block ml-2">
+            <span className="text-lg font-semibold hidden sm:block">
               {getTenantName()}
             </span>
           </Link>
         </div>
 
-        <div className="flex items-center space-x-2 md:space-x-4">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative hover:bg-accent"
+          >
+            <Bell className="h-5 w-5 text-muted-foreground" />
+            <Badge 
+              variant="destructive" 
+              className="absolute top-1.5 right-1.5 h-2 w-2 p-0"
+            />
           </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
+              <Button 
+                variant="ghost" 
+                className="gap-2 pl-2 pr-3 hover:bg-accent"
+              >
+                <Avatar className="h-7 w-7">
                   <AvatarImage src="" alt={user?.firstName} />
-                  <AvatarFallback className="bg-primary text-primary-foreground">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                     {getInitials()}
                   </AvatarFallback>
                 </Avatar>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
+            
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="flex items-center gap-2">
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-sm font-medium leading-none truncate">
                     {user?.firstName} {user?.lastName}
                   </p>
-                  <p className="text-xs leading-none text-muted-foreground">
+                  <p className="text-xs text-muted-foreground truncate">
                     {user?.email}
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/profile" className="cursor-pointer flex items-center">
-                  <User className="mr-2 h-4 w-4" />
+                <Link to="/settings/profile" className="flex items-center gap-2 cursor-pointer">
+                  <User className="h-4 w-4" />
                   <span>Profile</span>
+                  <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/settings" className="cursor-pointer flex items-center">
-                  <Settings className="mr-2 h-4 w-4" />
+                <Link to="/settings/general" className="flex items-center gap-2 cursor-pointer">
+                  <Settings className="h-4 w-4" />
                   <span>Settings</span>
+                  <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                <LogOut className="mr-2 h-4 w-4" />
+              <DropdownMenuItem 
+                onClick={handleLogout}
+                className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
+              >
+                <LogOut className="h-4 w-4" />
                 <span>Log out</span>
+                <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
+      </nav>
     </header>
   );
 };

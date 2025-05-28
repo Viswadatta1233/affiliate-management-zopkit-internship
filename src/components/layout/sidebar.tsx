@@ -27,7 +27,8 @@ import {
   Megaphone,
   MessagesSquare,
   Plus,
-  Package
+  Package,
+  Key
 } from 'lucide-react';
 
 import {
@@ -153,7 +154,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
     >
       {isMobile && (
         <div 
-          className="fixed inset-0 bg-black/50 z-10" 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-10" 
           onClick={onClose}
         />
       )}
@@ -163,11 +164,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
           {/* Dashboard */}
           <SidebarItem
             href="/"
-            icon={<BarChart3 className="h-4 w-4" />}
+            icon={<Home className="h-4 w-4" />}
             title="Dashboard"
-            isCurrent={isActivePath('/')} />
+            isCurrent={isActivePath('/')}
+          />
 
-          {/* Products Management */}
+          {/* Products */}
           <SidebarGroup 
             title="Products" 
             icon={<Package className="h-5 w-5" />}
@@ -179,17 +181,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               title="All Products"
               isCurrent={isActivePath('/products')}
             />
-            <SidebarItem
-              href="/products/create"
-              icon={<Plus className="h-4 w-4" />}
-              title="Add Product"
-              isCurrent={isActivePath('/products/create')}
-            />
+            
           </SidebarGroup>
 
           {/* Affiliate Management */}
-          <SidebarGroup 
-            title="Affiliate Management" 
+          <SidebarGroup
+            title="Affiliates" 
             icon={<Users className="h-5 w-5" />}
             defaultOpen={isActivePath('/affiliates')}
           >
@@ -202,7 +199,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
             <SidebarItem
               href="/affiliates/pending"
               icon={<UserPlus className="h-4 w-4" />}
-              title="Pending Approvals"
+              title="Pending Affiliates"
               isCurrent={isActivePath('/affiliates/pending')}
             />
             <SidebarItem
@@ -211,30 +208,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               title="Affiliate Tiers"
               isCurrent={isActivePath('/affiliates/tiers')}
             />
+
+
+            
+          {/* Tracking Links */}
+          <SidebarItem
+            href="/tracking-links"
+            icon={<LinkIcon className="h-4 w-4" />}
+            title="Tracking Links"
+            isCurrent={isActivePath('/tracking-links')}
+          />
           </SidebarGroup>
 
-          {/* Campaigns */}
-          <SidebarGroup
-            title="Campaigns"
-            icon={<Megaphone className="h-5 w-5" />}
-            defaultOpen={isActivePath('/campaigns')}
-          >
-            <SidebarItem
-              href="/campaigns"
-              icon={<Megaphone className="h-4 w-4" />}
-              title="All Campaigns"
-              isCurrent={isActivePath('/campaigns')}
-            />
-            <SidebarItem
-              href="/campaigns/create"
-              icon={<Plus className="h-4 w-4" />}
-              title="Create Campaign"
-              isCurrent={isActivePath('/campaigns/create')}
-            />
-          </SidebarGroup>
 
           {/* Commissions */}
-          <SidebarGroup 
+          <SidebarGroup
             title="Commissions" 
             icon={<PercentCircle className="h-5 w-5" />}
             defaultOpen={isActivePath('/commissions')}
@@ -247,7 +235,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
             />
             <SidebarItem
               href="/commissions/products"
-              icon={<PercentCircle className="h-4 w-4" />}
+              icon={<Package className="h-4 w-4" />}
               title="Product Commissions"
               isCurrent={isActivePath('/commissions/products')}
             />
@@ -286,9 +274,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
           </SidebarGroup>
 
           {/* Analytics */}
-          <SidebarGroup 
+          <SidebarGroup
             title="Analytics" 
-            icon={<LineChart className="h-5 w-5" />}
+            icon={<BarChart3 className="h-5 w-5" />}
             defaultOpen={isActivePath('/analytics')}
           >
             <SidebarItem
@@ -302,6 +290,104 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<BarChart3 className="h-4 w-4" />}
               title="Custom Dashboard"
               isCurrent={isActivePath('/analytics/dashboard')}
+            />
+          </SidebarGroup>
+
+          {/* Fraud Prevention */}
+          <SidebarGroup
+            title="Fraud Prevention"
+            icon={<ShieldCheck className="h-5 w-5" />}
+            defaultOpen={isActivePath('/fraud')}
+          >
+            <SidebarItem
+              href="/fraud/monitoring"
+              icon={<BarChart3 className="h-4 w-4" />}
+              title="Monitoring"
+              isCurrent={isActivePath('/fraud/monitoring')}
+            />
+            <SidebarItem
+              href="/fraud/rules"
+              icon={<FileText className="h-4 w-4" />}
+              title="Rules"
+              isCurrent={isActivePath('/fraud/rules')}
+            />
+            <SidebarItem
+              href="/fraud/alerts"
+              icon={<Bell className="h-4 w-4" />}
+              title="Alerts"
+              isCurrent={isActivePath('/fraud/alerts')}
+            />
+          </SidebarGroup>
+
+          {/* Marketing */}
+          <SidebarGroup
+            title="Marketing"
+            icon={<Megaphone className="h-5 w-5" />}
+            defaultOpen={isActivePath('/marketing')}
+          >
+            <SidebarItem
+              href="/marketing/resources"
+              icon={<Folder className="h-4 w-4" />}
+              title="Resources"
+              isCurrent={isActivePath('/marketing/resources')}
+            />
+            <SidebarItem
+              href="/marketing/campaigns"
+              icon={<Megaphone className="h-4 w-4" />}
+              title="Campaigns"
+              isCurrent={isActivePath('/marketing/campaigns')}
+            />
+            <SidebarItem
+              href="/marketing/influencer-search"
+              icon={<Users className="h-4 w-4" />}
+              title="Influencer Search"
+              isCurrent={isActivePath('/marketing/influencer-search')}
+            />
+            <SidebarItem
+              href="/marketing/knowledge-base"
+              icon={<BookOpen className="h-4 w-4" />}
+              title="Knowledge Base"
+              isCurrent={isActivePath('/marketing/knowledge-base')}
+            />
+          </SidebarGroup>
+
+          {/* Communications */}
+          <SidebarGroup
+            title="Communications"
+            icon={<MessagesSquare className="h-5 w-5" />}
+            defaultOpen={isActivePath('/communications')}
+          >
+            <SidebarItem
+              href="/communications/notifications"
+              icon={<Bell className="h-4 w-4" />}
+              title="Notifications"
+              isCurrent={isActivePath('/communications/notifications')}
+            />
+            <SidebarItem
+              href="/communications/templates"
+              icon={<FileText className="h-4 w-4" />}
+              title="Templates"
+              isCurrent={isActivePath('/communications/templates')}
+            />
+          </SidebarGroup>
+
+          {/* Integrations */}
+          <SidebarGroup
+            title="Integrations"
+            icon={<Globe className="h-5 w-5" />}
+            defaultOpen={isActivePath('/integrations')}
+          >
+            <SidebarItem
+              href="/integrations/api-keys"
+              icon={<Key className="h-4 w-4" />}
+              title="API Keys"
+              isCurrent={isActivePath('/integrations/api-keys')}
+            />
+            <SidebarItem
+              href="/integrations/webhooks"
+              icon={<Globe className="h-4 w-4" />}
+              title="Webhooks"
+              isCurrent={isActivePath('/integrations/webhooks')}
             />
           </SidebarGroup>
 

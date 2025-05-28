@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth-store';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from '@/components/ui/sonner';
 import { ModeToggle } from '@/components/theme/mode-toggle';
 import Sidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 const AppShell: React.FC = () => {
   const { isAuthenticated, isLoading, loadUserData } = useAuthStore();
@@ -44,19 +46,28 @@ const AppShell: React.FC = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  // Show loading state
+  // Loading skeleton with improved visual hierarchy
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <div className="border-b">
+        <div className="border-b bg-card">
           <Skeleton className="h-16 w-full" />
         </div>
         <div className="flex flex-1">
           <Skeleton className="w-64 h-full hidden md:block" />
-          <div className="flex-1 p-4 md:p-8">
-            <Skeleton className="h-12 w-1/3 mb-6" />
-            <Skeleton className="h-64 w-full mb-4" />
-            <Skeleton className="h-32 w-full" />
+          <div className="flex-1 p-4 md:p-8 space-y-6">
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-[250px]" />
+              <Skeleton className="h-4 w-[400px]" />
+            </div>
+            <div className="grid gap-4">
+              <Skeleton className="h-[200px] w-full rounded-xl" />
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Skeleton className="h-[120px] rounded-lg" />
+                <Skeleton className="h-[120px] rounded-lg" />
+                <Skeleton className="h-[120px] rounded-lg" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -66,29 +77,27 @@ const AppShell: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden pt-16">
         <Sidebar isOpen={isSidebarOpen} isMobile={isMobileView} onClose={() => setIsSidebarOpen(false)} />
         <main 
-          className={`
-            flex-1 
-            overflow-auto 
-            transition-all 
-            duration-200 
-            p-4 
-            md:p-6 
-            lg:p-8
-            ${isSidebarOpen && !isMobileView ? 'md:ml-64' : ''}
-          `}
+          className={cn(
+            "flex-1 relative transition-all duration-300 ease-in-out",
+            isSidebarOpen && !isMobileView ? 'md:ml-64' : ''
+          )}
         >
-          <div className="container mx-auto max-w-7xl">
-            <Outlet />
-          </div>
+          <ScrollArea className="h-[calc(100vh-4rem)]">
+            <div className="px-4 md:px-6 lg:px-8 py-6">
+              <div className="mx-auto max-w-7xl">
+                <Outlet />
+              </div>
+            </div>
+          </ScrollArea>
         </main>
       </div>
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-6 right-6 z-50">
         <ModeToggle />
       </div>
-      <Toaster />
+      <Toaster position="bottom-right" />
     </div>
   );
 };

@@ -165,7 +165,8 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
       if (!token) {
         return reply.status(400).send({ error: 'Token is required' });
       }
-      fastify.log.info('Accepting invite with token:', token);
+      fastify.log.info('Starting invite acceptance process with token:', token);
+
       // Find invite
       const invite = await db.query.affiliateInvites.findFirst({
         where: and(
@@ -194,14 +195,10 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
           eq(roles.roleName, 'affiliate')
         ),
       });
-      fastify.log.info('Affiliate role query:', {
-        tenantId: invite.tenantId,
-        roleName: 'affiliate',
-        found: affiliateRole
-      });
+      fastify.log.info('Found affiliate role:', affiliateRole);
 
       if (!affiliateRole) {
-        fastify.log.info('Affiliate role not found, creating default affiliate role');
+        fastify.log.info('Creating default affiliate role');
         affiliateRole = (await db.insert(roles).values({
           tenantId: invite.tenantId,
           roleName: 'affiliate',
@@ -219,29 +216,63 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
           eq(users.email, invite.email)
         ),
       });
+      fastify.log.info('Existing user check:', existingUser);
+
+      let user;
       if (existingUser) {
-        return reply.status(409).send({ error: 'User already exists for this invite.' });
+        // Update existing user to be an affiliate if they aren't already
+        if (!existingUser.isAffiliate) {
+          [user] = await db.update(users)
+            .set({ 
+              isAffiliate: true,
+              roleId: affiliateRole.id 
+            })
+            .where(eq(users.id, existingUser.id))
+            .returning();
+          fastify.log.info('Updated existing user:', user);
+        } else {
+          user = existingUser;
+        }
+      } else {
+        // Create new user account
+        [user] = await db.insert(users).values({
+          tenantId: invite.tenantId,
+          email: invite.email,
+          password: hashedPassword,
+          firstName: 'New',
+          lastName: 'Affiliate',
+          isAffiliate: true,
+          roleId: affiliateRole.id,
+        }).returning();
+        fastify.log.info('Created new user:', user);
       }
 
-      // Create user account
-      const [user] = await db.insert(users).values({
-        tenantId: invite.tenantId,
-        email: invite.email,
-        password: hashedPassword,
-        firstName: 'New',
-        lastName: 'Affiliate',
-        isAffiliate: true,
-        roleId: affiliateRole.id,
-      }).returning();
+      // Check if tracking link already exists
+      const existingTrackingLink = await db.query.trackingLinks.findFirst({
+        where: and(
+          eq(trackingLinks.affiliateId, user.id),
+          eq(trackingLinks.productId, invite.productId)
+        ),
+      });
+      fastify.log.info('Existing tracking link check:', existingTrackingLink);
 
-      // Create tracking link
-      const trackingCode = crypto.randomBytes(8).toString('hex');
-      const trackingLink = await db.insert(trackingLinks).values({
-        tenantId: invite.tenantId,
-        affiliateId: user.id,
-        productId: invite.productId,
-        trackingCode,
-      }).returning();
+      let trackingLink;
+      if (!existingTrackingLink) {
+        // Create tracking link
+        const trackingCode = crypto.randomBytes(8).toString('hex');
+        [trackingLink] = await db.insert(trackingLinks).values({
+          tenantId: invite.tenantId,
+          affiliateId: user.id,
+          productId: invite.productId,
+          trackingCode: trackingCode,
+          totalClicks: 0,
+          totalConversions: 0,
+          totalSales: '0',
+        }).returning();
+        fastify.log.info('Created new tracking link:', trackingLink);
+      } else {
+        trackingLink = existingTrackingLink;
+      }
 
       // Update invite status
       await db.update(affiliateInvites)
@@ -250,30 +281,111 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
           acceptedAt: new Date(),
         })
         .where(eq(affiliateInvites.id, invite.id));
-        console.log("Invite accepted successfully");
+      fastify.log.info('Updated invite status');
 
-      // Update affiliateProductCommissions record for this invite
-      await db.update(affiliateProductCommissions)
-        .set({
-          affiliateId: user.id,
-          trackingLinkId: trackingLink[0].id,
-        })
-        .where(and(
+      // Find existing commission record
+      const existingCommission = await db.query.affiliateProductCommissions.findFirst({
+        where: and(
           eq(affiliateProductCommissions.productId, invite.productId),
           eq(affiliateProductCommissions.tenantId, invite.tenantId),
           isNull(affiliateProductCommissions.affiliateId)
-        ));
+        ),
+      });
+      fastify.log.info('Found commission record:', existingCommission);
+
+      if (existingCommission) {
+        // Update the commission record
+        await db.update(affiliateProductCommissions)
+          .set({
+            affiliateId: user.id,
+            trackingLinkId: trackingLink.id,
+          })
+          .where(eq(affiliateProductCommissions.id, existingCommission.id))
+          .returning();
+        fastify.log.info('Updated commission record');
+      } else {
+        // Create new commission record if none exists
+        const commissionTier = await db.query.commissionTiers.findFirst({
+          where: eq(commissionTiers.tenantId, invite.tenantId),
+          orderBy: (tier) => tier.minSales,
+        });
+        
+        if (!commissionTier) {
+          // Create a default commission tier if none exists
+          const [newTier] = await db.insert(commissionTiers).values({
+            tenantId: invite.tenantId,
+            tierName: 'Default Tier',
+            commissionPercent: '10',
+            minSales: 0,
+          }).returning();
+          fastify.log.info('Created default commission tier:', newTier);
+          commissionTier = newTier;
+        }
+
+        const product = await db.query.products.findFirst({
+          where: eq(products.id, invite.productId),
+        });
+
+        if (!product) {
+          throw new Error('Product not found');
+        }
+
+        const productCommissionValue = product.commissionPercent ? Number(product.commissionPercent) : 0;
+        const finalCommission = productCommissionValue || Number(commissionTier.commissionPercent);
+
+        const [newCommission] = await db.insert(affiliateProductCommissions).values({
+          productId: invite.productId,
+          tenantId: invite.tenantId,
+          affiliateId: user.id,
+          trackingLinkId: trackingLink.id,
+          commissionTierId: commissionTier.id,
+          commissionPercent: Number(commissionTier.commissionPercent),
+          productCommission: productCommissionValue,
+          finalCommission,
+        }).returning();
+        fastify.log.info('Created new commission record:', newCommission);
+      }
 
       return {
         message: 'Invite accepted successfully',
-        credentials: {
+        credentials: existingUser ? undefined : {
           email: invite.email,
           password,
         },
       };
     } catch (error) {
       fastify.log.error('Error accepting invite:', error);
-      return reply.status(500).send({ error: 'Failed to accept invite' });
+      if (error instanceof Error) {
+        fastify.log.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          cause: error.cause
+        });
+        
+        // Check for specific error types
+        if (error.message.includes('commission_tier_id')) {
+          return reply.status(500).send({ 
+            error: 'Failed to accept invite',
+            details: 'Commission tier configuration error'
+          });
+        } else if (error.message.includes('tracking_link_id')) {
+          return reply.status(500).send({ 
+            error: 'Failed to accept invite',
+            details: 'Tracking link configuration error'
+          });
+        } else if (error.message.includes('affiliate_id')) {
+          return reply.status(500).send({ 
+            error: 'Failed to accept invite',
+            details: 'Affiliate user configuration error'
+          });
+        }
+      }
+      
+      return reply.status(500).send({ 
+        error: 'Failed to accept invite',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
     }
   });
 

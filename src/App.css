@@ -1,6 +1,106 @@
+/* Reset root styles for full-width layout */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+/* Smooth scrolling for the entire app */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better font rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+  border-radius: 100vh;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 100vh;
+  border: 2px solid hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Focus outline styling */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Selection styling */
+::selection {
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+}
+
+/* Improved link transitions */
+a {
+  transition: color 0.2s ease-in-out;
+}
+
+/* Improved button transitions */
+button {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Improved input transitions */
+input, textarea, select {
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+/* Improved table styles */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Improved code block styling */
+pre, code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Improved list styling */
+ul, ol {
+  padding-left: 1.25rem;
+}
+
+/* Improved blockquote styling */
+blockquote {
+  border-left: 2px solid hsl(var(--border));
+  padding-left: 1rem;
+  margin-left: 0;
+  font-style: italic;
+}
+
+/* Improved hr styling */
+hr {
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+  margin: 2rem 0;
+}
+
+/* Improved image handling */
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
 }

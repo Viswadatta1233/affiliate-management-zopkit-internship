@@ -17,6 +17,7 @@ import {
   DialogFooter,
   DialogTrigger,
   DialogClose,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -191,127 +192,127 @@ const ProductsPage: React.FC = () => {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-[1200px] w-[95vw] min-h-[80vh]">
+          <DialogContent className="max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-4xl font-bold mb-6">Create New Product</DialogTitle>
+              <DialogTitle className="text-2xl font-semibold">Create New Product</DialogTitle>
+              <DialogDescription>Add a new product to your catalog.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-8 py-8">
-              <div className="grid grid-cols-4 items-center gap-8">
-                <Label htmlFor="name" className="text-right text-xl font-medium">Name</Label>
-                <Input 
-                  id="name" 
-                  name="name" 
-                  value={formData.name} 
-                  onChange={handleInputChange} 
-                  className="col-span-3 h-16 text-xl px-6" 
-                  required
+            <form onSubmit={handleCreateProduct} className="space-y-6 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Name</Label>
+                  <Input
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">SKU</Label>
+                  <Input
+                    name="sku"
+                    value={formData.sku}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Description</Label>
+                <Textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  className="min-h-[100px]"
                 />
               </div>
-              <div className="grid grid-cols-4 items-start gap-8">
-                <Label htmlFor="description" className="text-right text-xl font-medium pt-4">Description</Label>
-                <Textarea 
-                  id="description" 
-                  name="description" 
-                  value={formData.description} 
-                  onChange={handleInputChange} 
-                  className="col-span-3 min-h-[200px] text-xl p-6" 
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Price</Label>
+                  <Input
+                    name="price"
+                    type="number"
+                    value={formData.price || ''}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Currency</Label>
+                  <Select
+                    value={formData.currency}
+                    onValueChange={(value) => handleSelectChange('currency', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                      <SelectItem value="INR">INR</SelectItem>
+                      <SelectItem value="JPY">JPY</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Category</Label>
+                  <Input
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Commission %</Label>
+                  <Input
+                    name="commission_percent"
+                    type="number"
+                    value={formData.commission_percent || ''}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Image URL</Label>
+                <Input
+                  name="imageUrl"
+                  value={formData.imageUrl}
+                  onChange={handleInputChange}
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-8">
-                <Label htmlFor="imageUrl" className="text-right text-xl font-medium">Image URL</Label>
-                <Input 
-                  id="imageUrl" 
-                  name="imageUrl" 
-                  value={formData.imageUrl} 
-                  onChange={handleInputChange} 
-                  className="col-span-3 h-16 text-xl px-6" 
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-8">
-                <Label htmlFor="price" className="text-right text-xl font-medium">Price</Label>
-                <Input 
-                  id="price" 
-                  name="price" 
-                  type="number" 
-                  value={formData.price || ''} 
-                  onChange={handleInputChange} 
-                  className="col-span-3 h-16 text-xl px-6" 
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-8">
-                <Label htmlFor="currency" className="text-right text-xl font-medium">Currency</Label>
-                <Select 
-                  value={formData.currency} 
-                  onValueChange={(value) => handleSelectChange('currency', value)}
-                >
-                  <SelectTrigger className="col-span-3 h-16 text-xl">
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD" className="text-xl py-4">USD</SelectItem>
-                    <SelectItem value="EUR" className="text-xl py-4">EUR</SelectItem>
-                    <SelectItem value="GBP" className="text-xl py-4">GBP</SelectItem>
-                    <SelectItem value="INR" className="text-xl py-4">INR</SelectItem>
-                    <SelectItem value="JPY" className="text-xl py-4">JPY</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-8">
-                <Label htmlFor="category" className="text-right text-xl font-medium">Category</Label>
-                <Input 
-                  id="category" 
-                  name="category" 
-                  value={formData.category} 
-                  onChange={handleInputChange} 
-                  className="col-span-3 h-16 text-xl px-6" 
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-8">
-                <Label htmlFor="sku" className="text-right text-xl font-medium">SKU</Label>
-                <Input 
-                  id="sku" 
-                  name="sku" 
-                  value={formData.sku} 
-                  onChange={handleInputChange} 
-                  className="col-span-3 h-16 text-xl px-6" 
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-8">
-                <Label htmlFor="commission_percent" className="text-right text-xl font-medium">Commission %</Label>
-                <Input 
-                  id="commission_percent" 
-                  name="commission_percent" 
-                  type="number" 
-                  value={formData.commission_percent || ''} 
-                  onChange={handleInputChange} 
-                  className="col-span-3 h-16 text-xl px-6" 
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-8">
-                <Label htmlFor="status" className="text-right text-xl font-medium">Status</Label>
-                <Select 
-                  value={formData.status} 
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Status</Label>
+                <Select
+                  value={formData.status}
                   onValueChange={(value: 'active' | 'inactive') => handleSelectChange('status', value)}
                 >
-                  <SelectTrigger className="col-span-3 h-16 text-xl">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active" className="text-xl py-4">Active</SelectItem>
-                    <SelectItem value="inactive" className="text-xl py-4">Inactive</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <DialogFooter className="gap-6 pt-6">
-              <DialogClose asChild>
-                <Button variant="outline" className="h-16 px-10 text-xl">Cancel</Button>
-              </DialogClose>
-              <Button onClick={handleCreateProduct} className="h-16 px-10 text-xl">Create Product</Button>
-            </DialogFooter>
+
+              <DialogFooter className="gap-3 pt-4">
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button type="submit">Create Product</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -389,135 +390,135 @@ const ProductsPage: React.FC = () => {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-[1200px] w-[95vw] min-h-[80vh]">
+        <DialogContent className="max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-4xl font-bold mb-6">Edit Product</DialogTitle>
+            <DialogTitle className="text-2xl font-semibold">Edit Product</DialogTitle>
+            <DialogDescription>Update your product details.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-8 py-8">
-            <div className="grid grid-cols-4 items-center gap-8">
-              <Label htmlFor="edit-name" className="text-right text-xl font-medium">Name</Label>
-              <Input 
-                id="edit-name" 
-                name="name" 
-                value={formData.name} 
-                onChange={handleInputChange} 
-                className="col-span-3 h-16 text-xl px-6" 
-                required
+          <form onSubmit={handleUpdateProduct} className="space-y-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Name</Label>
+                <Input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">SKU</Label>
+                <Input
+                  name="sku"
+                  value={formData.sku}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Description</Label>
+              <Textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                className="min-h-[100px]"
               />
             </div>
-            <div className="grid grid-cols-4 items-start gap-8">
-              <Label htmlFor="edit-description" className="text-right text-xl font-medium pt-4">Description</Label>
-              <Textarea 
-                id="edit-description" 
-                name="description" 
-                value={formData.description} 
-                onChange={handleInputChange} 
-                className="col-span-3 min-h-[200px] text-xl p-6" 
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Price</Label>
+                <Input
+                  name="price"
+                  type="number"
+                  value={formData.price || ''}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Currency</Label>
+                <Select
+                  value={formData.currency}
+                  onValueChange={(value) => handleSelectChange('currency', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="INR">INR</SelectItem>
+                    <SelectItem value="JPY">JPY</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Category</Label>
+                <Input
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Commission %</Label>
+                <Input
+                  name="commission_percent"
+                  type="number"
+                  value={formData.commission_percent || ''}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Image URL</Label>
+              <Input
+                name="imageUrl"
+                value={formData.imageUrl}
+                onChange={handleInputChange}
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-8">
-              <Label htmlFor="edit-imageUrl" className="text-right text-xl font-medium">Image URL</Label>
-              <Input 
-                id="edit-imageUrl" 
-                name="imageUrl" 
-                value={formData.imageUrl} 
-                onChange={handleInputChange} 
-                className="col-span-3 h-16 text-xl px-6" 
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-8">
-              <Label htmlFor="edit-price" className="text-right text-xl font-medium">Price</Label>
-              <Input 
-                id="edit-price" 
-                name="price" 
-                type="number" 
-                value={formData.price || ''} 
-                onChange={handleInputChange} 
-                className="col-span-3 h-16 text-xl px-6" 
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-8">
-              <Label htmlFor="edit-currency" className="text-right text-xl font-medium">Currency</Label>
-              <Select 
-                value={formData.currency} 
-                onValueChange={(value) => handleSelectChange('currency', value)}
-              >
-                <SelectTrigger className="col-span-3 h-16 text-xl">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD" className="text-xl py-4">USD</SelectItem>
-                  <SelectItem value="EUR" className="text-xl py-4">EUR</SelectItem>
-                  <SelectItem value="GBP" className="text-xl py-4">GBP</SelectItem>
-                  <SelectItem value="INR" className="text-xl py-4">INR</SelectItem>
-                  <SelectItem value="JPY" className="text-xl py-4">JPY</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-8">
-              <Label htmlFor="edit-category" className="text-right text-xl font-medium">Category</Label>
-              <Input 
-                id="edit-category" 
-                name="category" 
-                value={formData.category} 
-                onChange={handleInputChange} 
-                className="col-span-3 h-16 text-xl px-6" 
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-8">
-              <Label htmlFor="edit-sku" className="text-right text-xl font-medium">SKU</Label>
-              <Input 
-                id="edit-sku" 
-                name="sku" 
-                value={formData.sku} 
-                onChange={handleInputChange} 
-                className="col-span-3 h-16 text-xl px-6" 
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-8">
-              <Label htmlFor="edit-commission_percent" className="text-right text-xl font-medium">Commission %</Label>
-              <Input 
-                id="edit-commission_percent" 
-                name="commission_percent" 
-                type="number" 
-                value={formData.commission_percent || ''} 
-                onChange={handleInputChange} 
-                className="col-span-3 h-16 text-xl px-6" 
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-8">
-              <Label htmlFor="edit-status" className="text-right text-xl font-medium">Status</Label>
-              <Select 
-                value={formData.status} 
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Status</Label>
+              <Select
+                value={formData.status}
                 onValueChange={(value: 'active' | 'inactive') => handleSelectChange('status', value)}
               >
-                <SelectTrigger className="col-span-3 h-16 text-xl">
+                <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active" className="text-xl py-4">Active</SelectItem>
-                  <SelectItem value="inactive" className="text-xl py-4">Inactive</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <DialogFooter className="gap-6 pt-6">
-            <DialogClose asChild>
-              <Button variant="outline" className="h-16 px-10 text-xl">Cancel</Button>
-            </DialogClose>
-            <Button onClick={handleUpdateProduct} className="h-16 px-10 text-xl">Update Product</Button>
-          </DialogFooter>
+
+            <DialogFooter className="gap-3 pt-4">
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <Button type="submit">Update Product</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="max-w-[600px] w-[95vw]">
+        <DialogContent className="max-w-[500px] w-[95vw]">
           <DialogHeader>
-            <DialogTitle className="text-3xl font-bold mb-4">Confirm Deletion</DialogTitle>
+            <DialogTitle className="text-2xl font-semibold">Confirm Deletion</DialogTitle>
           </DialogHeader>
           <div className="py-6">
             <p className="text-xl">Are you sure you want to delete the product "{currentProduct?.name}"?</p>
