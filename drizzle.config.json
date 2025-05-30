@@ -1,11 +1,11 @@
 {
   "out": "./drizzle",
-  "schema": "./src/server/db/schema.ts",
-  "driver": "pg",
+  "schema": "./src/drizzle/schema/*.ts",
+  "dialect": "postgresql",
   "dbCredentials": {
     "host": "localhost",
     "user": "postgres",
-    "password": "datta1234",
+    "password": "postgres123",
     "database": "affiliate_db",
     "port": 5432
   }

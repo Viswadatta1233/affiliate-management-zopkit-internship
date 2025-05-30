@@ -336,16 +336,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
             defaultOpen={isActivePath('/marketing')}
           >
             <SidebarItem
-              href="/marketing/resources"
-              icon={<Folder className="h-4 w-4" />}
-              title="Resources"
-              isCurrent={isActivePath('/marketing/resources')}
+              href="/marketing/create-campaign"
+              icon={<Plus className="h-4 w-4" />}
+              title="Create Campaign"
+              isCurrent={isActivePath('/marketing/create-campaign')}
             />
             <SidebarItem
               href="/marketing/campaigns"
               icon={<Megaphone className="h-4 w-4" />}
-              title="Campaigns"
+              title="All Campaigns"
               isCurrent={isActivePath('/marketing/campaigns')}
+            />
+            <SidebarItem
+              href="/marketing/resources"
+              icon={<Folder className="h-4 w-4" />}
+              title="Resources"
+              isCurrent={isActivePath('/marketing/resources')}
             />
             <SidebarItem
               href="/marketing/influencer-search"

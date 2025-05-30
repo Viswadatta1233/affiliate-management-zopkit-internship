@@ -3,7 +3,7 @@ import { authRoutes } from './auth';
 import affiliateRoutes from './affiliates';
 // import { trackingRoutes } from './tracking';
 // import { paymentRoutes } from './payments';
-// import { campaignRoutes } from './campaigns';
+import campaignRoutes from './campaigns';
 import { commissionRoutes } from './commissions';
 import productRoutes  from './products';
 // import { communicationRoutes } from './communications';
@@ -17,7 +17,7 @@ export const configureRoutes = (server: FastifyInstance) => {
   server.register(affiliateRoutes, { prefix: '/api/affiliates' });
   // server.register(trackingRoutes, { prefix: '/api/tracking' });
   // server.register(paymentRoutes, { prefix: '/api/payments' });
-  // server.register(campaignRoutes, { prefix: '/api/campaigns' });
+  server.register(campaignRoutes, { prefix: '/api/campaigns' });
   server.register(commissionRoutes, { prefix: '/api/commissions' });
   server.register(productRoutes, { prefix: '/api/products' });
   // server.register(communicationRoutes, { prefix: '/api/communications' });

@@ -215,15 +215,29 @@ export const authRoutes = async (server: FastifyInstance) => {
 
       // Find user with tenant and role
       console.log('Looking up user:', body.email);
-      const userQuery = db.query.users.findFirst({
-        where: eq(users.email, body.email),
-        with: {
-          tenant: true,
-          role: true,
-        },
-      });
+      const userQuery = await db.select({
+        id: users.id,
+        email: users.email,
+        password: users.password,
+        tenantId: users.tenantId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        isAffiliate: users.isAffiliate,
+        roleId: users.roleId,
+        tenant: {
+          id: tenants.id,
+          name: tenants.name,
+          domain: tenants.domain,
+          subdomain: tenants.subdomain,
+          status: tenants.status
+        }
+      })
+      .from(users)
+      .leftJoin(tenants, eq(users.tenantId, tenants.id))
+      .where(eq(users.email, body.email))
+      .limit(1);
 
-      const user = await userQuery;
+      const user = userQuery[0];
       console.log('User lookup result:', user ? 'Found' : 'Not found');
 
       if (!user) {
@@ -265,14 +279,9 @@ export const authRoutes = async (server: FastifyInstance) => {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          phone: user.phone,
-          countryCode: user.countryCode,
-          timezone: user.timezone,
-          language: user.language,
           isAffiliate: user.isAffiliate,
         },
         tenant: user.tenant,
-        role: user.role,
       };
     } catch (error) {
       console.error('Login error:', error);

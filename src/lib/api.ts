@@ -41,24 +41,25 @@ class ApiClient {
         headers,
       });
 
+      const data = await response.json().catch(() => ({ message: 'An error occurred' }));
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'An error occurred' }));
-        console.error('API Error:', {
+        console.error('API Error Response:', {
           endpoint,
           status: response.status,
           statusText: response.statusText,
-          error: errorData,
+          errorDetails: data,
           headers: Object.fromEntries(response.headers.entries())
         });
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(data.error?.message || JSON.stringify(data.error) || `HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
       return { data }; // Wrap the response in a data property
     } catch (error) {
       console.error('API Request Failed:', {
         endpoint,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        fullError: error
       });
       throw error;
     }
@@ -178,6 +179,10 @@ export const apiCampaigns = {
 
   getById: (id: string) => {
     return api.get(`/api/campaigns/${id}`);
+  },
+
+  create: (data: any) => {
+    return api.post('/api/campaigns', data);
   },
 
   optIn: (id: string) => {

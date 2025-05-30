@@ -24,6 +24,7 @@ import FraudRules from '@/pages/fraud/rules';
 import FraudAlerts from '@/pages/fraud/alerts';
 import MarketingResources from '@/pages/marketing/resources';
 import MarketingCampaigns from '@/pages/marketing/campaigns';
+import CreateCampaign from '@/pages/marketing/createCampaign';
 import InfluencerSearch from '@/pages/marketing/influencer-search';
 import KnowledgeBase from '@/pages/marketing/knowledge-base';
 import Notifications from '@/pages/communications/notifications';
@@ -124,6 +125,7 @@ function App() {
             
             {/* Marketing */}
             <Route path="marketing">
+              <Route path="create-campaign" element={<CreateCampaign />} />
               <Route path="resources" element={<MarketingResources />} />
               <Route path="campaigns" element={<MarketingCampaigns />} />
               <Route path="influencer-search" element={<InfluencerSearch />} />

@@ -3,15 +3,58 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, DollarSign } from "lucide-react";
 import { Campaign } from '@/types';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CampaignMetricsProps {
   campaign: Campaign;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
-export function CampaignMetrics({ campaign }: CampaignMetricsProps) {
+export function CampaignMetrics({ campaign, isLoading, error }: CampaignMetricsProps) {
   const bonusProgress = campaign.rewards.bonusThreshold
     ? (campaign.metrics.revenue / campaign.rewards.bonusThreshold) * 100
     : 0;
+
+  if (error) {
+    return (
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle>Error Loading Metrics</CardTitle>
+          <CardDescription>{error}</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-8 w-[200px]" />
+          <Skeleton className="h-4 w-[300px] mt-2" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[100px]" />
+                <Skeleton className="h-8 w-[120px]" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[100px]" />
+                <Skeleton className="h-8 w-[120px]" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-2 w-full" />
+              <Skeleton className="h-4 w-[200px]" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
