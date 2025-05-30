@@ -66,8 +66,8 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, title, isCurrent,
       className={cn(
         "flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
         isCurrent
-          ? "bg-accent text-accent-foreground"
-          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:bg-muted"
       )}
     >
       <div className="flex items-center gap-3">
@@ -89,10 +89,10 @@ const SidebarGroup: React.FC<SidebarGroupProps> = ({ title, icon, children, defa
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between py-2 px-3 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md transition-colors">
+      <CollapsibleTrigger className="flex w-full items-center justify-between py-2 px-3 text-sm text-muted-foreground hover:bg-muted hover:text-accent-foreground rounded-md transition-colors bg-transparent">
         <div className="flex items-center gap-3">
           {icon}
-          <span>{title}</span>
+          <span className="text-muted-foreground font-medium">{title}</span>
         </div>
         <ChevronsUpDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
       </CollapsibleTrigger>
@@ -147,7 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
   return (
     <aside 
       className={cn(
-        "fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r bg-background pt-16 transition-transform duration-300 ease-in-out",
+        "fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r bg-white pt-16 shadow-sm transition-transform duration-300 ease-in-out",
         isMobile ? "fixed" : "relative",
         isMobile && !isOpen && "-translate-x-full"
       )}

@@ -1,4 +1,10 @@
 DO $$ BEGIN
+ CREATE TYPE "marketing_asset_type" AS ENUM('logo', 'banner', 'other');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
  CREATE TYPE "tenant_status" AS ENUM('trial', 'active', 'suspended');
 EXCEPTION
  WHEN duplicate_object THEN null;
@@ -75,16 +81,36 @@ CREATE TABLE IF NOT EXISTS "commission_tiers" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "marketing_assets" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"tenant_id" uuid NOT NULL,
+	"type" "marketing_asset_type" NOT NULL,
+	"url" text NOT NULL,
+	"public_id" varchar NOT NULL,
+	"uploaded_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "marketing_guidelines" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"tenant_id" uuid NOT NULL,
+	"content" text NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "products" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"name" varchar NOT NULL,
 	"description" text,
+	"image_url" text,
 	"price" numeric(10, 2) NOT NULL,
-	"sku" varchar,
-	"commission_percent" numeric(5, 2),
-	"status" varchar DEFAULT 'active',
-	"created_at" timestamp DEFAULT now()
+	"currency" varchar(3) DEFAULT 'USD' NOT NULL,
+	"sku" varchar NOT NULL,
+	"commission_percent" numeric(5, 2) DEFAULT '0' NOT NULL,
+	"category" varchar,
+	"status" varchar(10) DEFAULT 'active' NOT NULL,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "roles" (
@@ -218,6 +244,18 @@ END $$;
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "commission_tiers" ADD CONSTRAINT "commission_tiers_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "marketing_assets" ADD CONSTRAINT "marketing_assets_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "marketing_guidelines" ADD CONSTRAINT "marketing_guidelines_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;

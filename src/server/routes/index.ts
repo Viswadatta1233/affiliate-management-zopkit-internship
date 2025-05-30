@@ -8,7 +8,7 @@ import { commissionRoutes } from './commissions';
 import productRoutes  from './products';
 // import { communicationRoutes } from './communications';
 // import { analyticsRoutes } from './analytics';
-// import { marketingRoutes } from './marketing';
+import { marketingRoutes } from './marketing';
 // import { fraudRoutes } from './fraud';
 
 export const configureRoutes = (server: FastifyInstance) => {
@@ -22,6 +22,6 @@ export const configureRoutes = (server: FastifyInstance) => {
   server.register(productRoutes, { prefix: '/api/products' });
   // server.register(communicationRoutes, { prefix: '/api/communications' });
   // server.register(analyticsRoutes, { prefix: '/api/analytics' });
-  // server.register(marketingRoutes, { prefix: '/api/marketing' });
+  server.register(marketingRoutes, { prefix: '/api/marketing' });
   // server.register(fraudRoutes, { prefix: '/api/fraud' });
 };
