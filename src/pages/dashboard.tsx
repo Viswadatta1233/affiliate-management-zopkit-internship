@@ -158,6 +158,7 @@ const Dashboard: React.FC = () => {
           description="From all affiliate channels"
           icon={<DollarSign className="h-4 w-4" />}
           change={{ value: 12.5, trend: 'up' }}
+          className="bg-white shadow-sm rounded-lg"
         />
         <StatCard 
           title="Commissions" 
@@ -165,6 +166,7 @@ const Dashboard: React.FC = () => {
           description="Paid out to affiliates"
           icon={<ArrowDownUp className="h-4 w-4" />} 
           change={{ value: 8.2, trend: 'up' }}
+          className="bg-white shadow-sm rounded-lg"
         />
         <StatCard 
           title="Conversion Rate" 
@@ -172,6 +174,7 @@ const Dashboard: React.FC = () => {
           description="From clicks to sales"
           icon={<TrendingUp className="h-4 w-4" />}
           change={{ value: 0.8, trend: 'up' }}
+          className="bg-white shadow-sm rounded-lg"
         />
         <StatCard 
           title="Active Affiliates" 
@@ -179,6 +182,7 @@ const Dashboard: React.FC = () => {
           description="Out of 42 total affiliates"
           icon={<Users className="h-4 w-4" />}
           change={{ value: 4, trend: 'up' }}
+          className="bg-white shadow-sm rounded-lg"
         />
       </div>
 

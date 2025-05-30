@@ -4,6 +4,7 @@ import { relations } from 'drizzle-orm';
 // Enums
 export const userStatusEnum = pgEnum('user_status', ['active', 'inactive', 'pending']);
 export const tenantStatusEnum = pgEnum('tenant_status', ['trial', 'active', 'suspended']);
+export const marketingAssetTypeEnum = pgEnum('marketing_asset_type', ['logo', 'banner', 'other']);
 
 // Tables
 export const tenants = pgTable('tenants', {
@@ -149,6 +150,23 @@ export const affiliateDetails = pgTable('affiliate_details', {
   socialMedia: jsonb('social_media'),
   promotionalMethods: jsonb('promotional_methods'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// --- MARKETING RESOURCES ---
+export const marketingAssets = pgTable('marketing_assets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  type: marketingAssetTypeEnum('type').notNull(),
+  url: text('url').notNull(),
+  publicId: varchar('public_id').notNull(),
+  uploadedAt: timestamp('uploaded_at').notNull().defaultNow(),
+});
+
+export const marketingGuidelines = pgTable('marketing_guidelines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 

@@ -86,10 +86,8 @@ const AppShell: React.FC = () => {
           )}
         >
           <ScrollArea className="h-[calc(100vh-4rem)]">
-            <div className="px-4 md:px-6 lg:px-8 py-6">
-              <div className="mx-auto max-w-7xl">
-                <Outlet />
-              </div>
+            <div className="w-full px-4 py-6">
+              <Outlet />
             </div>
           </ScrollArea>
         </main>

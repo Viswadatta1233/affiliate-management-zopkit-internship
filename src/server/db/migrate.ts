@@ -14,7 +14,7 @@ const projectRoot = join(__dirname, '../../..');
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres123',
+  password: process.env.DB_PASSWORD || 'datta1234',
   database: process.env.DB_NAME || 'affiliate_db',
   port: parseInt(process.env.DB_PORT || '5432'),
 });
