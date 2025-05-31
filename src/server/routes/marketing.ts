@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db';
-import { marketingAssets, marketingGuidelines } from '../db/schema';
+import { marketingAssets, marketingGuidelines } from '../../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { v2 as cloudinary } from 'cloudinary';
 
