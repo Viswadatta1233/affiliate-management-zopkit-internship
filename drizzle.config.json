@@ -1,6 +1,6 @@
 {
   "out": "./drizzle",
-  "schema": "./src/drizzle/schema/*.ts",
+  "schema": "./drizzle/schema.ts",
   "dialect": "postgresql",
   "dbCredentials": {
     "host": "localhost",

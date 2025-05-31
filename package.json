@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "start:server": "tsx src/server/index.ts",
-    "db:generate": "drizzle-kit generate:pg",
+    "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/server/db/migrate.ts"
   },
   "dependencies": {
@@ -62,7 +62,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^2.30.0",
     "dotenv": "^16.5.0",
-    "drizzle-orm": "^0.29.3",
+    "drizzle-orm": "^0.44.1",
     "drizzle-zod": "^0.5.1",
     "embla-carousel-react": "^8.3.0",
     "express": "^5.1.0",
@@ -97,7 +97,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.2",
-    "drizzle-kit": "^0.20.14",
+    "drizzle-kit": "^0.31.1",
     "eslint": "^9.11.1",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.12",
