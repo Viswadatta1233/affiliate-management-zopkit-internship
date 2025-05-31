@@ -50,6 +50,8 @@ export const users = pgTable('users', {
   roleId: uuid('role_id').notNull().references(() => roles.id, { onDelete: 'restrict' }),
   isAffiliate: boolean('is_affiliate').default(false),
   password: varchar('password').notNull(),
+  resetToken: text('reset_token'),
+  resetTokenExpiresAt: timestamp('reset_token_expires_at'),
   createdAt: timestamp('created_at').notNull().defaultNow()
 });
 
@@ -123,6 +125,22 @@ export const trackingLinks = pgTable('tracking_links', {
   totalClicks: integer('total_clicks').default(0),
   totalConversions: integer('total_conversions').default(0),
   totalSales: numeric('total_sales', { precision: 10, scale: 2 }).default('0'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const trackingEvents = pgTable('tracking_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id, { onDelete: 'cascade' }),
+  affiliateId: uuid('affiliate_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  trackingLinkId: uuid('tracking_link_id')
+    .notNull()
+    .references(() => trackingLinks.id, { onDelete: 'cascade' }),
+  type: varchar('type').notNull(),
+  metadata: jsonb('metadata').default({}),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

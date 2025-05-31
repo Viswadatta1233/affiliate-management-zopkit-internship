@@ -1,67 +1,63 @@
 import Fastify from 'fastify';
-import cors from '@fastify/cors';
-import { authenticateJWT, enforceTenantIsolation } from './security';
-import { pool } from './db';
-import { configureRoutes } from './routes';
+import { configureSecurity } from './security';
+import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
+import { initializeDatabase } from './db';
+import dotenv from 'dotenv';
+import { configureRoutes } from './routes';
 
-// Ensure JWT secret is set
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-console.log('Using JWT_SECRET:', JWT_SECRET);
+// Load environment variables
+dotenv.config();
 
-const server = Fastify({
-  logger: true
-});
-
-// ✅ Register multipart plugin first with increased limits
-await server.register(multipart, {
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-    files: 1 // Allow only 1 file per request
-  }
-});
-
-// ✅ Register CORS with proper headers
-await server.register(cors, {
-  origin: 'http://localhost:5173',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'], // ← Added x-tenant-id
-  credentials: true
-});
-
-// ✅ Add hooks AFTER plugins
-server.addHook('onRequest', authenticateJWT);
-server.addHook('onRequest', enforceTenantIsolation);
-
-// ✅ Register all routes
-configureRoutes(server);
-
-// Health check route
-server.get('/health', async () => {
-  return { status: 'ok' };
-});
-
-// Start server
-const start = async () => {
+const startServer = async () => {
   try {
-    await server.listen({ port: 3000, host: '0.0.0.0' });
-    console.log('Server is running on http://localhost:3000');
-  } catch (err) {
-    server.log.error(err);
+    // Initialize database
+    await initializeDatabase();
+
+    // Create Fastify instance
+    const server = Fastify({
+      logger: true,
+      trustProxy: true,
+      ajv: {
+        customOptions: {
+          removeAdditional: 'all',
+          coerceTypes: true,
+          useDefaults: true,
+        },
+      },
+    });
+
+    // Configure security
+    await configureSecurity(server);
+
+    // Register multipart plugin for handling form data
+    await server.register(multipart, {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+        files: 1 // Maximum number of files
+      }
+    });
+
+    // Configure routes
+    await configureRoutes(server);
+
+    // Add rate limiting
+    await server.register(rateLimit, {
+      max: 100,
+      timeWindow: '1 minute'
+    });
+
+    // Start server
+    const port = parseInt(process.env.PORT || '3000');
+    const host = process.env.HOST || '0.0.0.0';
+
+    await server.listen({ port, host });
+    console.log(`Server is running on http://localhost:${port}`);
+  } catch (error) {
+    console.error('Error starting server:', error);
     process.exit(1);
   }
 };
 
-// Handle cleanup
-process.on('SIGINT', async () => {
-  try {
-    await server.close();
-    await pool.end();
-    process.exit(0);
-  } catch (err) {
-    console.error('Error during cleanup:', err);
-    process.exit(1);
-  }
-});
-
-start();
+// Start the server
+startServer();

@@ -1,147 +1,147 @@
-// import { FastifyInstance } from 'fastify';
-// import { z } from 'zod';
-// import { db } from '../db';
-// import { fraudRules, fraudAlerts } from '../db/schema';
-// import { eq, and } from 'drizzle-orm';
+import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import { db } from '../db';
+import { eq, and, sql } from 'drizzle-orm';
+import { trackingLinks, trackingEvents } from '../db/schema';
 
-// export const fraudRoutes = async (server: FastifyInstance) => {
-//   // Get fraud rules
-//   server.get('/rules', async (request) => {
-//     const tenantId = request.headers['x-tenant-id'] as string;
-    
-//     return db.query.fraudRules.findMany({
-//       where: eq(fraudRules.tenantId, tenantId)
-//     });
-//   });
+const fraudRuleSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  type: z.enum(['ip_based', 'click_pattern', 'conversion_pattern', 'time_based']),
+  condition: z.string(),
+  threshold: z.number(),
+  action: z.enum(['flag', 'block', 'notify']),
+  status: z.enum(['active', 'inactive']).default('active')
+});
 
-//   // Create fraud rule
-//   server.post('/rules', async (request) => {
-//     const tenantId = request.headers['x-tenant-id'] as string;
-//     const body = request.body as any;
-    
-//     const result = await db.insert(fraudRules)
-//       .values({
-//         ...body,
-//         tenantId,
-//         status: 'active'
-//       })
-//       .returning();
-    
-//     return result[0];
-//   });
+export default async function fraudRoutes(fastify: FastifyInstance) {
+  // Get fraud detection rules
+  fastify.get('/rules', async (request, reply) => {
+    try {
+      if (!request.user?.tenantId) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
 
-//   // Get fraud alerts
-//   server.get('/alerts', async (request) => {
-//     const tenantId = request.headers['x-tenant-id'] as string;
-//     const status = request.query.status as string;
-    
-//     return db.query.fraudAlerts.findMany({
-//       where: and(
-//         eq(fraudAlerts.tenantId, tenantId),
-//         status && eq(fraudAlerts.status, status)
-//       ),
-//       orderBy: [
-//         { createdAt: 'desc' }
-//       ],
-//       with: {
-//         rule: true
-//       }
-//     });
-//   });
+      // For now, return some default rules since we don't have a fraud_rules table yet
+      const defaultRules = [
+        {
+          id: '1',
+          name: 'Rapid Clicks',
+          description: 'Detect rapid clicking patterns from same IP',
+          type: 'click_pattern',
+          condition: 'clicks_per_minute > 30',
+          threshold: 30,
+          action: 'flag',
+          status: 'active'
+        },
+        {
+          id: '2',
+          name: 'Multiple IPs',
+          description: 'Detect access from too many different IPs',
+          type: 'ip_based',
+          condition: 'unique_ips_per_hour > 10',
+          threshold: 10,
+          action: 'notify',
+          status: 'active'
+        }
+      ];
 
-//   // Update alert status
-//   server.post('/alerts/:id/status', async (request) => {
-//     const { id } = request.params as { id: string };
-//     const { status } = request.body as { status: string };
-//     const tenantId = request.headers['x-tenant-id'] as string;
-    
-//     const result = await db.update(fraudAlerts)
-//       .set({ status })
-//       .where(and(
-//         eq(fraudAlerts.id, id),
-//         eq(fraudAlerts.tenantId, tenantId)
-//       ))
-//       .returning();
-    
-//     return result[0];
-//   });
+      return reply.send(defaultRules);
+    } catch (error) {
+      fastify.log.error('Error fetching fraud rules:', error);
+      return reply.status(500).send({ 
+        error: 'Failed to fetch fraud rules',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
-//   // Get risk score
-//   server.get('/risk-score', async (request) => {
-//     const tenantId = request.headers['x-tenant-id'] as string;
-//     const affiliateId = request.query.affiliateId as string;
-    
-//     // Calculate risk score based on various factors
-//     const metrics = await db.transaction(async (tx) => {
-//       const [
-//         alertCount,
-//         failedLogins,
-//         suspiciousIPs,
-//         highValueTransactions
-//       ] = await Promise.all([
-//         // Number of fraud alerts
-//         tx.select({
-//           count: sql<number>`count(*)`
-//         }).from(fraudAlerts)
-//           .where(and(
-//             eq(fraudAlerts.tenantId, tenantId),
-//             eq(fraudAlerts.affiliateId, affiliateId),
-//             sql`created_at >= now() - interval '30d'`
-//           )),
+  // Create fraud detection rule
+  fastify.post('/rules', async (request, reply) => {
+    try {
+      if (!request.user?.tenantId) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const result = fraudRuleSchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.status(400).send({ 
+          error: 'Validation error',
+          details: result.error.format()
+        });
+      }
+
+      // For now, just acknowledge the rule creation since we don't have a fraud_rules table
+      return reply.status(201).send({
+        id: Math.random().toString(36).substr(2, 9),
+        ...result.data,
+        createdAt: new Date()
+      });
+    } catch (error) {
+      fastify.log.error('Error creating fraud rule:', error);
+      return reply.status(500).send({ 
+        error: 'Failed to create fraud rule',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get suspicious activities
+  fastify.get('/suspicious-activities', async (request, reply) => {
+    try {
+      if (!request.user?.tenantId) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      // Query tracking events to find suspicious patterns
+      const events = await db.select({
+        id: trackingEvents.id,
+        type: trackingEvents.type,
+        affiliateId: trackingEvents.affiliateId,
+        createdAt: trackingEvents.createdAt,
+        metadata: trackingEvents.metadata
+      })
+      .from(trackingEvents)
+      .where(and(
+        eq(trackingEvents.tenantId, request.user.tenantId),
+        sql`created_at >= now() - interval '24 hours'`
+      ))
+      .orderBy(trackingEvents.createdAt);
+
+      // Simple pattern detection (this would be more sophisticated in production)
+      const suspiciousActivities = events.reduce((acc, event) => {
+        const key = `${event.affiliateId}-${event.type}`;
+        if (!acc[key]) {
+          acc[key] = {
+            affiliateId: event.affiliateId,
+            eventType: event.type,
+            count: 0,
+            lastEventTime: null
+          };
+        }
         
-//         // Failed login attempts
-//         tx.select({
-//           count: sql<number>`count(*)`
-//         }).from(loginAttempts)
-//           .where(and(
-//             eq(loginAttempts.tenantId, tenantId),
-//             eq(loginAttempts.userId, affiliateId),
-//             eq(loginAttempts.success, false),
-//             sql`created_at >= now() - interval '24h'`
-//           )),
+        acc[key].count++;
         
-//         // Suspicious IP addresses
-//         tx.select({
-//           count: sql<number>`count(distinct ip_address)`
-//         }).from(loginAttempts)
-//           .where(and(
-//             eq(loginAttempts.tenantId, tenantId),
-//             eq(loginAttempts.userId, affiliateId),
-//             sql`created_at >= now() - interval '24h'`
-//           )),
+        // Check for rapid succession events
+        if (acc[key].lastEventTime) {
+          const timeDiff = new Date(event.createdAt).getTime() - new Date(acc[key].lastEventTime).getTime();
+          if (timeDiff < 1000) { // Less than 1 second apart
+            acc[key].suspicious = true;
+          }
+        }
         
-//         // High value transactions
-//         tx.select({
-//           count: sql<number>`count(*)`
-//         }).from(sales)
-//           .where(and(
-//             eq(sales.tenantId, tenantId),
-//             eq(sales.affiliateId, affiliateId),
-//             sql`sale_amount > 1000`,
-//             sql`created_at >= now() - interval '24h'`
-//           ))
-//       ]);
+        acc[key].lastEventTime = event.createdAt;
+        return acc;
+      }, {} as Record<string, any>);
 
-//       // Calculate risk score (0-100)
-//       const riskScore = Math.min(
-//         100,
-//         (alertCount[0].count * 20) +
-//         (failedLogins[0].count * 10) +
-//         (suspiciousIPs[0].count > 3 ? 30 : 0) +
-//         (highValueTransactions[0].count * 5)
-//       );
-
-//       return {
-//         score: riskScore,
-//         factors: {
-//           alerts: alertCount[0].count,
-//           failedLogins: failedLogins[0].count,
-//           suspiciousIPs: suspiciousIPs[0].count,
-//           highValueTransactions: highValueTransactions[0].count
-//         }
-//       };
-//     });
-
-//     return metrics;
-//   });
-// };
+      return reply.send(Object.values(suspiciousActivities)
+        .filter(activity => activity.suspicious));
+    } catch (error) {
+      fastify.log.error('Error fetching suspicious activities:', error);
+      return reply.status(500).send({ 
+        error: 'Failed to fetch suspicious activities',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+}

@@ -5,54 +5,107 @@ import { campaigns, campaignParticipations, affiliates } from '../../drizzle/sch
 import { eq, and, sql } from 'drizzle-orm';
 import { generatePromoCode } from '@/lib/utils';
 
+// Validation schemas
 const campaignSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().min(1, 'Description is required'),
-  startDate: z.string().or(z.date()).transform((val) => new Date(val)),
-  endDate: z.string().or(z.date()).nullable().transform((val) => val ? new Date(val) : null),
+  name: z.string().min(1).max(100),
+  description: z.string().min(1),
+  startDate: z.string().transform(str => new Date(str)),
+  endDate: z.string().optional().transform(str => str ? new Date(str) : undefined),
+  status: z.enum(['draft', 'active', 'paused', 'completed']).default('draft'),
   type: z.enum(['product', 'service', 'event']),
   requirements: z.object({
     minFollowers: z.number().optional(),
     platforms: z.array(z.string()).optional(),
-    categories: z.array(z.string()).optional(),
-  }).optional(),
+    categories: z.array(z.string()).optional()
+  }).default({}),
   rewards: z.object({
     commissionRate: z.number().min(0).max(100),
     bonusThreshold: z.number().optional(),
-    bonusAmount: z.number().optional(),
+    bonusAmount: z.number().optional()
   }),
   content: z.object({
     images: z.array(z.string()),
     videos: z.array(z.string()),
-    description: z.string().min(1, 'Content description is required'),
-    guidelines: z.string().min(1, 'Guidelines are required'),
-    promotionalCodes: z.array(z.string()),
+    description: z.string().min(1),
+    guidelines: z.string().min(1),
+    promotionalCodes: z.array(z.string())
   }),
+  metrics: z.object({
+    totalReach: z.number(),
+    engagementRate: z.number(),
+    conversions: z.number(),
+    revenue: z.number()
+  }).default({
+    totalReach: 0,
+    engagementRate: 0,
+    conversions: 0,
+    revenue: 0
+  })
 });
 
 export default async function campaignRoutes(fastify: FastifyInstance) {
   // Get all campaigns
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
-    const allCampaigns = await db.select().from(campaigns)
-      .where(eq(campaigns.tenantId, request.user.tenantId));
-    return allCampaigns;
+    try {
+      if (!request.user?.tenantId) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const allCampaigns = await db.select().from(campaigns)
+        .where(eq(campaigns.tenantId, request.user.tenantId));
+      
+      return reply.send(allCampaigns);
+    } catch (error) {
+      fastify.log.error('Error fetching campaigns:', error);
+      return reply.status(500).send({ 
+        error: 'Failed to fetch campaigns',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get campaign by ID
+  fastify.get('/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    try {
+      if (!request.user?.tenantId) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const { id } = request.params;
+      const campaign = await db.select().from(campaigns)
+        .where(and(
+          eq(campaigns.id, id),
+          eq(campaigns.tenantId, request.user.tenantId)
+        ))
+        .limit(1);
+
+      if (!campaign.length) {
+        return reply.status(404).send({ error: 'Campaign not found' });
+      }
+
+      return reply.send(campaign[0]);
+    } catch (error) {
+      fastify.log.error('Error fetching campaign:', error);
+      return reply.status(500).send({ 
+        error: 'Failed to fetch campaign',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   });
 
   // Create campaign
   fastify.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      console.log('Received campaign data:', request.body);
-      console.log('User context:', request.user);
-      
       if (!request.user?.tenantId) {
-        console.error('No tenantId found in request');
-        return reply.status(400).send({ error: 'Missing tenant ID' });
+        return reply.status(401).send({ error: 'Unauthorized' });
       }
 
       const result = campaignSchema.safeParse(request.body);
       if (!result.success) {
-        console.error('Validation error:', result.error.format());
-        return reply.status(400).send({ error: result.error.format() });
+        return reply.status(400).send({ 
+          error: 'Validation error',
+          details: result.error.format()
+        });
       }
 
       const { name, startDate, endDate } = result.data;
@@ -70,38 +123,120 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Campaign with this name already exists' });
       }
 
-      // Validate dates if endDate is provided
+      // Validate dates
       if (endDate && endDate <= startDate) {
         return reply.status(400).send({ error: 'End date must be after start date' });
       }
 
-      console.log('Inserting campaign with data:', {
-        ...result.data,
-        tenantId: request.user.tenantId
-      });
-
-      const campaign = await db.insert(campaigns)
+      const [newCampaign] = await db.insert(campaigns)
         .values({
-          name: result.data.name,
-          description: result.data.description,
-          startDate: startDate,
-          endDate: endDate,
-          type: result.data.type,
-          requirements: result.data.requirements || {},
-          rewards: result.data.rewards,
-          content: result.data.content,
+          ...result.data,
           tenantId: request.user.tenantId,
           createdAt: new Date(),
           updatedAt: new Date()
-        } as typeof campaigns.$inferInsert)
+        })
         .returning();
 
-      return campaign[0];
+      return reply.status(201).send(newCampaign);
     } catch (error) {
-      console.error('Error creating campaign:', error);
+      fastify.log.error('Error creating campaign:', error);
       return reply.status(500).send({ 
-        error: 'Internal Server Error',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Failed to create campaign',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Update campaign
+  fastify.put('/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    try {
+      if (!request.user?.tenantId) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const { id } = request.params;
+      const result = campaignSchema.partial().safeParse(request.body);
+      
+      if (!result.success) {
+        return reply.status(400).send({ 
+          error: 'Validation error',
+          details: result.error.format()
+        });
+      }
+
+      // Check if campaign exists and belongs to tenant
+      const existingCampaign = await db.select()
+        .from(campaigns)
+        .where(and(
+          eq(campaigns.id, id),
+          eq(campaigns.tenantId, request.user.tenantId)
+        ))
+        .limit(1);
+
+      if (!existingCampaign.length) {
+        return reply.status(404).send({ error: 'Campaign not found' });
+      }
+
+      const { startDate, endDate } = result.data;
+      if (startDate && endDate && endDate <= startDate) {
+        return reply.status(400).send({ error: 'End date must be after start date' });
+      }
+
+      const [updatedCampaign] = await db.update(campaigns)
+        .set({
+          ...result.data,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(campaigns.id, id),
+          eq(campaigns.tenantId, request.user.tenantId)
+        ))
+        .returning();
+
+      return reply.send(updatedCampaign);
+    } catch (error) {
+      fastify.log.error('Error updating campaign:', error);
+      return reply.status(500).send({ 
+        error: 'Failed to update campaign',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Delete campaign
+  fastify.delete('/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    try {
+      if (!request.user?.tenantId) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const { id } = request.params;
+
+      // Check if campaign exists and belongs to tenant
+      const existingCampaign = await db.select()
+        .from(campaigns)
+        .where(and(
+          eq(campaigns.id, id),
+          eq(campaigns.tenantId, request.user.tenantId)
+        ))
+        .limit(1);
+
+      if (!existingCampaign.length) {
+        return reply.status(404).send({ error: 'Campaign not found' });
+      }
+
+      await db.delete(campaigns)
+        .where(and(
+          eq(campaigns.id, id),
+          eq(campaigns.tenantId, request.user.tenantId)
+        ));
+
+      return reply.send({ message: 'Campaign deleted successfully' });
+    } catch (error) {
+      fastify.log.error('Error deleting campaign:', error);
+      return reply.status(500).send({ 
+        error: 'Failed to delete campaign',
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });

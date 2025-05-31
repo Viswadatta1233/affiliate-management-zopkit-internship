@@ -1,155 +1,143 @@
-// import { FastifyInstance } from 'fastify';
-// import { z } from 'zod';
-// import { db } from '../db';
-// import { sales, affiliates, trackingLinks } from '../db/schema';
-// import { eq, and, sql } from 'drizzle-orm';
+import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import { db } from '../db';
+import { trackingLinks, trackingEvents } from '../db/schema';
+import { eq, and, sql } from 'drizzle-orm';
 
-// export const analyticsRoutes = async (server: FastifyInstance) => {
-//   // Get dashboard metrics
-//   server.get('/dashboard', async (request) => {
-//     const tenantId = request.headers['x-tenant-id'] as string;
-//     const timeframe = request.query.timeframe || '30d';
-    
-//     const metrics = await db.transaction(async (tx) => {
-//       const [
-//         totalSales,
-//         totalCommissions,
-//         activeAffiliates,
-//         conversionRate
-//       ] = await Promise.all([
-//         // Total sales
-//         tx.select({
-//           total: sql<number>`sum(sale_amount)`
-//         }).from(sales)
-//           .where(and(
-//             eq(sales.tenantId, tenantId),
-//             sql`created_at >= now() - interval '${timeframe}'`
-//           )),
-        
-//         // Total commissions
-//         tx.select({
-//           total: sql<number>`sum(commission_amount)`
-//         }).from(sales)
-//           .where(and(
-//             eq(sales.tenantId, tenantId),
-//             sql`created_at >= now() - interval '${timeframe}'`
-//           )),
-        
-//         // Active affiliates
-//         tx.select({
-//           count: sql<number>`count(distinct affiliate_id)`
-//         }).from(sales)
-//           .where(and(
-//             eq(sales.tenantId, tenantId),
-//             sql`created_at >= now() - interval '${timeframe}'`
-//           )),
-        
-//         // Conversion rate
-//         tx.select({
-//           clicks: sql<number>`sum(click_count)`,
-//           conversions: sql<number>`sum(conversion_count)`
-//         }).from(trackingLinks)
-//           .where(and(
-//             eq(trackingLinks.tenantId, tenantId),
-//             sql`created_at >= now() - interval '${timeframe}'`
-//           ))
-//       ]);
+export default async function analyticsRoutes(fastify: FastifyInstance) {
+  // Get dashboard metrics
+  fastify.get('/', async (request, reply) => {
+    try {
+      if (!request.user?.tenantId) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
 
-//       return {
-//         totalSales: totalSales[0].total || 0,
-//         totalCommissions: totalCommissions[0].total || 0,
-//         activeAffiliates: activeAffiliates[0].count || 0,
-//         conversionRate: conversionRate[0].clicks 
-//           ? (conversionRate[0].conversions / conversionRate[0].clicks) * 100 
-//           : 0
-//       };
-//     });
+      const timeframe = '30d'; // Default to last 30 days
+      
+      const metrics = await db.transaction(async (tx) => {
+        const [
+          totalClicks,
+          totalConversions,
+          activeAffiliates,
+          conversionRate
+        ] = await Promise.all([
+          // Total clicks
+          tx.select({
+            total: sql<number>`sum(total_clicks)`
+          })
+          .from(trackingLinks)
+          .where(and(
+            eq(trackingLinks.tenantId, request.user!.tenantId),
+            sql`created_at >= now() - interval '${timeframe}'`
+          )),
+          
+          // Total conversions
+          tx.select({
+            total: sql<number>`sum(total_conversions)`
+          })
+          .from(trackingLinks)
+          .where(and(
+            eq(trackingLinks.tenantId, request.user!.tenantId),
+            sql`created_at >= now() - interval '${timeframe}'`
+          )),
+          
+          // Active affiliates
+          tx.select({
+            count: sql<number>`count(distinct affiliate_id)`
+          })
+          .from(trackingLinks)
+          .where(and(
+            eq(trackingLinks.tenantId, request.user!.tenantId),
+            sql`created_at >= now() - interval '${timeframe}'`
+          )),
+          
+          // Conversion rate
+          tx.select({
+            clicks: sql<number>`sum(total_clicks)`,
+            conversions: sql<number>`sum(total_conversions)`
+          })
+          .from(trackingLinks)
+          .where(and(
+            eq(trackingLinks.tenantId, request.user!.tenantId),
+            sql`created_at >= now() - interval '${timeframe}'`
+          ))
+        ]);
 
-//     return metrics;
-//   });
+        return {
+          totalClicks: totalClicks[0]?.total || 0,
+          totalConversions: totalConversions[0]?.total || 0,
+          activeAffiliates: activeAffiliates[0]?.count || 0,
+          conversionRate: totalClicks[0]?.total 
+            ? (totalConversions[0]?.total / totalClicks[0]?.total) * 100 
+            : 0
+        };
+      });
 
-//   // Get sales chart data
-//   server.get('/charts/sales', async (request) => {
-//     const tenantId = request.headers['x-tenant-id'] as string;
-//     const timeframe = request.query.timeframe || '30d';
-//     const interval = request.query.interval || 'day';
-    
-//     const data = await db.select({
-//       date: sql`date_trunc(${interval}, created_at)`,
-//       sales: sql<number>`sum(sale_amount)`,
-//       commissions: sql<number>`sum(commission_amount)`
-//     })
-//     .from(sales)
-//     .where(and(
-//       eq(sales.tenantId, tenantId),
-//       sql`created_at >= now() - interval '${timeframe}'`
-//     ))
-//     .groupBy(sql`date_trunc(${interval}, created_at)`)
-//     .orderBy(sql`date_trunc(${interval}, created_at)`);
+      return reply.send(metrics);
+    } catch (error) {
+      fastify.log.error('Error fetching analytics:', error);
+      return reply.status(500).send({ 
+        error: 'Failed to fetch analytics',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
-//     return data;
-//   });
+  // Get events timeline
+  fastify.get('/events', async (request, reply) => {
+    try {
+      if (!request.user?.tenantId) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
 
-//   // Get top affiliates
-//   server.get('/top-affiliates', async (request) => {
-//     const tenantId = request.headers['x-tenant-id'] as string;
-//     const timeframe = request.query.timeframe || '30d';
-//     const limit = Number(request.query.limit) || 5;
-    
-//     const topAffiliates = await db.select({
-//       affiliateId: sales.affiliateId,
-//       totalSales: sql<number>`sum(sale_amount)`,
-//       totalCommissions: sql<number>`sum(commission_amount)`,
-//       conversionCount: sql<number>`count(*)`
-//     })
-//     .from(sales)
-//     .where(and(
-//       eq(sales.tenantId, tenantId),
-//       sql`created_at >= now() - interval '${timeframe}'`
-//     ))
-//     .groupBy(sales.affiliateId)
-//     .orderBy(sql`sum(sale_amount) desc`)
-//     .limit(limit);
+      const events = await db.select({
+        id: trackingEvents.id,
+        type: trackingEvents.type,
+        createdAt: trackingEvents.createdAt,
+        metadata: trackingEvents.metadata
+      })
+      .from(trackingEvents)
+      .where(eq(trackingEvents.tenantId, request.user.tenantId))
+      .orderBy(trackingEvents.createdAt);
 
-//     return topAffiliates;
-//   });
+      return reply.send(events);
+    } catch (error) {
+      fastify.log.error('Error fetching events:', error);
+      return reply.status(500).send({ 
+        error: 'Failed to fetch events',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
-//   // Generate custom report
-//   server.post('/reports', async (request) => {
-//     const tenantId = request.headers['x-tenant-id'] as string;
-//     const { 
-//       startDate,
-//       endDate,
-//       metrics,
-//       groupBy,
-//       filters
-//     } = request.body as any;
-    
-//     // Build dynamic query based on requested metrics and filters
-//     const query = db.select({
-//       // Add selected metrics
-//       ...(metrics.includes('sales') && {
-//         sales: sql<number>`sum(sale_amount)`
-//       }),
-//       ...(metrics.includes('commissions') && {
-//         commissions: sql<number>`sum(commission_amount)`
-//       }),
-//       ...(metrics.includes('conversions') && {
-//         conversions: sql<number>`count(*)`
-//       })
-//     })
-//     .from(sales)
-//     .where(and(
-//       eq(sales.tenantId, tenantId),
-//       sql`created_at between ${startDate} and ${endDate}`,
-//       // Add additional filters
-//       ...Object.entries(filters).map(([key, value]) => 
-//         eq(sales[key], value)
-//       )
-//     ))
-//     .groupBy(groupBy);
+  // Get top performing tracking links
+  fastify.get('/top-links', async (request, reply) => {
+    try {
+      if (!request.user?.tenantId) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
 
-//     const results = await query;
-//     return results;
-//   });
-// };
+      const limit = 5; // Default to top 5
+      
+      const topLinks = await db.select({
+        id: trackingLinks.id,
+        trackingCode: trackingLinks.trackingCode,
+        totalClicks: trackingLinks.totalClicks,
+        totalConversions: trackingLinks.totalConversions,
+        conversionRate: sql<number>`(total_conversions::float / NULLIF(total_clicks, 0)) * 100`
+      })
+      .from(trackingLinks)
+      .where(eq(trackingLinks.tenantId, request.user.tenantId))
+      .orderBy(sql`total_conversions desc`)
+      .limit(limit);
+
+      return reply.send(topLinks);
+    } catch (error) {
+      fastify.log.error('Error fetching top links:', error);
+      return reply.status(500).send({ 
+        error: 'Failed to fetch top links',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+}

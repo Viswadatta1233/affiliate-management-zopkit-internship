@@ -17,6 +17,14 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 type FormData = z.infer<typeof loginSchema>;
 
@@ -25,6 +33,8 @@ export function LoginForm() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
   // Get tenant subdomain from URL if present
   const subdomain = window.location.hostname.split('.')[0];
@@ -44,24 +54,68 @@ export function LoginForm() {
     clearError();
     try {
       await login(data.email, data.password, data.tenant);
-      setTimeout(() => {
-        const { user } = useAuthStore.getState();
-        if (user?.isAffiliate) {
-          navigate('/affiliate/dashboard');
-        } else {
-          navigate('/');
-        }
+      
+      // Get fresh state
+      const { user, error: loginError } = useAuthStore.getState();
+      
+      if (loginError) {
         toast({
-          title: 'Login Successful',
-          description: 'Welcome back!',
+          title: 'Login Failed',
+          description: loginError,
+          variant: 'destructive',
         });
-      }, 150); // Wait 150ms to allow Zustand persist to flush
+        return;
+      }
+
+      if (user?.isAffiliate) {
+        navigate('/affiliate/dashboard');
+      } else {
+        navigate('/');
+      }
+      
+      toast({
+        title: 'Login Successful',
+        description: 'Welcome back!',
+      });
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while logging in.';
       toast({
         title: 'Login Failed',
-        description: error || 'An error occurred while logging in.',
+        description: errorMessage,
         variant: 'destructive',
       });
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!resetEmail) {
+      toast({
+        title: 'Email Required',
+        description: 'Please enter your email address to reset your password.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsResettingPassword(true);
+      await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+      toast({
+        title: 'Password Reset Email Sent',
+        description: 'Please check your email for password reset instructions.',
+      });
+    } catch (err) {
+      toast({
+        title: 'Password Reset Failed',
+        description: 'Failed to send password reset email. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -159,9 +213,38 @@ export function LoginForm() {
             )}
           />
           
-          <Button variant="link" className="px-0" type="button" disabled={isLoading}>
-            Forgot password?
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="link" className="px-0" type="button">
+                Forgot password?
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reset Password</DialogTitle>
+                <DialogDescription>
+                  Enter your email address and we'll send you instructions to reset your password.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  disabled={isResettingPassword}
+                />
+                <Button
+                  type="button"
+                  onClick={handlePasswordReset}
+                  disabled={isResettingPassword}
+                  className="w-full"
+                >
+                  {isResettingPassword ? 'Sending...' : 'Send Reset Instructions'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Button 
