@@ -81,12 +81,11 @@ const AppShell: React.FC = () => {
         <Sidebar isOpen={isSidebarOpen} isMobile={isMobileView} onClose={() => setIsSidebarOpen(false)} />
         <main 
           className={cn(
-            "flex-1 relative transition-all duration-300 ease-in-out",
-            isSidebarOpen && !isMobileView ? 'md:ml-64' : ''
+            "flex-1 relative transition-all duration-300 ease-in-out"
           )}
         >
           <ScrollArea className="h-[calc(100vh-4rem)]">
-            <div className="w-full px-4 py-6">
+            <div className="w-full px-8 py-6">
               <Outlet />
             </div>
           </ScrollArea>

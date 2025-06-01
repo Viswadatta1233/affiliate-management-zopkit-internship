@@ -105,7 +105,9 @@ const SidebarGroup: React.FC<SidebarGroupProps> = ({ title, icon, children, defa
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
   const location = useLocation();
-  const { user, role } = useAuthStore();
+  const { user, role, tenant } = useAuthStore();
+  const t: any = tenant;
+  console.log('Sidebar tenant:', tenant);
 
   // Check if the current path matches a given path
   const isActivePath = (path: string) => {
@@ -147,7 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
   return (
     <aside 
       className={cn(
-        "fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r bg-white pt-16 shadow-sm transition-transform duration-300 ease-in-out",
+        "fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r bg-white pt-2 shadow-sm transition-transform duration-300 ease-in-out",
         isMobile ? "fixed" : "relative",
         isMobile && !isOpen && "-translate-x-full"
       )}
@@ -158,7 +160,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
           onClick={onClose}
         />
       )}
-      
+      {/* Tenant Name Display */}
+      {t?.tenantName || t?.name ? (
+        <div className="px-4 pt-2 pb-4 flex flex-col items-center">
+          <div className="flex items-center justify-center w-full mb-2">
+            <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-400 text-white text-2xl font-bold shadow-md border-2 border-white">
+              {(t.tenantName?.[0] || t.name?.[0] || '?').toUpperCase()}
+            </span>
+          </div>
+          <div className="rounded-xl bg-gradient-to-tr from-blue-50 to-indigo-100 text-blue-900 font-extrabold text-xl text-center tracking-wide shadow border border-blue-200 px-4 py-2 w-full">
+            {t.tenantName || t.name}
+          </div>
+        </div>
+      ) : (
+        <div className="px-4 pt-2 pb-3 text-center text-xs text-muted-foreground">No tenant loaded</div>
+      )}
       <ScrollArea className="flex-1 py-2 px-4">
         <div className="space-y-1" onClick={handleSidebarClick}>
           {/* Dashboard */}

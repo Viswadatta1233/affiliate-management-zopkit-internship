@@ -69,7 +69,11 @@ export const useAuthStore = create<AuthState>()(
           // Only make the API call if we have a token and no user data
           if (!get().user || !get().tenant || !get().role) {
             const response = await api.get('/auth/me');
-            const { user, tenant, role } = response.data;
+            let { user, tenant, role } = response.data;
+            // Normalize tenant
+            if (tenant && !tenant.tenantName && tenant.name) {
+              tenant = { ...tenant, tenantName: tenant.name };
+            }
             
             console.log('User data loaded successfully:', { user, tenant, role });
             
@@ -113,7 +117,11 @@ export const useAuthStore = create<AuthState>()(
             password,
           });
 
-          const { token, user, tenant, role } = response.data;
+          let { token, user, tenant, role } = response.data;
+          // Normalize tenant
+          if (tenant && !tenant.tenantName && tenant.name) {
+            tenant = { ...tenant, tenantName: tenant.name };
+          }
           localStorage.setItem('token', token);
           set((state) => ({
             ...state,
@@ -143,7 +151,11 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const response = await api.post('/auth/register', data);
-          const { token, user, tenant, role } = response.data;
+          let { token, user, tenant, role } = response.data;
+          // Normalize tenant
+          if (tenant && !tenant.tenantName && tenant.name) {
+            tenant = { ...tenant, tenantName: tenant.name };
+          }
           localStorage.setItem('token', token);
           set((state) => ({
             ...state,
