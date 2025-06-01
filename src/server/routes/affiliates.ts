@@ -12,6 +12,7 @@ import bcrypt from 'bcrypt';
 const inviteAffiliateSchema = z.object({
   email: z.string().email('Invalid email address'),
   productId: z.string().uuid('Invalid product ID'),
+  addProductCommission: z.boolean().optional().default(false),
 });
 
 const affiliateDetailsSchema = z.object({
@@ -76,19 +77,26 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       // Find the commission tier with the lowest min_sales for the tenant
-      const commissionTier = await db.query.commissionTiers.findFirst({
+      let commissionTier = await db.query.commissionTiers.findFirst({
         where: eq(commissionTiers.tenantId, tenantId),
         orderBy: (tier) => tier.minSales,
       });
+
+      // Create a default commission tier if none exists
       if (!commissionTier) {
-        return reply.status(400).send({ error: 'No commission tier found for tenant' });
+        fastify.log.info('Creating default commission tier for tenant:', tenantId);
+        [commissionTier] = await db.insert(commissionTiers).values({
+          tenantId,
+          tierName: 'Default Tier',
+          commissionPercent: '10',
+          minSales: 0,
+        }).returning();
       }
+
       // Get product commission
       const productCommissionValue = product.commissionPercent ? Number(product.commissionPercent) : 0;
-      // Type-safe destructuring for addProductCommission
-      const { addProductCommission } = request.body as { addProductCommission?: boolean };
-      // Determine final commission
-      const finalCommission = addProductCommission ? productCommissionValue : Number(commissionTier.commissionPercent);
+      // Use validated data for addProductCommission
+      const finalCommission = validatedData.addProductCommission ? productCommissionValue : Number(commissionTier.commissionPercent);
       // Create affiliateProductCommission record (do not set affiliateId or trackingLinkId here)
       await db.insert(affiliateProductCommissions).values({
         productId: validatedData.productId,
@@ -305,23 +313,6 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.log.info('Updated commission record');
       } else {
         // Create new commission record if none exists
-        const commissionTier = await db.query.commissionTiers.findFirst({
-          where: eq(commissionTiers.tenantId, invite.tenantId),
-          orderBy: (tier) => tier.minSales,
-        });
-        
-        if (!commissionTier) {
-          // Create a default commission tier if none exists
-          const [newTier] = await db.insert(commissionTiers).values({
-            tenantId: invite.tenantId,
-            tierName: 'Default Tier',
-            commissionPercent: '10',
-            minSales: 0,
-          }).returning();
-          fastify.log.info('Created default commission tier:', newTier);
-          commissionTier = newTier;
-        }
-
         const product = await db.query.products.findFirst({
           where: eq(products.id, invite.productId),
         });

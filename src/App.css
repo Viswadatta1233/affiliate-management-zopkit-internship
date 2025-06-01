@@ -1,106 +1,155 @@
-/* Reset root styles for full-width layout */
-#root {
-  width: 100%;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  text-align: left;
+ /* Layout */
+.layout-container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
 
-/* Smooth scrolling for the entire app */
-html {
-  scroll-behavior: smooth;
+.section-padding {
+  @apply py-12 md:py-16 lg:py-24;
 }
 
-/* Better font rendering */
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+/* Hero Section */
+.hero-section {
+  @apply relative overflow-hidden bg-background;
 }
 
-/* Custom scrollbar styling */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+.hero-content {
+  @apply flex flex-col items-center text-center gap-6 pt-16 pb-8 md:pt-24 md:pb-12;
 }
 
-::-webkit-scrollbar-track {
-  background: hsl(var(--background));
-  border-radius: 100vh;
+.hero-title {
+  @apply animate-fade-down;
 }
 
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted));
-  border-radius: 100vh;
-  border: 2px solid hsl(var(--background));
+.hero-description {
+  @apply max-w-2xl mx-auto text-lg text-muted-foreground animate-fade-up;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
+.hero-cta {
+  @apply flex flex-wrap justify-center gap-4 mt-8 animate-fade-up;
 }
 
-/* Focus outline styling */
-:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
+/* Features Section */
+.features-grid {
+  @apply grid gap-8 md:grid-cols-2 lg:grid-cols-3 mt-12;
 }
 
-/* Selection styling */
-::selection {
-  background: hsl(var(--primary) / 0.1);
-  color: hsl(var(--primary));
+.feature-card {
+  @apply relative p-6 rounded-2xl border bg-card transition-all duration-200 hover:shadow-lg;
 }
 
-/* Improved link transitions */
-a {
-  transition: color 0.2s ease-in-out;
+.feature-icon {
+  @apply mb-4 p-2 rounded-lg bg-primary/10 text-primary w-10 h-10 flex items-center justify-center;
 }
 
-/* Improved button transitions */
-button {
-  transition: all 0.2s ease-in-out;
+/* Testimonials Section */
+.testimonials-section {
+  @apply bg-muted/50;
 }
 
-/* Improved input transitions */
-input, textarea, select {
-  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+.testimonial-card {
+  @apply p-6 rounded-xl bg-card shadow-sm;
 }
 
-/* Improved table styles */
-table {
-  border-collapse: separate;
-  border-spacing: 0;
+.testimonial-avatar {
+  @apply mb-4;
 }
 
-/* Improved code block styling */
-pre, code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+/* Stats Section */
+.stats-grid {
+  @apply grid gap-8 md:grid-cols-2 lg:grid-cols-4;
 }
 
-/* Improved list styling */
-ul, ol {
-  padding-left: 1.25rem;
+.stat-card {
+  @apply p-6 rounded-xl bg-card text-center;
 }
 
-/* Improved blockquote styling */
-blockquote {
-  border-left: 2px solid hsl(var(--border));
-  padding-left: 1rem;
-  margin-left: 0;
-  font-style: italic;
+.stat-value {
+  @apply text-3xl font-bold text-primary mb-2;
 }
 
-/* Improved hr styling */
-hr {
-  border: none;
-  border-top: 1px solid hsl(var(--border));
-  margin: 2rem 0;
+.stat-label {
+  @apply text-sm text-muted-foreground;
 }
 
-/* Improved image handling */
-img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
+/* Navigation */
+.navbar {
+  @apply sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60;
+}
+
+.nav-container {
+  @apply flex h-16 items-center px-4;
+}
+
+.nav-logo {
+  @apply mr-6 flex items-center space-x-2;
+}
+
+.nav-links {
+  @apply hidden md:flex md:space-x-4 items-center;
+}
+
+.nav-link {
+  @apply text-sm font-medium transition-colors hover:text-primary;
+}
+
+/* Buttons */
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-9 px-4 py-2;
+}
+
+/* Cards */
+.card {
+  @apply rounded-lg border bg-card text-card-foreground shadow;
+}
+
+.card-header {
+  @apply flex flex-col space-y-1.5 p-6;
+}
+
+.card-content {
+  @apply p-6 pt-0;
+}
+
+/* Utilities */
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600;
+}
+
+.glass-effect {
+  @apply bg-white/10 backdrop-blur-lg border border-white/20;
+}
+
+/* Responsive Design */
+@screen sm {
+  .container {
+    @apply px-6;
+  }
+}
+
+@screen lg {
+  .container {
+    @apply px-8;
+  }
+}
+
+/* Dark Mode Enhancements */
+.dark .glass-effect {
+  @apply bg-black/10 border-white/10;
+}
+
+.dark .feature-card:hover {
+  @apply bg-card/80;
+}
+
+/* Animations */
+.hover-scale {
+  @apply transition-transform duration-200 hover:scale-105;
+}
+
+.hover-lift {
+  @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-lg;
 }

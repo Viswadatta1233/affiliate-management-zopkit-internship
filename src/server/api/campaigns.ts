@@ -2,7 +2,7 @@ import { Router, Response, RequestHandler } from 'express';
 import { z } from 'zod';
 import { auth, AuthenticatedRequest, AuthenticatedRequestHandler } from '@/lib/auth';
 import { db } from '../db';
-import { campaigns, campaignParticipations, affiliates } from '../../../drizzle/schema';
+import { campaigns, campaignParticipations, affiliates } from '../db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { generatePromoCode } from '@/lib/utils';
 

@@ -1,12 +1,12 @@
 {
-  "version": "5",
-  "dialect": "pg",
+  "version": "7",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1748578649049,
-      "tag": "0000_panoramic_mad_thinker",
+      "version": "7",
+      "when": 1748758389183,
+      "tag": "0000_tiny_ma_gnuci",
       "breakpoints": true
     }
   ]

@@ -1,11 +1,11 @@
 {
   "out": "./drizzle",
-  "schema": "./drizzle/schema.ts",
+  "schema": "./src/server/db/schema.ts",
   "dialect": "postgresql",
   "dbCredentials": {
     "host": "localhost",
     "user": "postgres",
-    "password": "postgres123",
+    "password": "datta1234",
     "database": "affiliate_db",
     "port": 5432
   }

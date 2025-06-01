@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db';
-import { campaigns, campaignParticipations, affiliates } from '../../../drizzle/schema';
+import { campaigns, campaignParticipations, affiliates } from '../db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { generatePromoCode } from '@/lib/utils';
 

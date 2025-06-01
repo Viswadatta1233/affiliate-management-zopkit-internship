@@ -6,26 +6,26 @@ import dotenv from 'dotenv';
 // Ensure environment variables are loaded
 dotenv.config();
 
-// Log database config (without sensitive info)
-console.log('Connecting to database with config:', {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: '****',
-  database: process.env.DB_NAME,
-  port: parseInt(process.env.DB_PORT || '5432')
-});
-
-const pool = new Pool({
-  host: process.env.DB_HOST,
+// Database configuration
+export const dbConfig = {
+  host: process.env.DB_HOST||'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  user: process.env.DB_USER||'postgres',
+  password: process.env.DB_PASSWORD||'datta1234',
+  database: process.env.DB_NAME||'affiliate_management',
   min: parseInt(process.env.DB_POOL_MIN || '2'),
   max: parseInt(process.env.DB_POOL_MAX || '10'),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
+};
+
+// Log database config (without sensitive info)
+console.log('Connecting to database with config:', {
+  ...dbConfig,
+  password: '****' // Hide password in logs
 });
+
+const pool = new Pool(dbConfig);
 
 // Error handling for the pool
 pool.on('error', (err) => {
