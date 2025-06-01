@@ -40,6 +40,9 @@ export const users = pgTable('users', {
   marketingConsent: boolean('marketing_consent').notNull().default(false),
   roleId: uuid('role_id').notNull(),
   isAffiliate: boolean('is_affiliate').notNull().default(false),
+  password: text('password').notNull(),
+  resetToken: text('reset_token'),
+  resetTokenExpiresAt: timestamp('reset_token_expires_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow()
 });

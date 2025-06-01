@@ -15,6 +15,20 @@
       "when": 1748604701136,
       "tag": "0001_demonic_wong",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1748696520091,
+      "tag": "0002_absent_silk_fever",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1748696714630,
+      "tag": "0003_thick_wendell_vaughn",
+      "breakpoints": true
     }
   ]
 }
