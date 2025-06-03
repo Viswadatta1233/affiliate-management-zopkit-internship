@@ -176,47 +176,82 @@ export default function CommissionTiers() {
         ) : !data || data.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground text-lg">No commission tiers found.</div>
         ) : (
-          <table className="min-w-full table-auto border-separate border-spacing-y-2">
-            <thead>
-              <tr>
-                <th className="text-left px-4 py-2 font-semibold text-foreground">Tier Name</th>
-                <th className="text-left px-4 py-2 font-semibold text-foreground">Commission (%)</th>
-                <th className="text-left px-4 py-2 font-semibold text-foreground">Min Sales</th>
-                <th className="text-right px-4 py-2 font-semibold text-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.map((tier: any) => (
-                <tr key={tier.id} className="bg-muted/50 hover:bg-muted rounded-lg">
-                  <td className="px-4 py-3 rounded-l-lg text-foreground">{tier.tier_name || tier.tierName || '-'}</td>
-                  <td className="px-4 py-3 text-foreground">{tier.commission_percent || tier.commissionPercent || '-'}%</td>
-                  <td className="px-4 py-3 text-foreground">{tier.min_sales || tier.minSales || '-'}</td>
-                  <td className="px-4 py-3 text-right rounded-r-lg">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setEditTier({ ...tier })}
-                        className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-                        aria-label="Edit"
-                      >
-                        <Pencil className="h-5 w-5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setDeleteId(tier.id)}
-                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        aria-label="Delete"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
+          <>
+            {/* Mobile Card/List View */}
+            <div className="block md:hidden">
+              {data.map((tier: any) => (
+                <div key={tier.id} className="mb-4 p-4 rounded-lg shadow bg-gray-50">
+                  <div className="font-bold mb-1">{tier.tier_name || tier.tierName || '-'}</div>
+                  <div className="text-sm mb-1">Commission: {tier.commission_percent || tier.commissionPercent || '-'}%</div>
+                  <div className="text-sm mb-1">Min Sales: {tier.min_sales || tier.minSales || '-'}</div>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditTier({ ...tier })}
+                      className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      aria-label="Edit"
+                    >
+                      <Pencil className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setDeleteId(tier.id)}
+                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+            {/* Table View for md+ screens */}
+            <div className="hidden md:block">
+              <table className="min-w-full table-auto border-separate border-spacing-y-2">
+                <thead>
+                  <tr>
+                    <th className="text-left px-4 py-2 font-semibold text-foreground">Tier Name</th>
+                    <th className="text-left px-4 py-2 font-semibold text-foreground">Commission (%)</th>
+                    <th className="text-left px-4 py-2 font-semibold text-foreground">Min Sales</th>
+                    <th className="text-right px-4 py-2 font-semibold text-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.map((tier: any) => (
+                    <tr key={tier.id} className="bg-muted/50 hover:bg-muted rounded-lg">
+                      <td className="px-4 py-3 rounded-l-lg text-foreground">{tier.tier_name || tier.tierName || '-'}</td>
+                      <td className="px-4 py-3 text-foreground">{tier.commission_percent || tier.commissionPercent || '-'}%</td>
+                      <td className="px-4 py-3 text-foreground">{tier.min_sales || tier.minSales || '-'}</td>
+                      <td className="px-4 py-3 text-right rounded-r-lg">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setEditTier({ ...tier })}
+                            className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            aria-label="Edit"
+                          >
+                            <Pencil className="h-5 w-5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setDeleteId(tier.id)}
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            aria-label="Delete"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

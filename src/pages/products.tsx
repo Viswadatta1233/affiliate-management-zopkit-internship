@@ -182,17 +182,19 @@ const ProductsPage: React.FC = () => {
   }
 
   return (
-    <div className="p-6 w-full min-h-screen bg-gray-50">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">Products</h1>
+    <div className="p-4 sm:p-6 w-full min-h-screen bg-gray-50">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl sm:text-4xl font-bold">Products</h1>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            
+            <Button size="sm" className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-2" /> New Product
+            </Button>
           </DialogTrigger>
           <DialogContent className="max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-semibold">Create New Product</DialogTitle>
-              <DialogDescription>Add a new product to your catalog.</DialogDescription>
+              <DialogTitle className="text-xl sm:text-2xl font-semibold">Create New Product</DialogTitle>
+              <DialogDescription className="text-sm sm:text-base">Add a new product to your catalog.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateProduct} className="space-y-6 py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -319,69 +321,69 @@ const ProductsPage: React.FC = () => {
           <div className="animate-spin h-16 w-16 border-4 border-blue-500 rounded-full border-t-transparent"></div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-lg p-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-                <TableHead className="text-lg py-6">Name</TableHead>
-                <TableHead className="text-lg py-6">Price</TableHead>
-                <TableHead className="text-lg py-6">Category</TableHead>
-                <TableHead className="text-lg py-6">Status</TableHead>
-                <TableHead className="text-lg py-6 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products.length === 0 ? (
+        <div className="mt-6 overflow-x-auto rounded-lg bg-white shadow-sm">
+          <Table className="min-w-[700px] w-full text-sm sm:text-base">
+            <TableHeader>
               <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-gray-500 text-xl">
-                  No products found. Create your first product!
-                </TableCell>
+                  <TableHead className="py-3 px-2 sm:py-6 sm:px-4 text-left">Name</TableHead>
+                  <TableHead className="py-3 px-2 sm:py-6 sm:px-4 text-left">Price</TableHead>
+                  <TableHead className="py-3 px-2 sm:py-6 sm:px-4 text-left">Category</TableHead>
+                  <TableHead className="py-3 px-2 sm:py-6 sm:px-4 text-left">Status</TableHead>
+                  <TableHead className="py-3 px-2 sm:py-6 sm:px-4 text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              products.map((product) => (
-                  <TableRow key={product.id} className="text-lg">
-                    <TableCell className="font-medium py-6">{product.name}</TableCell>
-                    <TableCell className="py-6">
-                    {product.price.toLocaleString(undefined, {
-                      style: 'currency',
-                      currency: product.currency,
-                    })}
-                  </TableCell>
-                    <TableCell className="py-6">{product.category || '-'}</TableCell>
-                    <TableCell className="py-6">
-                      <span className={`px-4 py-2 rounded-full text-sm font-medium ${
-                      product.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
-                    </span>
-                  </TableCell>
-                    <TableCell className="text-right py-6">
-                      <div className="flex justify-end gap-4">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                          className="h-12 w-12" 
-                      onClick={() => openEditDialog(product)}
-                    >
-                          <Pencil size={24} />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                          className="h-12 w-12" 
-                      onClick={() => openDeleteDialog(product)}
-                    >
-                          <Trash2 size={24} />
-                    </Button>
-                      </div>
+            </TableHeader>
+            <TableBody>
+              {products.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 sm:py-12 text-gray-500 text-base sm:text-xl">
+                    No products found. Create your first product!
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                products.map((product) => (
+                    <TableRow key={product.id} className="text-sm sm:text-base">
+                      <TableCell className="font-medium py-3 px-2 sm:py-6 sm:px-4">{product.name}</TableCell>
+                      <TableCell className="py-3 px-2 sm:py-6 sm:px-4">
+                      {product.price.toLocaleString(undefined, {
+                        style: 'currency',
+                        currency: product.currency,
+                      })}
+                    </TableCell>
+                      <TableCell className="py-3 px-2 sm:py-6 sm:px-4">{product.category || '-'}</TableCell>
+                      <TableCell className="py-3 px-2 sm:py-6 sm:px-4">
+                        <span className={`px-3 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium ${
+                        product.status === 'active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                        }`}>
+                          {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right py-3 px-2 sm:py-6 sm:px-4">
+                        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-9 w-9 sm:h-12 sm:w-12" 
+                        onClick={() => openEditDialog(product)}
+                      >
+                            <Pencil size={18} className="sm:w-6 sm:h-6" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-9 w-9 sm:h-12 sm:w-12" 
+                        onClick={() => openDeleteDialog(product)}
+                      >
+                            <Trash2 size={18} className="sm:w-6 sm:h-6" />
+                      </Button>
+                        </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
       )}
 

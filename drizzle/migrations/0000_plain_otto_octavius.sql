@@ -112,9 +112,6 @@ CREATE TABLE "campaigns" (
 	"end_date" timestamp,
 	"status" text DEFAULT 'draft' NOT NULL,
 	"type" text NOT NULL,
-	"requirements" jsonb DEFAULT '{}'::jsonb NOT NULL,
-	"rewards" jsonb DEFAULT '{}'::jsonb NOT NULL,
-	"content" jsonb DEFAULT '{}'::jsonb NOT NULL,
 	"metrics" jsonb DEFAULT '{"totalReach":0,"engagementRate":0,"conversions":0,"revenue":0}'::jsonb NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL

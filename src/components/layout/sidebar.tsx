@@ -59,7 +59,7 @@ interface SidebarGroupProps {
 }
 
 // Individual sidebar item
-const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, title, isCurrent, badge }) => {
+const SidebarItem: React.FC<SidebarItemProps & { onClick?: () => void }> = ({ href, icon, title, isCurrent, badge, onClick }) => {
   return (
     <Link
       to={href}
@@ -69,6 +69,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, title, isCurrent,
           ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:bg-muted"
       )}
+      onClick={onClick}
     >
       <div className="flex items-center gap-3">
         {icon}
@@ -149,16 +150,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
   return (
     <aside 
       className={cn(
-        "fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r bg-white pt-2 shadow-sm transition-transform duration-300 ease-in-out",
-        isMobile ? "fixed" : "relative",
-        isMobile && !isOpen && "-translate-x-full"
+        // Responsive width and positioning
+        "z-20 flex flex-col border-r bg-white pt-2 shadow-sm transition-transform duration-300 ease-in-out",
+        isMobile
+          ? `fixed inset-y-0 left-0 w-64 max-w-full transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`
+          : "relative w-64",
       )}
+      aria-label="Sidebar"
     >
+      {/* Mobile close button */}
       {isMobile && (
-        <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-10" 
+        <button
+          className="absolute top-3 right-3 z-40 p-2 rounded-full bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary"
           onClick={onClose}
-        />
+          aria-label="Close sidebar"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
       )}
       {/* Tenant Name Display */}
       {t?.tenantName || t?.name ? (
@@ -183,6 +191,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
             icon={<Home className="h-4 w-4" />}
             title="Dashboard"
             isCurrent={isActivePath('/')}
+            onClick={handleSidebarClick}
           />
 
           {/* Products */}
@@ -198,12 +207,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<Plus className="h-4 w-4" />}
               title="Create Product"
               isCurrent={isActivePath('/products/create')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/products"
               icon={<Package className="h-4 w-4" />}
               title="All Products"
               isCurrent={isActivePath('/products')}
+              onClick={handleSidebarClick}
             />
 
             
@@ -221,18 +232,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<Users className="h-4 w-4" />}
               title="All Affiliates"
               isCurrent={isActivePath('/affiliates')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/affiliates/pending"
               icon={<UserPlus className="h-4 w-4" />}
               title="Pending Affiliates"
               isCurrent={isActivePath('/affiliates/pending')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/affiliates/tiers"
               icon={<Building2 className="h-4 w-4" />}
               title="Affiliate Tiers"
               isCurrent={isActivePath('/affiliates/tiers')}
+              onClick={handleSidebarClick}
             />
 
 
@@ -243,6 +257,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
             icon={<LinkIcon className="h-4 w-4" />}
             title="Tracking Links"
             isCurrent={isActivePath('/tracking-links')}
+            onClick={handleSidebarClick}
           />
           </SidebarGroup>
 
@@ -258,18 +273,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<PercentCircle className="h-4 w-4" />}
               title="Commission Tiers"
               isCurrent={isActivePath('/commissions/tiers')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/commissions/products"
               icon={<Package className="h-4 w-4" />}
               title="Product Commissions"
               isCurrent={isActivePath('/commissions/products')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/commissions/rules"
               icon={<FileText className="h-4 w-4" />}
               title="Commission Rules"
               isCurrent={isActivePath('/commissions/rules')}
+              onClick={handleSidebarClick}
             />
           </SidebarGroup>
 
@@ -284,18 +302,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<Wallet className="h-4 w-4" />}
               title="Payouts"
               isCurrent={isActivePath('/payments/payouts')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/payments/methods"
               icon={<CreditCard className="h-4 w-4" />}
               title="Payment Methods"
               isCurrent={isActivePath('/payments/methods')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/payments/history"
               icon={<FileText className="h-4 w-4" />}
               title="Payment History"
               isCurrent={isActivePath('/payments/history')}
+              onClick={handleSidebarClick}
             />
           </SidebarGroup>
 
@@ -310,12 +331,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<FileBarChart className="h-4 w-4" />}
               title="Reports"
               isCurrent={isActivePath('/analytics/reports')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/analytics/dashboard"
               icon={<BarChart3 className="h-4 w-4" />}
               title="Custom Dashboard"
               isCurrent={isActivePath('/analytics/dashboard')}
+              onClick={handleSidebarClick}
             />
           </SidebarGroup>
 
@@ -330,18 +353,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<BarChart3 className="h-4 w-4" />}
               title="Monitoring"
               isCurrent={isActivePath('/fraud/monitoring')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/fraud/rules"
               icon={<FileText className="h-4 w-4" />}
               title="Rules"
               isCurrent={isActivePath('/fraud/rules')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/fraud/alerts"
               icon={<Bell className="h-4 w-4" />}
               title="Alerts"
               isCurrent={isActivePath('/fraud/alerts')}
+              onClick={handleSidebarClick}
             />
           </SidebarGroup>
 
@@ -356,30 +382,35 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<Plus className="h-4 w-4" />}
               title="Create Campaign"
               isCurrent={isActivePath('/marketing/create-campaign')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/marketing/campaigns"
               icon={<Megaphone className="h-4 w-4" />}
               title="All Campaigns"
               isCurrent={isActivePath('/marketing/campaigns')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/marketing/resources"
               icon={<Folder className="h-4 w-4" />}
               title="Resources"
               isCurrent={isActivePath('/marketing/resources')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/marketing/influencer-search"
               icon={<Users className="h-4 w-4" />}
               title="Influencer Search"
               isCurrent={isActivePath('/marketing/influencer-search')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/marketing/knowledge-base"
               icon={<BookOpen className="h-4 w-4" />}
               title="Knowledge Base"
               isCurrent={isActivePath('/marketing/knowledge-base')}
+              onClick={handleSidebarClick}
             />
           </SidebarGroup>
 
@@ -394,12 +425,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<Bell className="h-4 w-4" />}
               title="Notifications"
               isCurrent={isActivePath('/communications/notifications')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/communications/templates"
               icon={<FileText className="h-4 w-4" />}
               title="Templates"
               isCurrent={isActivePath('/communications/templates')}
+              onClick={handleSidebarClick}
             />
           </SidebarGroup>
 
@@ -414,12 +447,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<Key className="h-4 w-4" />}
               title="API Keys"
               isCurrent={isActivePath('/integrations/api-keys')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/integrations/webhooks"
               icon={<Globe className="h-4 w-4" />}
               title="Webhooks"
               isCurrent={isActivePath('/integrations/webhooks')}
+              onClick={handleSidebarClick}
             />
           </SidebarGroup>
 
@@ -434,18 +469,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
               icon={<Settings className="h-4 w-4" />}
               title="General"
               isCurrent={isActivePath('/settings/general')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/settings/users"
               icon={<Users className="h-4 w-4" />}
               title="Users & Roles"
               isCurrent={isActivePath('/settings/users')}
+              onClick={handleSidebarClick}
             />
             <SidebarItem
               href="/settings/billing"
               icon={<CreditCard className="h-4 w-4" />}
               title="Billing"
               isCurrent={isActivePath('/settings/billing')}
+              onClick={handleSidebarClick}
             />
           </SidebarGroup>
         </div>

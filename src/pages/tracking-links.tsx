@@ -121,15 +121,16 @@ const TrackingLinks: React.FC = () => {
   const displayLinks = trackingLinks.length > 0 ? trackingLinks : sampleTrackingLinks;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Tracking Links</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Tracking Links</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Create and manage tracking links to promote products and earn commissions.
         </p>
       </div>
-
-      <TrackingLinkList links={displayLinks} onRefresh={handleRefresh} />
+      <div className="overflow-x-auto">
+        <TrackingLinkList links={displayLinks} onRefresh={handleRefresh} />
+      </div>
     </div>
   );
 };

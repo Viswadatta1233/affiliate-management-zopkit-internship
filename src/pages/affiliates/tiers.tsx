@@ -96,7 +96,7 @@ const AffiliateTiers: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-sm text-muted-foreground">Min. Monthly Sales</div>
-                      <div className="text-xl font-semibold">{formatCurrency(tier.minSales)}</div>
+                      <div className="text-xl font-semibold">{tier.minSales}</div>
                     </div>
                   </div>
                 </div>

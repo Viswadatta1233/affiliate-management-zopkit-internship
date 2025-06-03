@@ -14,7 +14,7 @@ export default function GeneralSettings() {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="p-4 sm:p-6 w-full min-h-screen bg-background">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">General Settings</h1>

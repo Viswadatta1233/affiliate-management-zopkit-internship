@@ -54,13 +54,13 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-30 h-16 border-b bg-background">
-      <nav className="h-full px-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1">
+      <nav className="h-full px-2 sm:px-4 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={toggleSidebar}
-            className="shrink-0 hover:bg-accent"
+            className="shrink-0 hover:bg-accent md:hidden"
           >
             {isSidebarOpen ? (
               <X className="h-5 w-5 text-muted-foreground" />
@@ -68,31 +68,28 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
               <Menu className="h-5 w-5 text-muted-foreground" />
             )}
           </Button>
-          
-          <Separator orientation="vertical" className="h-6" />
-          
-          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <Separator orientation="vertical" className="h-6 hidden sm:block" />
+          <Link to="/" className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity min-w-0">
             {tenant?.logoUrl ? (
               <img 
                 src={tenant.logoUrl} 
                 alt={`${getTenantName()} Logo`} 
-                className="h-8 w-auto" 
+                className="h-8 w-auto min-w-[2rem]" 
               />
             ) : (
               <div 
-                className="h-8 w-8 rounded-md flex items-center justify-center text-primary-foreground font-medium shadow-sm"
+                className="h-8 w-8 rounded-md flex items-center justify-center text-primary-foreground font-medium shadow-sm min-w-[2rem]"
                 style={{ background: tenant?.primaryColor || 'hsl(var(--primary))' }}
               >
                 {getTenantInitial()}
               </div>
             )}
-            <span className="text-lg font-semibold hidden sm:block">
+            <span className="text-base sm:text-lg font-semibold truncate hidden md:block">
               {getTenantName()}
             </span>
           </Link>
         </div>
-
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -104,12 +101,11 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
               className="absolute top-1.5 right-1.5 h-2 w-2 p-0"
             />
           </Button>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
-                className="gap-2 pl-2 pr-3 hover:bg-accent"
+                className="gap-1 pl-2 pr-2 sm:gap-2 sm:pr-3 hover:bg-accent"
               >
                 <Avatar className="h-7 w-7">
                   <AvatarImage src="" alt={user?.firstName} />
@@ -117,7 +113,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
                     {getInitials()}
                   </AvatarFallback>
                 </Avatar>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
               </Button>
             </DropdownMenuTrigger>
             

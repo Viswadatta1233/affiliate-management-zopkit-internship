@@ -300,64 +300,107 @@ export default function CommissionRules() {
         {isLoading ? (
           <div>Loading...</div>
         ) : (
-          <table className="min-w-full table-auto border-separate border-spacing-y-2">
-            <thead>
-              <tr>
-                <th className="text-left px-4 py-2 font-semibold">Rule</th>
-                <th className="text-left px-4 py-2 font-semibold">Type</th>
-                <th className="text-left px-4 py-2 font-semibold">Value</th>
-                <th className="text-left px-4 py-2 font-semibold hidden md:table-cell">Condition</th>
-                <th className="text-left px-4 py-2 font-semibold hidden lg:table-cell">Priority</th>
-                <th className="text-left px-4 py-2 font-semibold">Status</th>
-                <th className="text-right px-4 py-2 font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Mobile Card/List View */}
+            <div className="block md:hidden">
               {filteredRules.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-6 text-muted-foreground">No commission rules found</td>
-                </tr>
+                <div className="text-center py-6 text-muted-foreground">No commission rules found</div>
               ) : (
                 filteredRules.map((rule: any) => (
-                  <tr key={rule.id} className="bg-gray-50 hover:bg-gray-100 rounded-lg">
-                    <td className="px-4 py-3 rounded-l-lg">
-                        <div className="font-medium">{rule.name}</div>
-                        <div className="text-xs text-muted-foreground">{rule.description}</div>
-                    </td>
-                    <td className="px-4 py-3">{getTypeBadge(rule.type)}</td>
-                    <td className="px-4 py-3">{formatRuleValue(rule.value, rule.value_type)}</td>
-                    <td className="px-4 py-3 hidden md:table-cell">
-                      <code className="text-xs bg-muted px-1 py-0.5 rounded">{rule.condition}</code>
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell">{rule.priority}</td>
-                    <td className="px-4 py-3">{getStatusBadge(rule.status)}</td>
-                    <td className="px-4 py-3 text-right rounded-r-lg">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setEditRule({ ...rule })}
-                          className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200"
-                          aria-label="Edit"
-                        >
-                          <Pencil className="h-5 w-5" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setDeleteId(rule.id)}
-                          className="text-gray-600 hover:text-red-600 hover:bg-red-50 border border-gray-200"
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
+                  <div key={rule.id} className="mb-4 p-4 rounded-lg shadow bg-gray-50">
+                    <div className="font-bold mb-1">{rule.name}</div>
+                    <div className="text-xs text-muted-foreground mb-1">{rule.description}</div>
+                    <div className="text-sm mb-1">Type: {getTypeBadge(rule.type)}</div>
+                    <div className="text-sm mb-1">Value: {formatRuleValue(rule.value, rule.value_type)}</div>
+                    <div className="text-sm mb-1">Status: {getStatusBadge(rule.status)}</div>
+                    <div className="text-sm mb-1">Condition: <code className="bg-muted px-1 py-0.5 rounded">{rule.condition}</code></div>
+                    <div className="text-sm mb-1">Priority: {rule.priority}</div>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditRule({ ...rule })}
+                        className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200"
+                        aria-label="Edit"
+                      >
+                        <Pencil className="h-5 w-5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setDeleteId(rule.id)}
+                        className="text-gray-600 hover:text-red-600 hover:bg-red-50 border border-gray-200"
+                        aria-label="Delete"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  </div>
                 ))
               )}
-            </tbody>
-          </table>
+            </div>
+            {/* Table View for md+ screens */}
+            <div className="hidden md:block">
+              <table className="min-w-full table-auto border-separate border-spacing-y-2">
+                <thead>
+                  <tr>
+                    <th className="text-left px-4 py-2 font-semibold">Rule</th>
+                    <th className="text-left px-4 py-2 font-semibold">Type</th>
+                    <th className="text-left px-4 py-2 font-semibold">Value</th>
+                    <th className="text-left px-4 py-2 font-semibold hidden md:table-cell">Condition</th>
+                    <th className="text-left px-4 py-2 font-semibold hidden lg:table-cell">Priority</th>
+                    <th className="text-left px-4 py-2 font-semibold">Status</th>
+                    <th className="text-right px-4 py-2 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRules.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-6 text-muted-foreground">No commission rules found</td>
+                    </tr>
+                  ) : (
+                    filteredRules.map((rule: any) => (
+                      <tr key={rule.id} className="bg-gray-50 hover:bg-gray-100 rounded-lg">
+                        <td className="px-4 py-3 rounded-l-lg">
+                            <div className="font-medium">{rule.name}</div>
+                            <div className="text-xs text-muted-foreground">{rule.description}</div>
+                        </td>
+                        <td className="px-4 py-3">{getTypeBadge(rule.type)}</td>
+                        <td className="px-4 py-3">{formatRuleValue(rule.value, rule.value_type)}</td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <code className="text-xs bg-muted px-1 py-0.5 rounded">{rule.condition}</code>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">{rule.priority}</td>
+                        <td className="px-4 py-3">{getStatusBadge(rule.status)}</td>
+                        <td className="px-4 py-3 text-right rounded-r-lg">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setEditRule({ ...rule })}
+                              className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200"
+                              aria-label="Edit"
+                            >
+                              <Pencil className="h-5 w-5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setDeleteId(rule.id)}
+                              className="text-gray-600 hover:text-red-600 hover:bg-red-50 border border-gray-200"
+                              aria-label="Delete"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

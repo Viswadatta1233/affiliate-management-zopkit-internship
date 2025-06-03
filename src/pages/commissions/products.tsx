@@ -55,36 +55,27 @@ export default function ProductCommissions() {
         {isLoading ? (
           <div>Loading...</div>
         ) : (
-          <table className="min-w-full table-auto border-separate border-spacing-y-2">
-            <thead>
-              <tr>
-                <th className="text-left px-4 py-2 font-semibold">Product Name</th>
-                <th className="text-left px-4 py-2 font-semibold">SKU</th>
-                <th className="text-left px-4 py-2 font-semibold">Commission (%)</th>
-                <th className="text-right px-4 py-2 font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Mobile Card/List View */}
+            <div className="block md:hidden">
               {data?.map((product: any) => (
-                <tr key={product.id} className="bg-gray-50 hover:bg-gray-100 rounded-lg">
-                  <td className="px-4 py-3 rounded-l-lg">{product.name}</td>
-                  <td className="px-4 py-3">{product.sku}</td>
-                  <td className="px-4 py-3">
-                    {editId === product.id ? (
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={editValue}
-                        onChange={e => setEditValue(e.target.value)}
-                        className="w-24"
-                      />
-                    ) : (
-                      product.commissionPercent
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right rounded-r-lg">
+                <div key={product.id} className="mb-4 p-4 rounded-lg shadow bg-gray-50">
+                  <div className="font-bold mb-1">{product.name}</div>
+                  <div className="text-sm text-muted-foreground mb-1">SKU: {product.sku}</div>
+                  <div className="text-sm mb-2">Commission: {editId === product.id ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={editValue}
+                      onChange={e => setEditValue(e.target.value)}
+                      className="w-24 inline-block"
+                    />
+                  ) : (
+                    product.commissionPercent
+                  )} %</div>
+                  <div className="flex gap-2 mt-2">
                     {editId === product.id ? (
                       <>
                         <Button size="sm" onClick={() => handleSave(product.id)} disabled={updateMutation.isPending}>
@@ -96,7 +87,7 @@ export default function ProductCommissions() {
                       </>
                     ) : (
                       <Button
-                        size="icon"
+                        size="sm"
                         variant="ghost"
                         onClick={() => handleEdit(product.id, product.commissionPercent)}
                         className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200"
@@ -105,11 +96,69 @@ export default function ProductCommissions() {
                         <Pencil className="h-5 w-5" />
                       </Button>
                     )}
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+            {/* Table View for md+ screens */}
+            <div className="hidden md:block">
+              <table className="min-w-full table-auto border-separate border-spacing-y-2">
+                <thead>
+                  <tr>
+                    <th className="text-left px-4 py-2 font-semibold">Product Name</th>
+                    <th className="text-left px-4 py-2 font-semibold">SKU</th>
+                    <th className="text-left px-4 py-2 font-semibold">Commission (%)</th>
+                    <th className="text-right px-4 py-2 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.map((product: any) => (
+                    <tr key={product.id} className="bg-gray-50 hover:bg-gray-100 rounded-lg">
+                      <td className="px-4 py-3 rounded-l-lg">{product.name}</td>
+                      <td className="px-4 py-3">{product.sku}</td>
+                      <td className="px-4 py-3">
+                        {editId === product.id ? (
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            className="w-24"
+                          />
+                        ) : (
+                          product.commissionPercent
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right rounded-r-lg">
+                        {editId === product.id ? (
+                          <>
+                            <Button size="sm" onClick={() => handleSave(product.id)} disabled={updateMutation.isPending}>
+                              Save
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditId(null)}>
+                              Cancel
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleEdit(product.id, product.commissionPercent)}
+                            className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200"
+                            aria-label="Edit"
+                          >
+                            <Pencil className="h-5 w-5" />
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -1,5 +1,5 @@
 {
-  "id": "3afef336-4c19-4fdb-a5c3-d814994fce62",
+  "id": "036f48ab-0d74-4d1d-a3ac-97f2f6454bf4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1008,27 +1008,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "requirements": {
-          "name": "requirements",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "rewards": {
-          "name": "rewards",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "content": {
-          "name": "content",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
         },
         "metrics": {
           "name": "metrics",

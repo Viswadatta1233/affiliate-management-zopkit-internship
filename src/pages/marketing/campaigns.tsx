@@ -74,80 +74,79 @@ export default function MarketingCampaigns() {
   };
 
   const CampaignCardNew = ({ campaign }: { campaign: any }) => (
-    <Card className="hover:shadow-lg transition-shadow duration-200">
-      <CardHeader>
-        <div className="flex justify-between items-start">
+    <Card className="hover:shadow-lg transition-shadow duration-200 px-2 py-1 sm:px-4 sm:py-2">
+      <CardHeader className="pb-2">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
           <div>
-            <CardTitle className="text-xl mb-2">{campaign?.name || 'Untitled Campaign'}</CardTitle>
-            <Badge className={getStatusBadgeColor(campaign?.status || 'draft')}>
+            <CardTitle className="text-lg sm:text-xl mb-1 sm:mb-2 break-words">{campaign?.name || 'Untitled Campaign'}</CardTitle>
+            <Badge className={getStatusBadgeColor(campaign?.status || 'draft') + ' mt-1 sm:mt-0'}>
               {(campaign?.status || 'Draft').charAt(0).toUpperCase() + (campaign?.status || 'draft').slice(1)}
             </Badge>
           </div>
-          <Badge variant="outline" className="capitalize">
-            {campaign?.type || 'Unknown'}
-          </Badge>
+          <Badge variant="outline" className="capitalize mt-2 sm:mt-0 w-fit">{campaign?.type || 'Unknown'}</Badge>
         </div>
       </CardHeader>
-      <CardContent>
-        <p className="text-gray-600 mb-4">{campaign?.description || 'No description available'}</p>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+      <CardContent className="pt-1 pb-2">
+        <p className="text-gray-600 mb-2 sm:mb-4 text-sm sm:text-base break-words">{campaign?.description || 'No description available'}</p>
+        <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 sm:gap-4 mb-2 sm:mb-4">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-gray-500" />
-            <span className="text-sm">
+            <span className="text-xs sm:text-sm">
               Starts: {campaign?.startDate ? formatDate(campaign.startDate) : 'Not set'}
             </span>
           </div>
           {campaign?.endDate && (
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-gray-500" />
-              <span className="text-sm">
+              <span className="text-xs sm:text-sm">
                 Ends: {formatDate(campaign.endDate)}
               </span>
             </div>
           )}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between items-center">
+      <CardFooter className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-2">
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 text-gray-500" />
-          <span className="text-sm">
+          <span className="text-xs sm:text-sm">
             {campaign?.metrics?.totalReach || 0} Reach
           </span>
         </div>
         {!isParticipating(campaign?.id) ? (
           <Button 
             onClick={() => handleOptIn(campaign.id)}
-            className="bg-primary hover:bg-primary/90"
+            className="bg-primary hover:bg-primary/90 w-full sm:w-auto text-sm"
             disabled={!campaign?.id}
           >
-            Join Campaign <ArrowRight className="ml-2 h-4 w-4" />
+            <span className="hidden sm:inline">Join Campaign</span>
+            <span className="inline sm:hidden">Join</span>
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         ) : (
-          <Button variant="outline">View Details</Button>
+          <Button variant="outline" className="w-full sm:w-auto text-sm">View Details</Button>
         )}
       </CardFooter>
     </Card>
   );
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container mx-auto px-2 sm:px-6 py-4 sm:py-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Marketing Campaigns</h1>
-          <p className="text-muted-foreground">Browse and participate in brand campaigns</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Marketing Campaigns</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">Browse and participate in brand campaigns</p>
         </div>
-       
       </div>
 
-      <Tabs defaultValue="available" className="space-y-4">
-        <TabsList className="bg-muted p-1 rounded-lg">
-          <TabsTrigger value="available" className="rounded-md">Available Campaigns</TabsTrigger>
-          <TabsTrigger value="active" className="rounded-md">My Active Campaigns</TabsTrigger>
-          <TabsTrigger value="completed" className="rounded-md">Completed</TabsTrigger>
+      <Tabs defaultValue="available" className="space-y-2 sm:space-y-4">
+        <TabsList className="bg-muted p-1 rounded-lg w-full sm:w-auto flex flex-wrap gap-2">
+          <TabsTrigger value="available" className="rounded-md flex-1 sm:flex-none">Available Campaigns</TabsTrigger>
+          <TabsTrigger value="active" className="rounded-md flex-1 sm:flex-none">My Active Campaigns</TabsTrigger>
+          <TabsTrigger value="completed" className="rounded-md flex-1 sm:flex-none">Completed</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="available" className="space-y-4">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <TabsContent value="available" className="space-y-2 sm:space-y-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {Array.isArray(campaigns) && campaigns
               .filter(campaign => {
                 // Debug logging
@@ -161,14 +160,14 @@ export default function MarketingCampaigns() {
           {(!Array.isArray(campaigns) || campaigns.filter(campaign => 
             campaign?.status !== 'completed' && !isParticipating(campaign?.id)
           ).length === 0) && (
-            <Card className="p-8 text-center">
+            <Card className="p-6 sm:p-8 text-center">
               <CardDescription>No available campaigns at the moment.</CardDescription>
             </Card>
           )}
         </TabsContent>
 
-        <TabsContent value="active" className="space-y-4">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <TabsContent value="active" className="space-y-2 sm:space-y-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {campaigns
               .filter(campaign => isParticipating(campaign.id))
               .map((campaign) => (
@@ -176,14 +175,14 @@ export default function MarketingCampaigns() {
               ))}
           </div>
           {campaigns.filter(campaign => isParticipating(campaign.id)).length === 0 && (
-            <Card className="p-8 text-center">
+            <Card className="p-6 sm:p-8 text-center">
               <CardDescription>You haven't joined any campaigns yet.</CardDescription>
             </Card>
           )}
         </TabsContent>
 
         <TabsContent value="completed">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {campaigns
               .filter(campaign => campaign.status === 'completed' && isParticipating(campaign.id))
               .map((campaign) => (
@@ -191,7 +190,7 @@ export default function MarketingCampaigns() {
               ))}
           </div>
           {campaigns.filter(campaign => campaign.status === 'completed' && isParticipating(campaign.id)).length === 0 && (
-            <Card className="p-8 text-center">
+            <Card className="p-6 sm:p-8 text-center">
               <CardDescription>No completed campaigns yet.</CardDescription>
             </Card>
           )}

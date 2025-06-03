@@ -130,79 +130,128 @@ export default function ProductsPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Commission</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.map((product: Product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.sku}</TableCell>
-                  <TableCell>
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: product.currency || 'USD',
-                    }).format(product.price)}
-                  </TableCell>
-                  <TableCell>{product.commission_percent}%</TableCell>
-                  <TableCell>
-                    <span 
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        product.status === 'active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {product.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => navigate(`/products/edit/${product.id}`)}
-                      >
-                        <Pencil className="h-4 w-4" />
+          {/* Mobile Card/List View */}
+          <div className="block md:hidden">
+            {products.map(product => (
+              <div key={product.id} className="mb-4 p-4 rounded-lg shadow bg-white">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-bold">{product.name}</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{product.status}</span>
+                </div>
+                <div className="text-sm text-muted-foreground mb-2">SKU: {product.sku}</div>
+                <div className="text-sm mb-2">Price: {new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency || 'USD' }).format(product.price)}</div>
+                <div className="text-sm mb-2">Commission: {product.commission_percent}%</div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => navigate(`/products/edit/${product.id}`)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="icon">
-                            <Trash2 className="h-4 w-4" />
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Product</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{product.name}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteProductMutation.mutate(product.id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Table View for md+ screens */}
+          <div className="hidden md:block">
+            <div className="overflow-x-auto">
+              <Table className="min-w-[700px] w-full text-sm sm:text-base">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-left">Name</TableHead>
+                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-left">SKU</TableHead>
+                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-left">Price</TableHead>
+                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-left">Commission</TableHead>
+                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-left">Status</TableHead>
+                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((product: Product) => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium py-3 px-2 sm:py-4 sm:px-4">{product.name}</TableCell>
+                      <TableCell className="py-3 px-2 sm:py-4 sm:px-4">{product.sku}</TableCell>
+                      <TableCell className="py-3 px-2 sm:py-4 sm:px-4">
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: product.currency || 'USD',
+                        }).format(product.price)}
+                      </TableCell>
+                      <TableCell className="py-3 px-2 sm:py-4 sm:px-4">{product.commission_percent}%</TableCell>
+                      <TableCell className="py-3 px-2 sm:py-4 sm:px-4">
+                        <span 
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            product.status === 'active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {product.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right py-3 px-2 sm:py-4 sm:px-4">
+                        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 sm:h-10 sm:w-10"
+                            onClick={() => navigate(`/products/edit/${product.id}`)}
+                          >
+                            <Pencil className="h-4 w-4" />
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{product.name}"? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteProductMutation.mutate(product.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Product</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{product.name}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteProductMutation.mutate(product.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

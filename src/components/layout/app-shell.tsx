@@ -77,15 +77,27 @@ const AppShell: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
-      <div className="flex flex-1 overflow-hidden pt-16">
-        <Sidebar isOpen={isSidebarOpen} isMobile={isMobileView} onClose={() => setIsSidebarOpen(false)} />
-        <main 
+      <div className="flex flex-1 overflow-hidden pt-16 relative">
+        {/* Sidebar and mobile overlay */}
+        {isMobileView && isSidebarOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/40 md:hidden"
+            aria-label="Sidebar backdrop"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+        <Sidebar
+          isOpen={isSidebarOpen}
+          isMobile={isMobileView}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+        <main
           className={cn(
             "flex-1 relative transition-all duration-300 ease-in-out"
           )}
         >
           <ScrollArea className="h-[calc(100vh-4rem)]">
-            <div className="w-full px-8 py-6">
+            <div className="w-full px-4 py-4 sm:px-6 md:px-8 md:py-6">
               <Outlet />
             </div>
           </ScrollArea>

@@ -182,74 +182,108 @@ export function TrackingLinkList({ links, onRefresh }: TrackingLinkListProps) {
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Campaign</TableHead>
-                  <TableHead>Destination</TableHead>
-                  <TableHead>Medium</TableHead>
-                  <TableHead className="hidden md:table-cell">Created</TableHead>
-                  <TableHead className="hidden md:table-cell">Expires</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Stats</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {links.map((link) => (
-                  <TableRow key={link.id}>
-                    <TableCell className="font-medium">{link.campaignName}</TableCell>
-                    <TableCell>{formatUrl(link.destinationUrl)}</TableCell>
-                    <TableCell>{link.utmMedium}</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {format(new Date(link.createdAt), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {link.expiresAt ? format(new Date(link.expiresAt), 'MMM d, yyyy') : 'Never'}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(link.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-sm">{link.clickCount} clicks</span>
-                        <span className="text-xs text-muted-foreground">{link.conversionCount} conversions</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => copyToClipboard(link)}>
-                            <Copy className="mr-2 h-4 w-4" /> Copy Link
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openQrDialog(link)}>
-                            <QrCode className="mr-2 h-4 w-4" /> QR Code
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => window.open(buildFullTrackingUrl(link), '_blank')}>
-                            <Link2 className="mr-2 h-4 w-4" /> Open Link
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => openEditDialog(link)}>
-                            <Edit2 className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => openDeleteDialog(link)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+            <>
+              {/* Mobile Card/List View */}
+              <div className="block md:hidden">
+                {links.map(link => (
+                  <div key={link.id} className="mb-4 p-4 rounded-lg shadow bg-white">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-bold">{link.campaignName}</span>
+                      {getStatusBadge(link.status)}
+                    </div>
+                    <div className="text-sm text-muted-foreground mb-1">Destination: {formatUrl(link.destinationUrl)}</div>
+                    <div className="text-sm mb-1">Medium: {link.utmMedium}</div>
+                    <div className="text-sm mb-1">Source: {link.utmSource}</div>
+                    <div className="text-sm mb-1">Clicks: {link.clickCount} | Conversions: {link.conversionCount}</div>
+                    <div className="flex gap-2 mt-2">
+                      <Button size="sm" onClick={() => copyToClipboard(link)}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" onClick={() => openEditDialog(link)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" onClick={() => openQrDialog(link)}>
+                        <QrCode className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => openDeleteDialog(link)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+              {/* Table View for md+ screens */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Campaign</TableHead>
+                      <TableHead>Destination</TableHead>
+                      <TableHead>Medium</TableHead>
+                      <TableHead className="hidden md:table-cell">Created</TableHead>
+                      <TableHead className="hidden md:table-cell">Expires</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Stats</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {links.map((link) => (
+                      <TableRow key={link.id}>
+                        <TableCell className="font-medium">{link.campaignName}</TableCell>
+                        <TableCell>{formatUrl(link.destinationUrl)}</TableCell>
+                        <TableCell>{link.utmMedium}</TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {format(new Date(link.createdAt), 'MMM d, yyyy')}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {link.expiresAt ? format(new Date(link.expiresAt), 'MMM d, yyyy') : 'Never'}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(link.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-sm">{link.clickCount} clicks</span>
+                            <span className="text-xs text-muted-foreground">{link.conversionCount} conversions</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => copyToClipboard(link)}>
+                                <Copy className="mr-2 h-4 w-4" /> Copy Link
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openQrDialog(link)}>
+                                <QrCode className="mr-2 h-4 w-4" /> QR Code
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => window.open(buildFullTrackingUrl(link), '_blank')}>
+                                <Link2 className="mr-2 h-4 w-4" /> Open Link
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => openEditDialog(link)}>
+                                <Edit2 className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => openDeleteDialog(link)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
