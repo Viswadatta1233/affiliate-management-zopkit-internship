@@ -10,23 +10,6 @@ export type Campaign = {
   endDate: Date | null;
   status: 'draft' | 'active' | 'completed' | 'archived';
   type: 'product' | 'service' | 'event';
-  requirements: {
-    minFollowers?: number;
-    platforms?: string[];
-    categories?: string[];
-  };
-  rewards: {
-    commissionRate: number;
-    bonusThreshold?: number;
-    bonusAmount?: number;
-  };
-  content: {
-    images: string[];
-    videos: string[];
-    description: string;
-    guidelines: string;
-    promotionalCodes: string[];
-  };
   metrics: {
     totalReach: number;
     engagementRate: number;

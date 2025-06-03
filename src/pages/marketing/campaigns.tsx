@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Target, Award, Users, Clock, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, Users, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -105,18 +105,6 @@ export default function MarketingCampaigns() {
               </span>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <Award className="h-4 w-4 text-gray-500" />
-            <span className="text-sm">
-              {campaign?.rewards?.commissionRate || 0}% Commission
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-gray-500" />
-            <span className="text-sm">
-              {campaign?.requirements?.minFollowers || 0}+ Followers
-            </span>
-          </div>
         </div>
       </CardContent>
       <CardFooter className="flex justify-between items-center">

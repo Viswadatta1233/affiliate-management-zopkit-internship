@@ -13,23 +13,6 @@ const campaignSchema = z.object({
   endDate: z.string().optional().transform(str => str ? new Date(str) : undefined),
   status: z.enum(['draft', 'active', 'paused', 'completed']).default('draft'),
   type: z.enum(['product', 'service', 'event']),
-  requirements: z.object({
-    minFollowers: z.number().optional(),
-    platforms: z.array(z.string()).optional(),
-    categories: z.array(z.string()).optional()
-  }).default({}),
-  rewards: z.object({
-    commissionRate: z.number().min(0).max(100),
-    bonusThreshold: z.number().optional(),
-    bonusAmount: z.number().optional()
-  }),
-  content: z.object({
-    images: z.array(z.string()),
-    videos: z.array(z.string()),
-    description: z.string().min(1),
-    guidelines: z.string().min(1),
-    promotionalCodes: z.array(z.string())
-  }),
   metrics: z.object({
     totalReach: z.number(),
     engagementRate: z.number(),

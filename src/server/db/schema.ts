@@ -202,9 +202,6 @@ export const campaigns = pgTable('campaigns', {
   endDate: timestamp('end_date'),
   status: text('status').notNull().default('draft'),
   type: text('type').notNull(),
-  requirements: jsonb('requirements').notNull().default({}),
-  rewards: jsonb('rewards').notNull().default({}),
-  content: jsonb('content').notNull().default({}),
   metrics: jsonb('metrics').notNull().default({
     totalReach: 0,
     engagementRate: 0,
