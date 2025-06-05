@@ -26,10 +26,10 @@ import {
 } from "@/components/ui/select";
 import { InviteDialog } from '@/components/affiliates/invite-dialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiAffiliates, api } from '@/lib/api';
+import { api } from '@/lib/api';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function Affiliates() {
-  console.log("Affiliates");
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [selectedAffiliate, setSelectedAffiliate] = useState<string | null>(null);
@@ -37,10 +37,10 @@ export default function Affiliates() {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileAffiliateId, setProfileAffiliateId] = useState<string | null>(null);
 
-  // Fetch affiliates from backend
-  const { data: affiliates, isLoading, isError } = useQuery({
-    queryKey: ['affiliates'],
-    queryFn: async () => (await apiAffiliates.getAll()).data,
+  // Fetch affiliates with products and commission status
+  const { data: affiliates, isLoading, isError, refetch } = useQuery({
+    queryKey: ['affiliates-with-products'],
+    queryFn: async () => (await api.get('/api/affiliates/with-products')).data,
   });
 
   // Fetch affiliate profile details when modal is open
@@ -52,6 +52,21 @@ export default function Affiliates() {
     },
     enabled: !!profileAffiliateId && profileDialogOpen,
   });
+
+  // Handler to update commission status
+  const handleCommissionToggle = async (affiliateId: string, productId: string, checked: boolean) => {
+    try {
+      await api.put('/api/affiliates/product-commission', {
+        affiliateId,
+        productId,
+        useProductCommission: checked,
+      });
+      toast({ title: 'Commission status updated' });
+      refetch();
+    } catch (error: any) {
+      toast({ title: 'Failed to update commission', description: error.message, variant: 'destructive' });
+    }
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -84,26 +99,19 @@ export default function Affiliates() {
               {affiliates && affiliates.length > 0 ? affiliates.map((affiliate: any) => (
                 <div 
                   key={affiliate.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"
+                  className="flex flex-col gap-2 p-4 border rounded-lg hover:bg-accent"
                 >
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src="" />
-                      <AvatarFallback>{affiliate.name ? affiliate.name.split(' ').map((n: string) => n[0]).join('') : affiliate.email[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-medium">{affiliate.name || affiliate.email}</h3>
-                      <p className="text-sm text-muted-foreground">{affiliate.email}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src="" />
+                        <AvatarFallback>{affiliate.firstName ? affiliate.firstName[0] : affiliate.email[0]}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3 className="font-medium">{affiliate.firstName || affiliate.email} {affiliate.lastName || ''}</h3>
+                        <p className="text-sm text-muted-foreground">{affiliate.email}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="font-medium">${affiliate.earnings ? affiliate.earnings.toLocaleString() : '0'}</p>
-                      <p className="text-sm text-muted-foreground">Total Earnings</p>
-                    </div>
-                    <Badge variant={affiliate.status === 'active' ? 'default' : 'secondary'}>
-                      {affiliate.status}
-                    </Badge>
                     <Dialog open={profileDialogOpen && profileAffiliateId === affiliate.id} onOpenChange={open => { setProfileDialogOpen(open); if (!open) setProfileAffiliateId(null); }}>
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm" onClick={() => { setProfileAffiliateId(affiliate.id); setProfileDialogOpen(true); }}>
@@ -119,7 +127,7 @@ export default function Affiliates() {
                           <div>Loading profile...</div>
                         ) : affiliateProfile ? (
                           <div className="space-y-2">
-                            <div><b>Name:</b> {affiliate.name || affiliate.email}</div>
+                            <div><b>Name:</b> {affiliate.firstName || affiliate.email} {affiliate.lastName || ''}</div>
                             <div><b>Email:</b> {affiliate.email}</div>
                             <div><b>Referral Code:</b> {affiliateProfile.referralCode || 'N/A'}</div>
                             <div><b>Current Tier:</b> {affiliateProfile.currentTier || 'N/A'}</div>
@@ -132,6 +140,39 @@ export default function Affiliates() {
                         )}
                       </DialogContent>
                     </Dialog>
+                  </div>
+                  {/* Product commissions table */}
+                  <div className="mt-2">
+                    <div className="font-semibold mb-1">Products & Commission Status</div>
+                    {affiliate.products && affiliate.products.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm border">
+                          <thead>
+                            <tr className="bg-muted">
+                              <th className="p-2 text-left">Product</th>
+                              <th className="p-2 text-left">Commission %</th>
+                              <th className="p-2 text-left">Use Product Commission</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {affiliate.products.map((product: any) => (
+                              <tr key={product.id} className="border-t">
+                                <td className="p-2">{product.name}</td>
+                                <td className="p-2">{product.commissionPercent}%</td>
+                                <td className="p-2">
+                                  <Checkbox
+                                    checked={product.useProductCommission}
+                                    onCheckedChange={(checked) => handleCommissionToggle(affiliate.id, product.id, checked as boolean)}
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground">No products assigned.</div>
+                    )}
                   </div>
                 </div>
               )) : (

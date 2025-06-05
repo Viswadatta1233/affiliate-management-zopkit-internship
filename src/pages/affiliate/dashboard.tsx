@@ -33,6 +33,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocation, Link as RouterLink } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 interface TrackingLink {
   id: string;
@@ -54,6 +61,7 @@ interface AffiliateDetails {
   websiteUrl: string;
   socialMedia: Record<string, string>;
   promotionalMethods: string[];
+  email?: string;
 }
 
 const SOCIAL_MEDIA_OPTIONS = [
@@ -130,6 +138,14 @@ export default function AffiliateDashboard() {
   });
   const [formError, setFormError] = useState('');
   const location = useLocation();
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: '',
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const { data: trackingLinks, isLoading, error } = useQuery<TrackingLink[]>({
     queryKey: ['affiliate-dashboard'],
@@ -195,6 +211,9 @@ export default function AffiliateDashboard() {
     onError: () => setFormError('Please check your inputs. Website and social media URLs must be valid.'),
   });
 
+  // Get affiliate email from auth store (or affiliateDetails if available)
+  const affiliateEmail = useAuthStore((state) => state.user?.email) || affiliateDetails?.email;
+
   // Handle add social media
   const handleAddSocial = () => {
     if (!profileForm.selectedSocial) return;
@@ -252,6 +271,34 @@ export default function AffiliateDashboard() {
     if (profileForm.websiteUrl) payload.websiteUrl = profileForm.websiteUrl;
     if (Object.keys(profileForm.socialMedia).length > 0) payload.socialMedia = profileForm.socialMedia;
     updateProfileMutation.mutate(payload);
+  };
+
+  // Handle password update
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmNewPassword) {
+      setPasswordError('All fields are required.');
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
+      setPasswordError('New passwords do not match.');
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      await api.put('/api/affiliates/update-password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      toast({ title: 'Password updated successfully' });
+      setPasswordDialogOpen(false);
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+    } catch (error: any) {
+      setPasswordError(error?.response?.data?.error || 'Failed to update password');
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   // Fetch missing product details
@@ -450,9 +497,64 @@ export default function AffiliateDashboard() {
             <CardDescription>Manage your affiliate details</CardDescription>
                     </div>
                     {!showProfileForm && (
-                      <Button variant="outline" size="sm" onClick={() => setShowProfileForm(true)}>
-                        Edit Profile
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setShowProfileForm(true)}>
+                          Edit Profile
+                        </Button>
+                        <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" onClick={() => setPasswordDialogOpen(true)}>
+                              Change Password
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Change Password</DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                              {passwordError && <div className="text-red-600 text-sm text-center">{passwordError}</div>}
+                              <div>
+                                <label className="block text-sm font-medium mb-1">Current Password</label>
+                                <input
+                                  type="password"
+                                  className="w-full px-3 py-2 border rounded-md"
+                                  value={passwordForm.currentPassword}
+                                  onChange={e => setPasswordForm(f => ({ ...f, currentPassword: e.target.value }))}
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium mb-1">New Password</label>
+                                <input
+                                  type="password"
+                                  className="w-full px-3 py-2 border rounded-md"
+                                  value={passwordForm.newPassword}
+                                  onChange={e => setPasswordForm(f => ({ ...f, newPassword: e.target.value }))}
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium mb-1">Confirm New Password</label>
+                                <input
+                                  type="password"
+                                  className="w-full px-3 py-2 border rounded-md"
+                                  value={passwordForm.confirmNewPassword}
+                                  onChange={e => setPasswordForm(f => ({ ...f, confirmNewPassword: e.target.value }))}
+                                  required
+                                />
+                              </div>
+                              <div className="flex justify-end gap-2 pt-2">
+                                <Button type="button" variant="outline" onClick={() => setPasswordDialogOpen(false)}>
+                                  Cancel
+                                </Button>
+                                <Button type="submit" disabled={passwordLoading}>
+                                  {passwordLoading ? 'Updating...' : 'Update Password'}
+                                </Button>
+                              </div>
+                            </form>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     )}
                   </div>
           </CardHeader>
@@ -468,6 +570,10 @@ export default function AffiliateDashboard() {
                           <div className="font-semibold mb-1">Current Tier</div>
                           <div>{tierName || affiliateDetails.currentTier || 'N/A'}</div>
                         </div>
+                      </div>
+                      <div className="p-4 bg-muted/50 rounded-lg text-center">
+                        <div className="font-semibold mb-1">Email</div>
+                        <div>{affiliateEmail || 'N/A'}</div>
                       </div>
                       <div className="p-4 bg-muted/50 rounded-lg text-center">
                         <div className="font-semibold mb-1">Website URL</div>

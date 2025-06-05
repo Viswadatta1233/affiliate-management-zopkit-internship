@@ -19,7 +19,7 @@ CREATE TABLE "affiliate_invites" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"email" varchar NOT NULL,
-	"product_id" uuid NOT NULL,
+	"product_ids" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"status" varchar DEFAULT 'pending',
 	"token" varchar NOT NULL,
 	"expires_at" timestamp NOT NULL,
@@ -253,7 +253,6 @@ ALTER TABLE "affiliate_details" ADD CONSTRAINT "affiliate_details_tenant_id_tena
 ALTER TABLE "affiliate_details" ADD CONSTRAINT "affiliate_details_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "affiliate_details" ADD CONSTRAINT "affiliate_details_current_tier_commission_tiers_id_fk" FOREIGN KEY ("current_tier") REFERENCES "public"."commission_tiers"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "affiliate_invites" ADD CONSTRAINT "affiliate_invites_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "affiliate_invites" ADD CONSTRAINT "affiliate_invites_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "affiliate_product_commissions" ADD CONSTRAINT "affiliate_product_commissions_affiliate_id_users_id_fk" FOREIGN KEY ("affiliate_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "affiliate_product_commissions" ADD CONSTRAINT "affiliate_product_commissions_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "affiliate_product_commissions" ADD CONSTRAINT "affiliate_product_commissions_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

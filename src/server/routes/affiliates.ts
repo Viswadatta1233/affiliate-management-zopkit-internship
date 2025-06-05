@@ -7,12 +7,13 @@ import { UserJwtPayload } from '../security';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import { Product, NewAffiliateProductCommission } from '../db/schema';
 
 // Validation schemas
 const inviteAffiliateSchema = z.object({
   email: z.string().email('Invalid email address'),
-  productId: z.string().uuid('Invalid product ID'),
-  addProductCommission: z.boolean().optional().default(false),
+  productIds: z.array(z.string().uuid('Invalid product ID')),
+  productCommissionSettings: z.record(z.string(), z.boolean()),
 });
 
 const affiliateDetailsSchema = z.object({
@@ -41,16 +42,16 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
       const tenantId = request.user.tenantId;
       const validatedData = inviteAffiliateSchema.parse(request.body);
 
-      // Check if product exists and belongs to tenant
-      const product = await db.query.products.findFirst({
+      // Check if all products exist and belong to tenant
+      const productsList = await db.query.products.findMany({
         where: and(
-          eq(products.id, validatedData.productId),
+          inArray(products.id, validatedData.productIds),
           eq(products.tenantId, tenantId)
         ),
       });
 
-      if (!product) {
-        return reply.status(404).send({ error: 'Product not found' });
+      if (productsList.length !== validatedData.productIds.length) {
+        return reply.status(404).send({ error: 'One or more products not found' });
       }
 
       // Generate invite token
@@ -62,7 +63,7 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
       const [invite] = await db.insert(affiliateInvites).values({
         tenantId,
         email: validatedData.email,
-        productId: validatedData.productId,
+        productIds: validatedData.productIds,
         token,
         expiresAt,
       }).returning();
@@ -93,26 +94,24 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
         }).returning();
       }
 
-      // Get product commission
-      const productCommissionValue = product.commissionPercent ? Number(product.commissionPercent) : 0;
-      // Use validated data for addProductCommission
-      const finalCommission = validatedData.addProductCommission ? productCommissionValue : Number(commissionTier.commissionPercent);
-      // Create affiliateProductCommission record (do not set affiliateId or trackingLinkId here)
-      await db.insert(affiliateProductCommissions).values({
-        productId: validatedData.productId,
-        tenantId,
-        commissionTierId: commissionTier.id,
-        commissionPercent: Number(commissionTier.commissionPercent),
-        productCommission: productCommissionValue,
-        finalCommission,
-      });
+      // Create affiliateProductCommission records for each product
+      for (const product of productsList) {
+        const productCommissionValue = product.commissionPercent ? Number(product.commissionPercent) : 0;
+        const useProductCommission = validatedData.productCommissionSettings[product.id] || false;
+        const finalCommission = useProductCommission ? productCommissionValue : Number(commissionTier.commissionPercent);
+        
+        await db.insert(affiliateProductCommissions).values({
+          productId: product.id,
+          tenantId,
+          commissionTierId: commissionTier.id,
+          commissionPercent: String(commissionTier.commissionPercent),
+          productCommission: String(productCommissionValue),
+          finalCommission: String(finalCommission),
+        });
+      }
 
       // Send email
       const acceptUrl = `http://localhost:5173/affiliate/accept?token=${token}`;
-      // if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
-      //   fastify.log.error('GMAIL_USER or GMAIL_PASS environment variables are not set');
-      //   return reply.status(500).send({ error: 'Email configuration is missing' });
-      // }
       try {
         await transporter.sendMail({
           from: "dattanidumukkala.98@gmail.com",
@@ -120,11 +119,15 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
           subject: 'Affiliate Program Invitation',
           html: `
             <h1>You've been invited to join our affiliate program!</h1>
-            <p>Product Details:</p>
+            <p>Selected Products:</p>
             <ul>
-              <li>Name: ${product.name}</li>
-              <li>Description: ${product.description || 'N/A'}</li>
-              <li>Commission: ${product.commissionPercent}%</li>
+              ${productsList.map(product => `
+                <li>
+                  <strong>${product.name}</strong><br>
+                  Description: ${product.description || 'N/A'}<br>
+                  Commission: ${product.commissionPercent}%
+                </li>
+              `).join('')}
             </ul>
             <p>Commission Tiers:</p>
             <ul>
@@ -144,7 +147,7 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
         });
       } catch (emailError) {
         fastify.log.error('Error sending email:', emailError);
-        throw emailError; // Re-throw to be caught by the outer catch block
+        throw emailError;
       }
 
       return { message: 'Invitation sent successfully' };
@@ -156,12 +159,6 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
       fastify.log.error('Error sending invite:', error);
-      // Log detailed error information
-      fastify.log.error('Detailed error:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        error
-      });
       return reply.status(500).send({ error: 'Failed to send invite' });
     }
   });
@@ -211,7 +208,6 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
           tenantId: invite.tenantId,
           roleName: 'affiliate',
           description: 'Default affiliate role',
-          permissions: ['view_reports'],
           isCustom: false,
         }).returning())[0];
         fastify.log.info('Created affiliate role:', affiliateRole);
@@ -255,31 +251,85 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.log.info('Created new user:', user);
       }
 
-      // Check if tracking link already exists
-      const existingTrackingLink = await db.query.trackingLinks.findFirst({
-        where: and(
-          eq(trackingLinks.affiliateId, user.id),
-          eq(trackingLinks.productId, invite.productId)
-        ),
+      // Get all products from the invite
+      const productIds = invite.productIds as string[];
+      const productsList = await db.query.products.findMany({
+        where: inArray(products.id, productIds),
       });
-      fastify.log.info('Existing tracking link check:', existingTrackingLink);
 
-      let trackingLink;
-      if (!existingTrackingLink) {
-        // Create tracking link
-        const trackingCode = crypto.randomBytes(8).toString('hex');
-        [trackingLink] = await db.insert(trackingLinks).values({
-          tenantId: invite.tenantId,
-          affiliateId: user.id,
-          productId: invite.productId,
-          trackingCode: trackingCode,
-          totalClicks: 0,
-          totalConversions: 0,
-          totalSales: '0',
-        }).returning();
-        fastify.log.info('Created new tracking link:', trackingLink);
-      } else {
-        trackingLink = existingTrackingLink;
+      // Create tracking links and commission records for each product
+      for (const product of productsList) {
+        // Check if tracking link already exists
+        const existingTrackingLink = await db.query.trackingLinks.findFirst({
+          where: and(
+            eq(trackingLinks.affiliateId, user.id),
+            eq(trackingLinks.productId, product.id)
+          ),
+        });
+
+        let trackingLink;
+        if (!existingTrackingLink) {
+          // Create tracking link
+          const trackingCode = crypto.randomBytes(8).toString('hex');
+          [trackingLink] = await db.insert(trackingLinks).values({
+            tenantId: invite.tenantId,
+            affiliateId: user.id,
+            productId: product.id,
+            trackingCode: trackingCode,
+            totalClicks: 0,
+            totalConversions: 0,
+            totalSales: '0',
+          }).returning();
+          fastify.log.info('Created new tracking link:', trackingLink);
+        } else {
+          trackingLink = existingTrackingLink;
+        }
+
+        // Find existing commission record
+        const existingCommission = await db.query.affiliateProductCommissions.findFirst({
+          where: and(
+            eq(affiliateProductCommissions.productId, product.id),
+            eq(affiliateProductCommissions.tenantId, invite.tenantId),
+            isNull(affiliateProductCommissions.affiliateId)
+          ),
+        });
+
+        if (existingCommission) {
+          // Update the commission record
+          await db.update(affiliateProductCommissions)
+            .set({
+              affiliateId: user.id,
+              trackingLinkId: trackingLink.id,
+            })
+            .where(eq(affiliateProductCommissions.id, existingCommission.id))
+            .returning();
+          fastify.log.info('Updated commission record');
+        } else {
+          // Create new commission record if none exists
+          const productCommissionValue = product.commissionPercent ? Number(product.commissionPercent) : 0;
+          const finalCommission = productCommissionValue;
+
+          // Get commission tier
+          const commissionTier = await db.query.commissionTiers.findFirst({
+            where: eq(commissionTiers.tenantId, invite.tenantId),
+            orderBy: (tier) => tier.minSales,
+          });
+
+          if (!commissionTier) {
+            throw new Error('No commission tier found');
+          }
+
+          await db.insert(affiliateProductCommissions).values({
+            productId: product.id,
+            tenantId: invite.tenantId,
+            affiliateId: user.id,
+            trackingLinkId: trackingLink.id,
+            commissionTierId: commissionTier.id,
+            commissionPercent: String(commissionTier.commissionPercent),
+            productCommission: String(productCommissionValue),
+            finalCommission: String(finalCommission),
+          });
+        }
       }
 
       // Update invite status
@@ -290,52 +340,6 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
         })
         .where(eq(affiliateInvites.id, invite.id));
       fastify.log.info('Updated invite status');
-
-      // Find existing commission record
-      const existingCommission = await db.query.affiliateProductCommissions.findFirst({
-        where: and(
-          eq(affiliateProductCommissions.productId, invite.productId),
-          eq(affiliateProductCommissions.tenantId, invite.tenantId),
-          isNull(affiliateProductCommissions.affiliateId)
-        ),
-      });
-      fastify.log.info('Found commission record:', existingCommission);
-
-      if (existingCommission) {
-        // Update the commission record
-        await db.update(affiliateProductCommissions)
-          .set({
-            affiliateId: user.id,
-            trackingLinkId: trackingLink.id,
-          })
-          .where(eq(affiliateProductCommissions.id, existingCommission.id))
-          .returning();
-        fastify.log.info('Updated commission record');
-      } else {
-        // Create new commission record if none exists
-        const product = await db.query.products.findFirst({
-          where: eq(products.id, invite.productId),
-        });
-
-        if (!product) {
-          throw new Error('Product not found');
-        }
-
-        const productCommissionValue = product.commissionPercent ? Number(product.commissionPercent) : 0;
-        const finalCommission = productCommissionValue || Number(commissionTier.commissionPercent);
-
-        const [newCommission] = await db.insert(affiliateProductCommissions).values({
-          productId: invite.productId,
-          tenantId: invite.tenantId,
-          affiliateId: user.id,
-          trackingLinkId: trackingLink.id,
-          commissionTierId: commissionTier.id,
-          commissionPercent: Number(commissionTier.commissionPercent),
-          productCommission: productCommissionValue,
-          finalCommission,
-        }).returning();
-        fastify.log.info('Created new commission record:', newCommission);
-      }
 
       return {
         message: 'Invite accepted successfully',
@@ -351,28 +355,8 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
           message: error.message,
           stack: error.stack,
           name: error.name,
-          cause: error.cause
         });
-        
-        // Check for specific error types
-        if (error.message.includes('commission_tier_id')) {
-          return reply.status(500).send({ 
-            error: 'Failed to accept invite',
-            details: 'Commission tier configuration error'
-          });
-        } else if (error.message.includes('tracking_link_id')) {
-          return reply.status(500).send({ 
-            error: 'Failed to accept invite',
-            details: 'Tracking link configuration error'
-          });
-        } else if (error.message.includes('affiliate_id')) {
-          return reply.status(500).send({ 
-            error: 'Failed to accept invite',
-            details: 'Affiliate user configuration error'
-          });
-        }
       }
-      
       return reply.status(500).send({ 
         error: 'Failed to accept invite',
         details: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -399,7 +383,7 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
       let productsById: Record<string, any> = {};
       if (productIds.length > 0) {
         const productsList = await db.query.products.findMany({
-          where: (product) => productIds.includes(product.id),
+          where: inArray(products.id, productIds),
         });
         productsById = Object.fromEntries(productsList.map(p => [p.id, p]));
       }
@@ -706,6 +690,175 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (error) {
       fastify.log.error('Error updating affiliate details:', error);
       return reply.status(500).send({ error: 'Failed to update affiliate details' });
+    }
+  });
+
+  // Get all affiliates with their invited products and commission status
+  fastify.get('/with-products', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const tenantId = request.user.tenantId;
+      // Get all affiliates for this tenant
+      const affiliates = await db.query.users.findMany({
+        where: and(
+          eq(users.tenantId, tenantId),
+          eq(users.isAffiliate, true)
+        ),
+      });
+      // For each affiliate, get their product commissions
+      const affiliateIds = affiliates.map(a => a.id);
+      const comms = affiliateIds.length > 0 ? await db.query.affiliateProductCommissions.findMany({
+        where: inArray(affiliateProductCommissions.affiliateId, affiliateIds),
+      }) : [];
+      // Get all product info
+      const productIds = comms.map(c => c.productId);
+      const productsList = productIds.length > 0 ? await db.query.products.findMany({ where: inArray(products.id, productIds) }) : [];
+      const productsById = Object.fromEntries(productsList.map(p => [p.id, p]));
+      // Group comms by affiliate
+      const commsByAffiliate: Record<string, any[]> = {};
+      comms.forEach(c => {
+        if (!commsByAffiliate[c.affiliateId!]) commsByAffiliate[c.affiliateId!] = [];
+        commsByAffiliate[c.affiliateId!].push({
+          id: c.productId,
+          name: productsById[c.productId]?.name,
+          commissionPercent: c.productCommission,
+          finalCommission: c.finalCommission,
+          useProductCommission: c.productCommission === c.finalCommission
+        });
+      });
+      // Build result
+      const result = affiliates.map(a => ({
+        id: a.id,
+        firstName: a.firstName,
+        lastName: a.lastName,
+        email: a.email,
+        products: commsByAffiliate[a.id] || []
+      }));
+      return result;
+    } catch (error) {
+      fastify.log.error('Error fetching affiliates with products:', error);
+      return reply.status(500).send({ error: 'Failed to fetch affiliates with products' });
+    }
+  });
+
+  // Update commission status for a specific affiliate-product pair
+  fastify.put('/product-commission', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const { affiliateId, productId, useProductCommission } = request.body as {
+        affiliateId: string,
+        productId: string,
+        useProductCommission: boolean
+      };
+      // Find the commission record
+      const comm = await db.query.affiliateProductCommissions.findFirst({
+        where: and(
+          eq(affiliateProductCommissions.affiliateId, affiliateId),
+          eq(affiliateProductCommissions.productId, productId)
+        ),
+      });
+      if (!comm) {
+        return reply.status(404).send({ error: 'Commission record not found' });
+      }
+      // Get product commission and tier commission
+      const product = await db.query.products.findFirst({ where: eq(products.id, productId) });
+      if (!product) {
+        return reply.status(404).send({ error: 'Product not found' });
+      }
+      const productCommissionValue = product.commissionPercent ? Number(product.commissionPercent) : 0;
+      // Get commission tier
+      const commissionTier = await db.query.commissionTiers.findFirst({ where: eq(commissionTiers.id, comm.commissionTierId) });
+      if (!commissionTier) {
+        return reply.status(404).send({ error: 'Commission tier not found' });
+      }
+      const tierCommissionValue = Number(commissionTier.commissionPercent);
+      // Update finalCommission
+      const finalCommission = useProductCommission ? productCommissionValue : tierCommissionValue;
+      await db.update(affiliateProductCommissions)
+        .set({ finalCommission: String(finalCommission) })
+        .where(and(
+          eq(affiliateProductCommissions.affiliateId, affiliateId),
+          eq(affiliateProductCommissions.productId, productId)
+        ));
+      return { message: 'Commission status updated' };
+    } catch (error) {
+      fastify.log.error('Error updating commission status:', error);
+      return reply.status(500).send({ error: 'Failed to update commission status' });
+    }
+  });
+
+  // Update an affiliate's tier
+  fastify.put('/update-tier', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const { affiliateId, newTierId } = request.body as { affiliateId: string, newTierId: string };
+      // Get the new tier
+      const newTier = await db.query.commissionTiers.findFirst({ where: eq(commissionTiers.id, newTierId) });
+      if (!newTier) {
+        return reply.status(404).send({ error: 'Tier not found' });
+      }
+      // Update affiliate_details
+      await db.update(affiliateDetails)
+        .set({ currentTier: newTierId })
+        .where(eq(affiliateDetails.userId, affiliateId));
+      // Get all affiliate_product_commissions for this affiliate
+      const comms = await db.query.affiliateProductCommissions.findMany({
+        where: eq(affiliateProductCommissions.affiliateId, affiliateId),
+      });
+      // Update each commission record
+      for (const comm of comms) {
+        // If useProductCommission, keep finalCommission as productCommission, else use new tier percent
+        const useProductCommission = comm.productCommission === comm.finalCommission;
+        const newFinalCommission = useProductCommission ? comm.productCommission : String(newTier.commissionPercent);
+        await db.update(affiliateProductCommissions)
+          .set({
+            commissionTierId: newTierId,
+            commissionPercent: String(newTier.commissionPercent),
+            finalCommission: newFinalCommission,
+          })
+          .where(eq(affiliateProductCommissions.id, comm.id));
+      }
+      return { message: 'Affiliate tier updated' };
+    } catch (error) {
+      fastify.log.error('Error updating affiliate tier:', error);
+      return reply.status(500).send({ error: 'Failed to update affiliate tier' });
+    }
+  });
+
+  // Update affiliate password
+  fastify.put('/update-password', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const userId = request.user.userId;
+      const { currentPassword, newPassword } = request.body as { currentPassword: string, newPassword: string };
+      // Get user
+      const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+      if (!user) {
+        return reply.status(404).send({ error: 'User not found' });
+      }
+      // Check current password
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return reply.status(400).send({ error: 'Current password is incorrect' });
+      }
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      // Update password
+      await db.update(users)
+        .set({ password: hashedPassword })
+        .where(eq(users.id, userId));
+      return { message: 'Password updated successfully' };
+    } catch (error) {
+      fastify.log.error('Error updating password:', error);
+      return reply.status(500).send({ error: 'Failed to update password' });
     }
   });
 };

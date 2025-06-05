@@ -134,7 +134,7 @@ export const affiliateInvites = pgTable('affiliate_invites', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   email: varchar('email').notNull(),
-  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  productIds: jsonb('product_ids').notNull().default([]),
   status: varchar('status').default('pending'),
   token: varchar('token').notNull().unique(),
   expiresAt: timestamp('expires_at').notNull(),
@@ -372,7 +372,7 @@ export const affiliateInvitesRelations = relations(affiliateInvites, ({ one }) =
     references: [tenants.id]
   }),
   product: one(products, {
-    fields: [affiliateInvites.productId],
+    fields: [affiliateInvites.productIds],
     references: [products.id]
   })
 }));

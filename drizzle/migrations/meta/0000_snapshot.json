@@ -1,5 +1,5 @@
 {
-  "id": "036f48ab-0d74-4d1d-a3ac-97f2f6454bf4",
+  "id": "f91c284c-55a9-45cb-ae77-a116a02c42a7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -149,11 +149,12 @@
           "primaryKey": false,
           "notNull": true
         },
-        "product_id": {
-          "name": "product_id",
-          "type": "uuid",
+        "product_ids": {
+          "name": "product_ids",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "'[]'::jsonb"
         },
         "status": {
           "name": "status",
@@ -196,19 +197,6 @@
           "tableTo": "tenants",
           "columnsFrom": [
             "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "affiliate_invites_product_id_products_id_fk": {
-          "name": "affiliate_invites_product_id_products_id_fk",
-          "tableFrom": "affiliate_invites",
-          "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
           ],
           "columnsTo": [
             "id"

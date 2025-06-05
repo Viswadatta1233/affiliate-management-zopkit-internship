@@ -13,12 +13,15 @@ import {
 import { format } from 'date-fns';
 import { Building2, Star, Users, Mail } from 'lucide-react';
 import { api } from '@/lib/api';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
 interface Affiliate {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
+  currentTierId?: string;
 }
 
 interface CommissionTier {
@@ -32,24 +35,41 @@ interface CommissionTier {
 }
 
 const AffiliateTiers: React.FC = () => {
-  const { user, tenant } = useAuthStore();
+  useAuthStore();
   const [tiers, setTiers] = useState<CommissionTier[]>([]);
+  const [allTiers, setAllTiers] = useState<CommissionTier[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const tiersResponse = await api.get('/api/commissions/tiers');
         setTiers(tiersResponse.data);
+        setAllTiers(tiersResponse.data); // Use same endpoint for all tiers
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
+
+  // Handler to update affiliate tier
+  const handleTierChange = async (affiliateId: string, newTierId: string) => {
+    try {
+      await api.put('/api/affiliates/update-tier', { affiliateId, newTierId });
+      toast({ title: 'Affiliate tier updated' });
+      // Refresh tiers
+      setLoading(true);
+      const tiersResponse = await api.get('/api/commissions/tiers');
+      setTiers(tiersResponse.data);
+      setLoading(false);
+    } catch (error: any) {
+      toast({ title: 'Failed to update tier', description: error.message, variant: 'destructive' });
+    }
+  };
 
   // Format currency
   const formatCurrency = (value: number) => {
@@ -119,6 +139,23 @@ const AffiliateTiers: React.FC = () => {
                         <div>
                           <div className="font-medium">{affiliate.email.split('@')[0]}</div>
                           <div className="text-sm text-muted-foreground">{affiliate.email}</div>
+                        </div>
+                        <div className="ml-auto">
+                          <Select
+                            value={tier.id}
+                            onValueChange={(val) => handleTierChange(affiliate.id, val)}
+                          >
+                            <SelectTrigger className="w-40">
+                              <SelectValue placeholder="Select tier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allTiers.map((t) => (
+                                <SelectItem key={t.id} value={t.id}>
+                                  {t.tierName} ({t.commissionPercent}%)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     ))}
