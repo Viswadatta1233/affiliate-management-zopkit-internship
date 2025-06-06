@@ -36,6 +36,7 @@ import UsersAndRoles from '@/pages/settings/users';
 import Billing from '@/pages/settings/billing';
 import Login from '@/pages/auth/login';
 import Register from '@/pages/auth/register';
+import InfluencerRegistration from '@/pages/auth/register/influencer';
 import NotFound from '@/pages/not-found';
 import Products from '@/pages/products';
 import CreateProduct from '@/pages/products/create';
@@ -67,6 +68,7 @@ function App() {
           {/* Auth routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/register/influencer" element={<InfluencerRegistration />} />
           
           {/* Public affiliate accept route */}
           <Route path="/affiliate/accept" element={<AcceptInvite />} />

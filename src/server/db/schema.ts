@@ -38,6 +38,7 @@ export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   email: varchar('email').notNull().unique(),
+  password: varchar('password').notNull(),
   firstName: varchar('first_name').notNull(),
   lastName: varchar('last_name').notNull(),
   phone: varchar('phone'),
@@ -49,7 +50,6 @@ export const users = pgTable('users', {
   marketingConsent: boolean('marketing_consent').default(false),
   roleId: uuid('role_id').notNull().references(() => roles.id, { onDelete: 'restrict' }),
   isAffiliate: boolean('is_affiliate').default(false),
-  password: varchar('password').notNull(),
   resetToken: text('reset_token'),
   resetTokenExpiresAt: timestamp('reset_token_expires_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -272,6 +272,24 @@ export const marketingGuidelines = pgTable('marketing_guidelines', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Influencers
+export const influencers = pgTable('influencers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  socialMedia: jsonb('social_media').notNull().default({}),
+  niche: varchar('niche').notNull(),
+  country: varchar('country').notNull(),
+  bio: text('bio'),
+  status: varchar('status').notNull().default('pending'),
+  metrics: jsonb('metrics').notNull().default({
+    followers: 0,
+    engagement: 0,
+    reach: 0,
+  }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
@@ -526,6 +544,14 @@ export const marketingGuidelinesRelations = relations(marketingGuidelines, ({ on
   })
 }));
 
+// Influencers relations
+export const influencersRelations = relations(influencers, ({ one }) => ({
+  user: one(users, {
+    fields: [influencers.userId],
+    references: [users.id]
+  })
+}));
+
 // Zod schemas for validation
 export const insertTenantSchema = createInsertSchema(tenants);
 export const selectTenantSchema = createSelectSchema(tenants);
@@ -571,6 +597,9 @@ export const selectMarketingAssetSchema = createSelectSchema(marketingAssets);
 
 export const insertMarketingGuidelineSchema = createInsertSchema(marketingGuidelines);
 export const selectMarketingGuidelineSchema = createSelectSchema(marketingGuidelines);
+
+export const insertInfluencerSchema = createInsertSchema(influencers);
+export const selectInfluencerSchema = createSelectSchema(influencers);
 
 // Types
 export type Tenant = typeof tenants.$inferSelect;
@@ -626,3 +655,6 @@ export type NewMarketingAsset = typeof marketingAssets.$inferInsert;
 
 export type MarketingGuideline = typeof marketingGuidelines.$inferSelect;
 export type NewMarketingGuideline = typeof marketingGuidelines.$inferInsert;
+
+export type Influencer = typeof influencers.$inferSelect;
+export type NewInfluencer = typeof influencers.$inferInsert;
