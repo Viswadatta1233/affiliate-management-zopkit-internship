@@ -43,6 +43,7 @@ import CreateProduct from '@/pages/products/create';
 import EditProduct from '@/pages/products/edit';
 import AcceptInvite from '@/pages/affiliate/accept';
 import AffiliateDashboard from '@/pages/affiliate/dashboard';
+import SuperAdminDashboard from '@/pages/super-admin/dashboard';
 
 // Route guard for authenticated routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -69,6 +70,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/register/influencer" element={<InfluencerRegistration />} />
+          
+          {/* Super Admin Dashboard */}
+          <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
           
           {/* Public affiliate accept route */}
           <Route path="/affiliate/accept" element={<AcceptInvite />} />

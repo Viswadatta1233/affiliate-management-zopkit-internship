@@ -1,10 +1,14 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import jwt from 'jsonwebtoken';
 
 // List of public routes that don't require authentication
 const publicRoutes = [
   '/api/influencer/register',
   '/api/auth/login',
   '/api/auth/register',
+  '/api/influencer/registration',
+  '/influencer/register',
+  '/register/influencer'
 ];
 
 export async function authMiddleware(
@@ -36,8 +40,24 @@ export async function authMiddleware(
     });
   }
 
-  // Add the user to the request headers
-  request.headers['x-user-id'] = authHeader.split(' ')[1];
+  try {
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+
+    // Add the user to the request headers
+    request.headers['x-user-id'] = decoded.userId;
+    request.headers['x-tenant-id'] = decoded.tenantId;
+
+    // Special handling for super admin
+    if (decoded.email === 'zopkit@gmail.com') {
+      request.headers['x-super-admin'] = 'true';
+    }
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    return reply.status(401).send({
+      error: 'Invalid token',
+    });
+  }
 }
 
 export const config = {

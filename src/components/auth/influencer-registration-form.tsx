@@ -110,6 +110,7 @@ export function InfluencerRegistrationForm() {
           fullName: data.fullName,
           email: data.email,
           password: data.password,
+          confirmPassword: data.confirmPassword,
           phone: data.phone,
           social_links: {
             instagram: data.instagram,
@@ -134,6 +135,9 @@ export function InfluencerRegistrationForm() {
       }
 
       if (!response.ok) {
+        if (Array.isArray(responseData.error)) {
+          throw new Error(responseData.error.map((err: any) => err.message).join(', '));
+        }
         throw new Error(responseData?.error || 'Registration failed');
       }
 
@@ -143,8 +147,8 @@ export function InfluencerRegistrationForm() {
       });
 
       // Store the user data in localStorage
-      if (responseData.userId) {
-        localStorage.setItem('registeredUserId', responseData.userId);
+      if (responseData.user?.id) {
+        localStorage.setItem('registeredUserId', responseData.user.id);
       }
 
       navigate('/login');

@@ -1,117 +1,129 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db';
-import { users, influencers, roles } from '../db/schema';
+import { users, influencers, roles, tenants } from '../db/schema';
 import { eq } from 'drizzle-orm';
-import { hash } from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
+// Define the validation schema
 const influencerRegistrationSchema = z.object({
-  fullName: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().min(10),
-  social_links: z.object({
-    instagram: z.string().url().optional(),
-    youtube: z.string().url().optional(),
-  }),
-  niche: z.string(),
-  country: z.string(),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string(),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits'),
+  niche: z.string().min(2, 'Niche must be at least 2 characters'),
+  country: z.string().min(2, 'Country must be at least 2 characters'),
   bio: z.string().optional(),
-  agreedToTerms: z.boolean(),
+  agreedToTerms: z.boolean().refine(val => val === true, {
+    message: 'You must agree to the terms and conditions'
+  }),
+  instagram: z.string().url('Invalid Instagram URL').optional(),
+  youtube: z.string().url('Invalid YouTube URL').optional(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
-export async function influencerRoutes(fastify: FastifyInstance) {
-  // Register new influencer
-  fastify.post('/register', async (request, reply) => {
-    try {
-      // Log the request
-      fastify.log.debug({
-        msg: 'Influencer registration request',
-        body: request.body,
-        headers: request.headers,
-      });
+type InfluencerRegistrationBody = z.infer<typeof influencerRegistrationSchema>;
 
-      // Parse and validate the request body
-      let data;
-      try {
-        data = influencerRegistrationSchema.parse(request.body);
-      } catch (error) {
-        fastify.log.error({
-          msg: 'Validation error',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        return reply.status(400).send({
-          error: 'Invalid input data',
-          details: error instanceof z.ZodError ? error.errors : undefined,
-        });
-      }
+export async function influencerRoutes(server: FastifyInstance) {
+  // Register influencer
+  server.post('/register', async (request: FastifyRequest<{ Body: InfluencerRegistrationBody }>, reply) => {
+    try {
+      console.log('Influencer registration attempt:', request.body);
+      
+      // Validate request body
+      const body = influencerRegistrationSchema.parse(request.body);
+      console.log('Validated registration data:', body);
 
       // Check if user already exists
       const existingUser = await db.query.users.findFirst({
-        where: eq(users.email, data.email),
+        where: eq(users.email, body.email),
       });
 
       if (existingUser) {
-        return reply.status(400).send({
-          error: 'User with this email already exists',
-        });
+        console.log('Registration failed: Email already exists:', body.email);
+        return reply.code(400).send({ error: 'Email already registered' });
       }
 
-      // Get the potential_influencer role
-      let influencerRole;
-      try {
-        [influencerRole] = await db
-          .select()
-          .from(roles)
-          .where(eq(roles.roleName, 'potential_influencer'))
-          .limit(1);
-      } catch (error) {
-        fastify.log.error({
-          msg: 'Error fetching influencer role',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        return reply.status(500).send({
-          error: 'Error fetching influencer role',
-        });
+      // Get or create default tenant
+      let defaultTenant = await db.query.tenants.findFirst({
+        where: eq(tenants.tenantName, 'Default Tenant'),
+      });
+
+      if (!defaultTenant) {
+        [defaultTenant] = await db.insert(tenants).values({
+          tenantName: 'Default Tenant',
+          domain: 'localhost',
+          subdomain: 'default',
+          status: 'active',
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+        }).returning();
+        console.log('Created default tenant:', defaultTenant.id);
       }
+
+      // Get or create influencer role for the tenant
+      let influencerRole = await db.query.roles.findFirst({
+        where: eq(roles.roleName, 'potential_influencer'),
+      });
 
       if (!influencerRole) {
-        return reply.status(500).send({
-          error: 'Influencer role not found',
-        });
-      }
-
-      // Create user with potential_influencer role
-      let user;
-      try {
-        [user] = await db.insert(users).values({
-          email: data.email,
-          firstName: data.fullName.split(' ')[0],
-          lastName: data.fullName.split(' ').slice(1).join(' '),
-          phone: data.phone,
-          roleId: influencerRole.id,
-          password: await hash(Math.random().toString(36).slice(-8), 10), // Generate random password
-          termsAccepted: data.agreedToTerms,
+        [influencerRole] = await db.insert(roles).values({
+          roleName: 'potential_influencer',
+          description: 'Default role for potential influencers',
+          permissions: [
+            'view_profile',
+            'edit_profile',
+            'view_campaigns',
+            'apply_campaigns',
+            'view_earnings',
+            'view_analytics'
+          ],
+          isCustom: false,
+          tenantId: defaultTenant.id,
         }).returning();
-      } catch (error) {
-        fastify.log.error({
-          msg: 'Error creating user',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        return reply.status(500).send({
-          error: 'Error creating user',
-        });
+        console.log('Created influencer role:', influencerRole.id);
       }
 
-      // Create influencer profile
-      let influencer;
-      try {
-        [influencer] = await db.insert(influencers).values({
+      // Hash password using bcryptjs
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(body.password, salt);
+      console.log('Password hashed successfully');
+
+      // Split full name into first and last name
+      const nameParts = body.fullName.split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      // Create user
+      const [user] = await db.insert(users).values({
+        email: body.email,
+        firstName: firstName,
+        lastName: lastName,
+        password: hashedPassword,
+        phone: body.phone,
+        roleId: influencerRole.id,
+        termsAccepted: body.agreedToTerms,
+        tenantId: defaultTenant.id,
+        countryCode: 'IN', // Default country code
+        timezone: 'Asia/Kolkata', // Default timezone
+        language: 'en', // Default language
+      }).returning();
+
+      console.log('Created influencer user:', user.id);
+
+      // Create influencer profile with social media links
+      const [influencer] = await db.insert(influencers).values({
           userId: user.id,
-          socialMedia: data.social_links,
-          niche: data.niche,
-          country: data.country,
-          bio: data.bio,
+        niche: body.niche,
+        country: body.country,
+        bio: body.bio || '',
           status: 'pending',
+        socialMedia: {
+          instagram: body.instagram || '',
+          youtube: body.youtube || '',
+        },
           metrics: {
             followers: 0,
             engagement: 0,
@@ -120,53 +132,42 @@ export async function influencerRoutes(fastify: FastifyInstance) {
             total_earnings: 0,
           },
         }).returning();
-      } catch (error) {
-        fastify.log.error({
-          msg: 'Error creating influencer profile',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        // Try to clean up the user if influencer creation fails
-        try {
-          await db.delete(users).where(eq(users.id, user.id));
-        } catch (cleanupError) {
-          fastify.log.error({
-            msg: 'Error cleaning up user after failed influencer creation',
-            error: cleanupError instanceof Error ? cleanupError.message : 'Unknown error',
-          });
+
+      return {
+        success: true,
+        message: 'Influencer registered successfully',
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          isAffiliate: user.isAffiliate,
+          tenantId: user.tenantId,
+        },
+        influencer: {
+          id: influencer.id,
+          niche: influencer.niche,
+          country: influencer.country,
+          status: influencer.status,
         }
-        return reply.status(500).send({
-          error: 'Error creating influencer profile',
-        });
-      }
-
-      // Log the successful registration
-      fastify.log.debug({
-        msg: 'Influencer registration successful',
-        userId: user.id,
-        influencerId: influencer.id,
-      });
-
-      return reply.status(201).send({
-        message: 'Registration successful. Please wait for approval.',
-        userId: user.id,
-        influencerId: influencer.id,
-      });
+      };
     } catch (error) {
-      // Log the error
-      fastify.log.error({
-        msg: 'Unexpected error in influencer registration',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
+      console.error('Error in influencer registration:', error);
+      if (error instanceof z.ZodError) {
+        return reply.code(400).send({ error: error.errors });
+      }
+      // Log the full error for debugging
+      console.error('Full error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
       });
-
-      return reply.status(500).send({
-        error: 'Internal server error',
-      });
+      return reply.code(500).send({ error: 'Error creating user', details: error.message });
     }
   });
 
   // Get influencer profile
-  fastify.get('/profile/:id', async (request, reply) => {
+  server.get('/profile/:id', async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
 
@@ -185,7 +186,7 @@ export async function influencerRoutes(fastify: FastifyInstance) {
 
       return reply.send(influencer);
     } catch (error) {
-      fastify.log.error({
+      server.log.error({
         msg: 'Error fetching influencer profile',
         error: error instanceof Error ? error.message : 'Unknown error',
       });

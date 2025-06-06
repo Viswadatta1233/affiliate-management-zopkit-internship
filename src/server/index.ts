@@ -42,8 +42,16 @@ const startServer = async () => {
     await server.register(cors, {
       origin: true, // Allow all origins in development
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-      exposedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Accept',
+        'x-csrf-token',
+        'x-session-token',
+        'x-refresh-token',
+        'x-tenant-id'
+      ],
+      exposedHeaders: ['Content-Type', 'Authorization', 'x-new-token'],
       credentials: true,
       preflight: true,
       preflightContinue: false,

@@ -11,6 +11,7 @@ type AuthState = {
   isLoading: boolean;
   error: string | null;
   token: string | null;
+  isSuperAdmin: boolean;
   
   // Actions
   login: (email: string, password: string) => Promise<void>;
@@ -38,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
       token: null,
+      isSuperAdmin: false,
 
       loadUserData: async () => {
         // Don't load if already loading
@@ -61,7 +63,8 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: false,
               isLoading: false,
               error: null,
-              token: null
+              token: null,
+              isSuperAdmin: false
             }));
             return;
           }
@@ -85,7 +88,8 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false,
               error: null,
-              token
+              token,
+              isSuperAdmin: user.email === 'zopkit@gmail.com'
             }));
           } else {
             console.log('User data already exists, skipping API call');
@@ -104,7 +108,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             isLoading: false,
             error: error instanceof Error ? error.message : "Failed to load user data",
-            token: null
+            token: null,
+            isSuperAdmin: false
           }));
         }
       },
@@ -131,7 +136,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
             error: null,
-            token
+            token,
+            isSuperAdmin: email === 'zopkit@gmail.com'
           }));
         } catch (error) {
           set((state) => ({
@@ -141,7 +147,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             user: null,
             tenant: null,
-            role: null
+            role: null,
+            isSuperAdmin: false
           }));
           throw error;
         }
@@ -165,7 +172,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
             error: null,
-            token
+            token,
+            isSuperAdmin: data.email === 'zopkit@gmail.com'
           }));
         } catch (error) {
           set((state) => ({
@@ -175,7 +183,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             user: null,
             tenant: null,
-            role: null
+            role: null,
+            isSuperAdmin: false
           }));
           throw error;
         }
@@ -193,7 +202,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             isLoading: false,
             error: null,
-            token: null
+            token: null,
+            isSuperAdmin: false
           }));
         } catch (error) {
           set((state) => ({
@@ -215,6 +225,7 @@ export const useAuthStore = create<AuthState>()(
         role: state.role,
         isAuthenticated: state.isAuthenticated,
         token: state.token,
+        isSuperAdmin: state.isSuperAdmin
       }),
     }
   )

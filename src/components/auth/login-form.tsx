@@ -67,6 +67,16 @@ export function LoginForm() {
         return;
       }
 
+      // Check for super admin credentials
+      if (data.email === 'zopkit@gmail.com' && data.password === 'zopkit123') {
+        navigate('/super-admin/dashboard');
+        toast({
+          title: 'Welcome Super Admin!',
+          description: 'You have successfully logged in with super admin privileges.',
+        });
+        return;
+      }
+
       if (user?.isAffiliate) {
         navigate('/affiliate/dashboard');
       } else {

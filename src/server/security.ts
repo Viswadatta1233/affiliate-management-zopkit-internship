@@ -18,6 +18,10 @@ const PUBLIC_ROUTES = [
   '/api/auth/login',
   '/api/auth/register',
   '/api/affiliates/accept',
+  '/api/influencer/register',
+  '/api/influencer/registration',
+  '/influencer/register',
+  '/register/influencer'
 ];
 
 // Skip tenant isolation for these paths
@@ -26,6 +30,10 @@ const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/auth/register',
   '/api/affiliates/accept',
+  '/api/influencer/register',
+  '/api/influencer/registration',
+  '/influencer/register',
+  '/register/influencer'
 ];
 
 // Routes that skip CSRF check
@@ -34,6 +42,10 @@ const CSRF_EXEMPT_ROUTES = [
   '/api/auth/register',
   '/api/auth/me',
   '/api/affiliates/accept',
+  '/api/influencer/register',
+  '/api/influencer/registration',
+  '/influencer/register',
+  '/register/influencer'
 ];
 
 interface UserJwtPayload extends JwtPayload {
@@ -76,17 +88,7 @@ export const configureSecurity = async (server: FastifyInstance) => {
 
     if (origin) {
       reply.header('Access-Control-Allow-Origin', origin);
-      reply.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
       reply.header('Access-Control-Allow-Credentials', 'true');
-      reply.header('Access-Control-Allow-Headers', [
-        'Content-Type',
-        'Authorization',
-        'x-csrf-token',
-        'x-session-token',
-        'x-refresh-token',
-        'x-tenant-id'
-      ].join(', '));
-      reply.header('Access-Control-Expose-Headers', 'x-new-token');
 
       // Handle preflight requests
       if (request.method === 'OPTIONS') {
