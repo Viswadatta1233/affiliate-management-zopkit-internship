@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth-store';
 import AppShell from '@/components/layout/app-shell';
 import SuperAdminShell from '@/components/layout/super-admin-shell';
+import InfluencerShell from '@/components/layout/influencer-shell';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 
@@ -90,7 +91,24 @@ const InfluencerRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!isAuthenticated || !hasInfluencerRole) {
     console.log('Redirecting: isAuthenticated:', isAuthenticated, 'hasInfluencerRole:', hasInfluencerRole, 'role:', role);
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Route guard for non-influencer routes
+const NonInfluencerRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, role, isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  const hasInfluencerRole = role?.roleName === 'potential_influencer' || role?.roleName === 'influencer';
+
+  if (isAuthenticated && hasInfluencerRole) {
+    return <Navigate to="/influencer/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -112,8 +130,9 @@ function App() {
           </Route>
           
           {/* Influencer Routes */}
-          <Route path="/influencer" element={<InfluencerRoute><AppShell /></InfluencerRoute>}>
+          <Route path="/influencer" element={<InfluencerRoute><InfluencerShell /></InfluencerRoute>}>
             <Route path="dashboard" element={<InfluencerDashboard />} />
+            <Route path="*" element={<Navigate to="/influencer/dashboard" replace />} />
           </Route>
           
           {/* Public affiliate accept route */}
@@ -123,7 +142,7 @@ function App() {
           <Route path="/affiliate/dashboard" element={<AffiliateDashboard />} />
           
           {/* App routes - protected, with AppShell/sidebar */}
-          <Route path="/" element={<PrivateRoute><AppShell /></PrivateRoute>}>
+          <Route path="/" element={<NonInfluencerRoute><PrivateRoute><AppShell /></PrivateRoute></NonInfluencerRoute>}>
             <Route index element={<Dashboard />} />
             
             {/* Products */}

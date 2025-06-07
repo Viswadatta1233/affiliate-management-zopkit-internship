@@ -198,83 +198,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
       )}
       <ScrollArea className="flex-1 py-2 px-4">
         <div className="space-y-1" onClick={handleSidebarClick}>
-          {/* Dashboard */}
-          <SidebarItem
-            href={isInfluencer ? "/influencer/dashboard" : "/"}
-            icon={<Home className="h-4 w-4" />}
-            title="Dashboard"
-            isCurrent={isActivePath(isInfluencer ? '/influencer/dashboard' : '/')}
-            onClick={handleSidebarClick}
-          />
-
           {isInfluencer ? (
-            <>
-              {/* Influencer-specific menu items */}
-              <SidebarGroup 
-                title="Campaigns" 
-                icon={<Megaphone className="h-5 w-5" />}
-                defaultOpen={isActivePath('/influencer/campaigns')}
-              >
-                <SidebarItem
-                  href="/influencer/campaigns/available"
-                  icon={<List className="h-4 w-4" />}
-                  title="Available Campaigns"
-                  isCurrent={isActivePath('/influencer/campaigns/available')}
-                  onClick={handleSidebarClick}
-                />
-                <SidebarItem
-                  href="/influencer/campaigns/participating"
-                  icon={<Users className="h-4 w-4" />}
-                  title="My Participations"
-                  isCurrent={isActivePath('/influencer/campaigns/participating')}
-                  onClick={handleSidebarClick}
-                />
-              </SidebarGroup>
-
-              <SidebarGroup 
-                title="Performance" 
-                icon={<BarChart3 className="h-5 w-5" />}
-                defaultOpen={isActivePath('/influencer/performance')}
-              >
-                <SidebarItem
-                  href="/influencer/performance/analytics"
-                  icon={<LineChart className="h-4 w-4" />}
-                  title="Analytics"
-                  isCurrent={isActivePath('/influencer/performance/analytics')}
-                  onClick={handleSidebarClick}
-                />
-                <SidebarItem
-                  href="/influencer/performance/earnings"
-                  icon={<DollarSign className="h-4 w-4" />}
-                  title="Earnings"
-                  isCurrent={isActivePath('/influencer/performance/earnings')}
-                  onClick={handleSidebarClick}
-                />
-              </SidebarGroup>
-
-              <SidebarGroup 
-                title="Settings" 
-                icon={<Settings className="h-5 w-5" />}
-                defaultOpen={isActivePath('/influencer/settings')}
-              >
-                <SidebarItem
-                  href="/influencer/settings/profile"
-                  icon={<User className="h-4 w-4" />}
-                  title="Profile"
-                  isCurrent={isActivePath('/influencer/settings/profile')}
-                  onClick={handleSidebarClick}
-                />
-                <SidebarItem
-                  href="/influencer/settings/notifications"
-                  icon={<Bell className="h-4 w-4" />}
-                  title="Notifications"
-                  isCurrent={isActivePath('/influencer/settings/notifications')}
-                  onClick={handleSidebarClick}
-                />
-              </SidebarGroup>
-            </>
+            <SidebarItem
+              href="/influencer/dashboard"
+              icon={<Home className="h-4 w-4" />}
+              title="Influencer Dashboard"
+              isCurrent={isActivePath('/influencer/dashboard')}
+              onClick={handleSidebarClick}
+            />
           ) : (
             <>
+              {/* Dashboard for non-influencers */}
+              <SidebarItem
+                href="/"
+                icon={<Home className="h-4 w-4" />}
+                title="Dashboard"
+                isCurrent={isActivePath('/')}
+                onClick={handleSidebarClick}
+              />
               {/* Regular tenant menu items */}
               {/* Products */}
               <SidebarGroup 
