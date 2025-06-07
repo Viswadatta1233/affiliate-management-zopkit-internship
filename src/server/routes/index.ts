@@ -25,5 +25,5 @@ export const configureRoutes = async (server: FastifyInstance) => {
   await server.register(analyticsRoutes, { prefix: '/api/analytics' });
   await server.register(marketingRoutes, { prefix: '/api/marketing' });
   await server.register(fraudRoutes, { prefix: '/api/fraud' });
-  await server.register(influencerRoutes, { prefix: '/api/influencer' });
+  await server.register(influencerRoutes, { prefix: '/api/influencers' });
 };

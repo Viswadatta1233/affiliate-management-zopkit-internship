@@ -3,7 +3,7 @@ import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { db } from '../db';
-import { users, tenants, roles } from '../db/schema';
+import { users, tenants, roles, influencers } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { UserJwtPayload } from '../security';
 import rateLimit from '@fastify/rate-limit';
@@ -104,11 +104,25 @@ export const authRoutes = async (server: FastifyInstance) => {
         },
       });
 
-      console.log('GET /me - Found user:', user);
+      console.log('GET /me - Found user:', {
+        id: user?.id,
+        email: user?.email,
+        role: user?.role,
+        tenant: user?.tenant
+      });
 
       if (!user) {
         console.log('GET /me - User not found in database');
         return reply.code(404).send({ error: 'User not found' });
+      }
+
+      // Get influencer status if user is an influencer
+      let influencerStatus = null;
+      if (user.role?.roleName === 'influencer' || user.role?.roleName === 'potential_influencer') {
+        const influencer = await db.query.influencers.findFirst({
+          where: eq(influencers.userId, user.id)
+        });
+        influencerStatus = influencer?.status;
       }
 
       return {
@@ -122,6 +136,9 @@ export const authRoutes = async (server: FastifyInstance) => {
           timezone: user.timezone,
           language: user.language,
           isAffiliate: user.isAffiliate,
+          role: user.role?.roleName,
+          tenantId: user.tenantId,
+          influencerStatus
         },
         tenant: user.tenant,
         role: user.role,

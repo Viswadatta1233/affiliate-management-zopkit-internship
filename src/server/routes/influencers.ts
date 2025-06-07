@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db';
 import { users, influencers, roles, tenants } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 // Define the validation schema
@@ -193,6 +193,152 @@ export async function influencerRoutes(server: FastifyInstance) {
       return reply.status(500).send({
         error: 'Internal server error',
       });
+    }
+  });
+
+  // Get all influencers (super admin only)
+  server.get('/', async (request: FastifyRequest, reply) => {
+    try {
+      // Check if user is super admin
+      if (request.user?.email !== 'zopkit@gmail.com') {
+        return reply.code(403).send({ error: 'Unauthorized' });
+      }
+
+      const allInfluencers = await db.query.influencers.findMany({
+        with: {
+          user: true
+        },
+        orderBy: (influencers, { desc }) => [desc(influencers.createdAt)]
+      });
+
+      return allInfluencers.map(influencer => ({
+        id: influencer.id,
+        userId: influencer.userId,
+        email: influencer.user.email,
+        firstName: influencer.user.firstName,
+        lastName: influencer.user.lastName,
+        niche: influencer.niche,
+        country: influencer.country,
+        bio: influencer.bio,
+        socialMedia: influencer.socialMedia,
+        status: influencer.status,
+        metrics: influencer.metrics,
+        createdAt: influencer.createdAt
+      }));
+    } catch (error) {
+      console.error('Error fetching influencers:', error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Get all pending potential influencers (super admin only)
+  server.get('/pending', async (request: FastifyRequest, reply) => {
+    try {
+      // Check if user is super admin
+      if (request.user?.email !== 'zopkit@gmail.com') {
+        return reply.code(403).send({ error: 'Unauthorized' });
+      }
+
+      const pendingInfluencers = await db.query.influencers.findMany({
+        where: eq(influencers.status, 'pending'),
+        with: {
+          user: true
+        },
+        orderBy: (influencers, { desc }) => [desc(influencers.createdAt)]
+      });
+
+      return pendingInfluencers.map(influencer => ({
+        id: influencer.id,
+        userId: influencer.userId,
+        email: influencer.user.email,
+        firstName: influencer.user.firstName,
+        lastName: influencer.user.lastName,
+        niche: influencer.niche,
+        country: influencer.country,
+        bio: influencer.bio,
+        socialMedia: influencer.socialMedia,
+        status: influencer.status,
+        createdAt: influencer.createdAt
+      }));
+    } catch (error) {
+      console.error('Error fetching pending influencers:', error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Update influencer status (super admin only)
+  server.patch('/:id/status', async (request: FastifyRequest<{
+    Params: { id: string },
+    Body: { status: 'pending' | 'approved' | 'rejected' | 'suspended' }
+  }>, reply) => {
+    try {
+      // Check if user is super admin
+      if (request.user?.email !== 'zopkit@gmail.com') {
+        return reply.code(403).send({ error: 'Unauthorized' });
+      }
+
+      const { id } = request.params;
+      const { status } = request.body;
+
+      // Get the influencer
+      const influencer = await db.query.influencers.findFirst({
+        where: eq(influencers.id, id),
+        with: {
+          user: true
+        }
+      });
+
+      if (!influencer) {
+        return reply.code(404).send({ error: 'Influencer not found' });
+      }
+
+      // If approving, update role to influencer
+      if (status === 'approved') {
+        // Get or create influencer role
+        let influencerRole = await db.query.roles.findFirst({
+          where: eq(roles.roleName, 'influencer')
+        });
+
+        if (!influencerRole) {
+          [influencerRole] = await db.insert(roles).values({
+            roleName: 'influencer',
+            description: 'Approved influencer role',
+            permissions: [
+              'view_profile',
+              'edit_profile',
+              'view_campaigns',
+              'apply_campaigns',
+              'join_campaigns',
+              'view_earnings',
+              'view_analytics'
+            ],
+            isCustom: false,
+            tenantId: influencer.user.tenantId
+          }).returning();
+        }
+
+        // Update user's role
+        await db.update(users)
+          .set({ roleId: influencerRole.id })
+          .where(eq(users.id, influencer.userId));
+      }
+
+      // Update influencer status
+      const [updatedInfluencer] = await db.update(influencers)
+        .set({ 
+          status,
+          updatedAt: new Date()
+        })
+        .where(eq(influencers.id, id))
+        .returning();
+
+      return {
+        success: true,
+        influencer: updatedInfluencer
+      };
+    } catch (error) {
+      console.error('Error updating influencer status:', error);
+      return reply.code(500).send({ error: 'Internal server error' });
     }
   });
 } 

@@ -1,35 +1,47 @@
-import React from 'react';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth-store';
-import { Navigate } from 'react-router-dom';
+import { PendingInfluencers } from '@/components/super-admin/PendingInfluencers';
+import { ApprovedInfluencers } from '@/components/super-admin/ApprovedInfluencers';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-const SuperAdminDashboard: React.FC = () => {
-  const { user } = useAuthStore();
+export default function SuperAdminDashboard() {
+  const navigate = useNavigate();
+  const { user, isLoading } = useAuthStore();
 
-  // Redirect if not super admin
-  if (user?.email !== 'zopkit@gmail.com') {
-    return <Navigate to="/" replace />;
+  useEffect(() => {
+    if (!isLoading && (!user || user.email !== 'zopkit@gmail.com')) {
+      navigate('/login');
+    }
+  }, [user, isLoading, navigate]);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user || user.email !== 'zopkit@gmail.com') {
+    return null;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-purple-500 to-indigo-600">
-      <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
-        <h1 className="text-3xl font-bold text-center mb-4 text-gray-800">
-          Welcome Super Admin!
-        </h1>
-        <p className="text-center text-gray-600 mb-6">
-          You have successfully logged in with super admin privileges.
-        </p>
-        <div className="bg-purple-50 p-4 rounded-md">
-          <p className="text-purple-800 text-sm">
-            Email: {user.email}
-          </p>
-          <p className="text-purple-800 text-sm mt-2">
-            Role: Super Administrator
-          </p>
-        </div>
-      </div>
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-8">Super Admin Dashboard</h1>
+      
+      <Tabs defaultValue="pending" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="pending">Pending Influencers</TabsTrigger>
+          <TabsTrigger value="approved">Approved Influencers</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="pending">
+          <PendingInfluencers />
+        </TabsContent>
+        
+        <TabsContent value="approved">
+          <ApprovedInfluencers />
+        </TabsContent>
+      </Tabs>
     </div>
   );
-};
-
-export default SuperAdminDashboard; 
+} 

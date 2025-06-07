@@ -77,16 +77,26 @@ export function LoginForm() {
         return;
       }
 
-      if (user?.isAffiliate) {
+      // Handle role-based redirection
+      if (user?.role === 'influencer' || user?.role === 'potential_influencer') {
+        navigate('/influencer/dashboard');
+        toast({
+          title: 'Welcome!',
+          description: 'You have successfully logged in to your influencer dashboard.',
+        });
+      } else if (user?.isAffiliate) {
         navigate('/affiliate/dashboard');
+        toast({
+          title: 'Welcome!',
+          description: 'You have successfully logged in to your affiliate dashboard.',
+        });
       } else {
         navigate('/');
+        toast({
+          title: 'Welcome!',
+          description: 'You have successfully logged in.',
+        });
       }
-      
-      toast({
-        title: 'Login Successful',
-        description: 'Welcome back!',
-      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred while logging in.';
       toast({

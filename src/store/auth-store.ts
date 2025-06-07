@@ -82,7 +82,10 @@ export const useAuthStore = create<AuthState>()(
             
             set((state) => ({
               ...state,
-              user,
+              user: {
+                ...user,
+                role: role?.name // Ensure role is set on user object
+              },
               tenant,
               role,
               isAuthenticated: true,
@@ -130,7 +133,10 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem('token', token);
           set((state) => ({
             ...state,
-            user,
+            user: {
+              ...user,
+              role: role?.name // Ensure role is set on user object
+            },
             tenant,
             role,
             isAuthenticated: true,
@@ -166,7 +172,10 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem('token', token);
           set((state) => ({
             ...state,
-            user,
+            user: {
+              ...user,
+              role: role?.name // Ensure role is set on user object
+            },
             tenant,
             role,
             isAuthenticated: true,

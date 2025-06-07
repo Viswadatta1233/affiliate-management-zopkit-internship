@@ -42,20 +42,14 @@ export type CampaignParticipation = {
 
 export interface User {
   id: string;
-  tenantId: string;
   email: string;
   firstName: string;
   lastName: string;
-  phone?: string;
-  countryCode?: string;
-  timezone: string;
-  language: string;
-  referralCode?: string;
-  termsAccepted: boolean;
-  marketingConsent: boolean;
-  roleId: string;
-  isAffiliate: boolean;
+  role: 'admin' | 'user' | 'influencer' | 'potential_influencer';
+  tenantId: string;
+  isAffiliate?: boolean;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Tenant {

@@ -2,7 +2,8 @@ import { ThemeProvider } from 'next-themes';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth-store';
 import AppShell from '@/components/layout/app-shell';
-import { Toaster } from '@/components/ui/sonner';
+import SuperAdminShell from '@/components/layout/super-admin-shell';
+import { Toaster } from 'react-hot-toast';
 
 // Import pages
 import Dashboard from '@/pages/dashboard';
@@ -44,18 +45,48 @@ import EditProduct from '@/pages/products/edit';
 import AcceptInvite from '@/pages/affiliate/accept';
 import AffiliateDashboard from '@/pages/affiliate/dashboard';
 import SuperAdminDashboard from '@/pages/super-admin/dashboard';
+import InfluencerDashboard from '@/pages/influencer/dashboard';
 
 // Route guard for authenticated routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuthStore();
 
   if (isLoading) {
-    console.log('Loading...');
     return <div>Loading...</div>;
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Route guard for super admin routes
+const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated || user?.email !== 'zopkit@gmail.com') {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Route guard for influencer routes
+const InfluencerRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated || (user?.role !== 'influencer' && user?.role !== 'potential_influencer')) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -71,8 +102,15 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/register/influencer" element={<InfluencerRegistration />} />
           
-          {/* Super Admin Dashboard */}
-          <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+          {/* Super Admin Routes */}
+          <Route path="/super-admin" element={<SuperAdminRoute><SuperAdminShell /></SuperAdminRoute>}>
+            <Route path="dashboard" element={<SuperAdminDashboard />} />
+          </Route>
+          
+          {/* Influencer Routes */}
+          <Route path="/influencer" element={<InfluencerRoute><AppShell /></InfluencerRoute>}>
+            <Route path="dashboard" element={<InfluencerDashboard />} />
+          </Route>
           
           {/* Public affiliate accept route */}
           <Route path="/affiliate/accept" element={<AcceptInvite />} />
@@ -162,7 +200,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
-      <Toaster />
+      <Toaster position="top-right" />
     </ThemeProvider>
   );
 }

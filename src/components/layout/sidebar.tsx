@@ -28,7 +28,10 @@ import {
   MessagesSquare,
   Plus,
   Package,
-  Key
+  Key,
+  List,
+  DollarSign,
+  User
 } from 'lucide-react';
 
 import {
@@ -134,6 +137,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
   const canManageTenant = useMemo(() => hasPermission('tenant:manage'), [role]);
 
   const isAffiliate = useMemo(() => user?.isAffiliate, [user]);
+  const isInfluencer = useMemo(() => user?.role === 'influencer' || user?.role === 'potential_influencer', [user]);
 
   // Handle sidebar click in mobile view
   const handleSidebarClick = () => {
@@ -187,305 +191,371 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
         <div className="space-y-1" onClick={handleSidebarClick}>
           {/* Dashboard */}
           <SidebarItem
-            href="/"
+            href={isInfluencer ? "/influencer/dashboard" : "/"}
             icon={<Home className="h-4 w-4" />}
             title="Dashboard"
-            isCurrent={isActivePath('/')}
+            isCurrent={isActivePath(isInfluencer ? '/influencer/dashboard' : '/')}
             onClick={handleSidebarClick}
           />
 
-          {/* Products */}
-          <SidebarGroup 
-            title="Products" 
-            icon={<Package className="h-5 w-5" />}
-            defaultOpen={isActivePath('/products')}
-          >
+          {isInfluencer ? (
+            <>
+              {/* Influencer-specific menu items */}
+              <SidebarGroup 
+                title="Campaigns" 
+                icon={<Megaphone className="h-5 w-5" />}
+                defaultOpen={isActivePath('/influencer/campaigns')}
+              >
+                <SidebarItem
+                  href="/influencer/campaigns/available"
+                  icon={<List className="h-4 w-4" />}
+                  title="Available Campaigns"
+                  isCurrent={isActivePath('/influencer/campaigns/available')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/influencer/campaigns/participating"
+                  icon={<Users className="h-4 w-4" />}
+                  title="My Participations"
+                  isCurrent={isActivePath('/influencer/campaigns/participating')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
+
+              <SidebarGroup 
+                title="Performance" 
+                icon={<BarChart3 className="h-5 w-5" />}
+                defaultOpen={isActivePath('/influencer/performance')}
+              >
+                <SidebarItem
+                  href="/influencer/performance/analytics"
+                  icon={<LineChart className="h-4 w-4" />}
+                  title="Analytics"
+                  isCurrent={isActivePath('/influencer/performance/analytics')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/influencer/performance/earnings"
+                  icon={<DollarSign className="h-4 w-4" />}
+                  title="Earnings"
+                  isCurrent={isActivePath('/influencer/performance/earnings')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
+
+              <SidebarGroup 
+                title="Settings" 
+                icon={<Settings className="h-5 w-5" />}
+                defaultOpen={isActivePath('/influencer/settings')}
+              >
+                <SidebarItem
+                  href="/influencer/settings/profile"
+                  icon={<User className="h-4 w-4" />}
+                  title="Profile"
+                  isCurrent={isActivePath('/influencer/settings/profile')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/influencer/settings/notifications"
+                  icon={<Bell className="h-4 w-4" />}
+                  title="Notifications"
+                  isCurrent={isActivePath('/influencer/settings/notifications')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
+            </>
+          ) : (
+            <>
+              {/* Regular tenant menu items */}
+              {/* Products */}
+              <SidebarGroup 
+                title="Products" 
+                icon={<Package className="h-5 w-5" />}
+                defaultOpen={isActivePath('/products')}
+              >
+                <SidebarItem
+                  href="/products/create"
+                  icon={<Plus className="h-4 w-4" />}
+                  title="Create Product"
+                  isCurrent={isActivePath('/products/create')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/products"
+                  icon={<Package className="h-4 w-4" />}
+                  title="All Products"
+                  isCurrent={isActivePath('/products')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
+
+              {/* Affiliate Management */}
+              <SidebarGroup
+                title="Affiliates" 
+                icon={<Users className="h-5 w-5" />}
+                defaultOpen={isActivePath('/affiliates')}
+              >
+                <SidebarItem
+                  href="/affiliates"
+                  icon={<Users className="h-4 w-4" />}
+                  title="All Affiliates"
+                  isCurrent={isActivePath('/affiliates')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/affiliates/pending"
+                  icon={<UserPlus className="h-4 w-4" />}
+                  title="Pending Affiliates"
+                  isCurrent={isActivePath('/affiliates/pending')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/affiliates/tiers"
+                  icon={<Building2 className="h-4 w-4" />}
+                  title="Affiliate Tiers"
+                  isCurrent={isActivePath('/affiliates/tiers')}
+                  onClick={handleSidebarClick}
+                />
 
 
-<SidebarItem
-              href="/products/create"
-              icon={<Plus className="h-4 w-4" />}
-              title="Create Product"
-              isCurrent={isActivePath('/products/create')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/products"
-              icon={<Package className="h-4 w-4" />}
-              title="All Products"
-              isCurrent={isActivePath('/products')}
-              onClick={handleSidebarClick}
-            />
-
-            
-            
-          </SidebarGroup>
-
-          {/* Affiliate Management */}
-          <SidebarGroup
-            title="Affiliates" 
-            icon={<Users className="h-5 w-5" />}
-            defaultOpen={isActivePath('/affiliates')}
-          >
-            <SidebarItem
-              href="/affiliates"
-              icon={<Users className="h-4 w-4" />}
-              title="All Affiliates"
-              isCurrent={isActivePath('/affiliates')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/affiliates/pending"
-              icon={<UserPlus className="h-4 w-4" />}
-              title="Pending Affiliates"
-              isCurrent={isActivePath('/affiliates/pending')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/affiliates/tiers"
-              icon={<Building2 className="h-4 w-4" />}
-              title="Affiliate Tiers"
-              isCurrent={isActivePath('/affiliates/tiers')}
-              onClick={handleSidebarClick}
-            />
+              
+              {/* Tracking Links */}
+              <SidebarItem
+                href="/tracking-links"
+                icon={<LinkIcon className="h-4 w-4" />}
+                title="Tracking Links"
+                isCurrent={isActivePath('/tracking-links')}
+                onClick={handleSidebarClick}
+              />
+              </SidebarGroup>
 
 
-            
-          {/* Tracking Links */}
-          <SidebarItem
-            href="/tracking-links"
-            icon={<LinkIcon className="h-4 w-4" />}
-            title="Tracking Links"
-            isCurrent={isActivePath('/tracking-links')}
-            onClick={handleSidebarClick}
-          />
-          </SidebarGroup>
+              {/* Commissions */}
+              <SidebarGroup
+                title="Commissions" 
+                icon={<PercentCircle className="h-5 w-5" />}
+                defaultOpen={isActivePath('/commissions')}
+              >
+                <SidebarItem
+                  href="/commissions/tiers"
+                  icon={<PercentCircle className="h-4 w-4" />}
+                  title="Commission Tiers"
+                  isCurrent={isActivePath('/commissions/tiers')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/commissions/products"
+                  icon={<Package className="h-4 w-4" />}
+                  title="Product Commissions"
+                  isCurrent={isActivePath('/commissions/products')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/commissions/rules"
+                  icon={<FileText className="h-4 w-4" />}
+                  title="Commission Rules"
+                  isCurrent={isActivePath('/commissions/rules')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
 
+              {/* Payments */}
+              <SidebarGroup 
+                title="Payments" 
+                icon={<CreditCard className="h-5 w-5" />}
+                defaultOpen={isActivePath('/payments')}
+              >
+                <SidebarItem
+                  href="/payments/payouts"
+                  icon={<Wallet className="h-4 w-4" />}
+                  title="Payouts"
+                  isCurrent={isActivePath('/payments/payouts')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/payments/methods"
+                  icon={<CreditCard className="h-4 w-4" />}
+                  title="Payment Methods"
+                  isCurrent={isActivePath('/payments/methods')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/payments/history"
+                  icon={<FileText className="h-4 w-4" />}
+                  title="Payment History"
+                  isCurrent={isActivePath('/payments/history')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
 
-          {/* Commissions */}
-          <SidebarGroup
-            title="Commissions" 
-            icon={<PercentCircle className="h-5 w-5" />}
-            defaultOpen={isActivePath('/commissions')}
-          >
-            <SidebarItem
-              href="/commissions/tiers"
-              icon={<PercentCircle className="h-4 w-4" />}
-              title="Commission Tiers"
-              isCurrent={isActivePath('/commissions/tiers')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/commissions/products"
-              icon={<Package className="h-4 w-4" />}
-              title="Product Commissions"
-              isCurrent={isActivePath('/commissions/products')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/commissions/rules"
-              icon={<FileText className="h-4 w-4" />}
-              title="Commission Rules"
-              isCurrent={isActivePath('/commissions/rules')}
-              onClick={handleSidebarClick}
-            />
-          </SidebarGroup>
+              {/* Analytics */}
+              <SidebarGroup
+                title="Analytics" 
+                icon={<BarChart3 className="h-5 w-5" />}
+                defaultOpen={isActivePath('/analytics')}
+              >
+                <SidebarItem
+                  href="/analytics/reports"
+                  icon={<FileBarChart className="h-4 w-4" />}
+                  title="Reports"
+                  isCurrent={isActivePath('/analytics/reports')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/analytics/dashboard"
+                  icon={<BarChart3 className="h-4 w-4" />}
+                  title="Custom Dashboard"
+                  isCurrent={isActivePath('/analytics/dashboard')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
 
-          {/* Payments */}
-          <SidebarGroup 
-            title="Payments" 
-            icon={<CreditCard className="h-5 w-5" />}
-            defaultOpen={isActivePath('/payments')}
-          >
-            <SidebarItem
-              href="/payments/payouts"
-              icon={<Wallet className="h-4 w-4" />}
-              title="Payouts"
-              isCurrent={isActivePath('/payments/payouts')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/payments/methods"
-              icon={<CreditCard className="h-4 w-4" />}
-              title="Payment Methods"
-              isCurrent={isActivePath('/payments/methods')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/payments/history"
-              icon={<FileText className="h-4 w-4" />}
-              title="Payment History"
-              isCurrent={isActivePath('/payments/history')}
-              onClick={handleSidebarClick}
-            />
-          </SidebarGroup>
+              {/* Fraud Prevention */}
+              <SidebarGroup
+                title="Fraud Prevention"
+                icon={<ShieldCheck className="h-5 w-5" />}
+                defaultOpen={isActivePath('/fraud')}
+              >
+                <SidebarItem
+                  href="/fraud/monitoring"
+                  icon={<BarChart3 className="h-4 w-4" />}
+                  title="Monitoring"
+                  isCurrent={isActivePath('/fraud/monitoring')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/fraud/rules"
+                  icon={<FileText className="h-4 w-4" />}
+                  title="Rules"
+                  isCurrent={isActivePath('/fraud/rules')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/fraud/alerts"
+                  icon={<Bell className="h-4 w-4" />}
+                  title="Alerts"
+                  isCurrent={isActivePath('/fraud/alerts')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
 
-          {/* Analytics */}
-          <SidebarGroup
-            title="Analytics" 
-            icon={<BarChart3 className="h-5 w-5" />}
-            defaultOpen={isActivePath('/analytics')}
-          >
-            <SidebarItem
-              href="/analytics/reports"
-              icon={<FileBarChart className="h-4 w-4" />}
-              title="Reports"
-              isCurrent={isActivePath('/analytics/reports')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/analytics/dashboard"
-              icon={<BarChart3 className="h-4 w-4" />}
-              title="Custom Dashboard"
-              isCurrent={isActivePath('/analytics/dashboard')}
-              onClick={handleSidebarClick}
-            />
-          </SidebarGroup>
+              {/* Marketing */}
+              <SidebarGroup
+                title="Marketing"
+                icon={<Megaphone className="h-5 w-5" />}
+                defaultOpen={isActivePath('/marketing')}
+              >
+                <SidebarItem
+                  href="/marketing/create-campaign"
+                  icon={<Plus className="h-4 w-4" />}
+                  title="Create Campaign"
+                  isCurrent={isActivePath('/marketing/create-campaign')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/marketing/campaigns"
+                  icon={<Megaphone className="h-4 w-4" />}
+                  title="All Campaigns"
+                  isCurrent={isActivePath('/marketing/campaigns')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/marketing/resources"
+                  icon={<Folder className="h-4 w-4" />}
+                  title="Resources"
+                  isCurrent={isActivePath('/marketing/resources')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/marketing/influencer-search"
+                  icon={<Users className="h-4 w-4" />}
+                  title="Influencer Search"
+                  isCurrent={isActivePath('/marketing/influencer-search')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/marketing/knowledge-base"
+                  icon={<BookOpen className="h-4 w-4" />}
+                  title="Knowledge Base"
+                  isCurrent={isActivePath('/marketing/knowledge-base')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
 
-          {/* Fraud Prevention */}
-          <SidebarGroup
-            title="Fraud Prevention"
-            icon={<ShieldCheck className="h-5 w-5" />}
-            defaultOpen={isActivePath('/fraud')}
-          >
-            <SidebarItem
-              href="/fraud/monitoring"
-              icon={<BarChart3 className="h-4 w-4" />}
-              title="Monitoring"
-              isCurrent={isActivePath('/fraud/monitoring')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/fraud/rules"
-              icon={<FileText className="h-4 w-4" />}
-              title="Rules"
-              isCurrent={isActivePath('/fraud/rules')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/fraud/alerts"
-              icon={<Bell className="h-4 w-4" />}
-              title="Alerts"
-              isCurrent={isActivePath('/fraud/alerts')}
-              onClick={handleSidebarClick}
-            />
-          </SidebarGroup>
+              {/* Communications */}
+              <SidebarGroup
+                title="Communications"
+                icon={<MessagesSquare className="h-5 w-5" />}
+                defaultOpen={isActivePath('/communications')}
+              >
+                <SidebarItem
+                  href="/communications/notifications"
+                  icon={<Bell className="h-4 w-4" />}
+                  title="Notifications"
+                  isCurrent={isActivePath('/communications/notifications')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/communications/templates"
+                  icon={<FileText className="h-4 w-4" />}
+                  title="Templates"
+                  isCurrent={isActivePath('/communications/templates')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
 
-          {/* Marketing */}
-          <SidebarGroup
-            title="Marketing"
-            icon={<Megaphone className="h-5 w-5" />}
-            defaultOpen={isActivePath('/marketing')}
-          >
-            <SidebarItem
-              href="/marketing/create-campaign"
-              icon={<Plus className="h-4 w-4" />}
-              title="Create Campaign"
-              isCurrent={isActivePath('/marketing/create-campaign')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/marketing/campaigns"
-              icon={<Megaphone className="h-4 w-4" />}
-              title="All Campaigns"
-              isCurrent={isActivePath('/marketing/campaigns')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/marketing/resources"
-              icon={<Folder className="h-4 w-4" />}
-              title="Resources"
-              isCurrent={isActivePath('/marketing/resources')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/marketing/influencer-search"
-              icon={<Users className="h-4 w-4" />}
-              title="Influencer Search"
-              isCurrent={isActivePath('/marketing/influencer-search')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/marketing/knowledge-base"
-              icon={<BookOpen className="h-4 w-4" />}
-              title="Knowledge Base"
-              isCurrent={isActivePath('/marketing/knowledge-base')}
-              onClick={handleSidebarClick}
-            />
-          </SidebarGroup>
+              {/* Integrations */}
+              <SidebarGroup
+                title="Integrations"
+                icon={<Globe className="h-5 w-5" />}
+                defaultOpen={isActivePath('/integrations')}
+              >
+                <SidebarItem
+                  href="/integrations/api-keys"
+                  icon={<Key className="h-4 w-4" />}
+                  title="API Keys"
+                  isCurrent={isActivePath('/integrations/api-keys')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/integrations/webhooks"
+                  icon={<Globe className="h-4 w-4" />}
+                  title="Webhooks"
+                  isCurrent={isActivePath('/integrations/webhooks')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
 
-          {/* Communications */}
-          <SidebarGroup
-            title="Communications"
-            icon={<MessagesSquare className="h-5 w-5" />}
-            defaultOpen={isActivePath('/communications')}
-          >
-            <SidebarItem
-              href="/communications/notifications"
-              icon={<Bell className="h-4 w-4" />}
-              title="Notifications"
-              isCurrent={isActivePath('/communications/notifications')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/communications/templates"
-              icon={<FileText className="h-4 w-4" />}
-              title="Templates"
-              isCurrent={isActivePath('/communications/templates')}
-              onClick={handleSidebarClick}
-            />
-          </SidebarGroup>
-
-          {/* Integrations */}
-          <SidebarGroup
-            title="Integrations"
-            icon={<Globe className="h-5 w-5" />}
-            defaultOpen={isActivePath('/integrations')}
-          >
-            <SidebarItem
-              href="/integrations/api-keys"
-              icon={<Key className="h-4 w-4" />}
-              title="API Keys"
-              isCurrent={isActivePath('/integrations/api-keys')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/integrations/webhooks"
-              icon={<Globe className="h-4 w-4" />}
-              title="Webhooks"
-              isCurrent={isActivePath('/integrations/webhooks')}
-              onClick={handleSidebarClick}
-            />
-          </SidebarGroup>
-
-          {/* Settings */}
-          <SidebarGroup
-            title="Settings"
-            icon={<Settings className="h-5 w-5" />}
-            defaultOpen={isActivePath('/settings')}
-          >
-            <SidebarItem
-              href="/settings/general"
-              icon={<Settings className="h-4 w-4" />}
-              title="General"
-              isCurrent={isActivePath('/settings/general')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/settings/users"
-              icon={<Users className="h-4 w-4" />}
-              title="Users & Roles"
-              isCurrent={isActivePath('/settings/users')}
-              onClick={handleSidebarClick}
-            />
-            <SidebarItem
-              href="/settings/billing"
-              icon={<CreditCard className="h-4 w-4" />}
-              title="Billing"
-              isCurrent={isActivePath('/settings/billing')}
-              onClick={handleSidebarClick}
-            />
-          </SidebarGroup>
+              {/* Settings */}
+              <SidebarGroup
+                title="Settings"
+                icon={<Settings className="h-5 w-5" />}
+                defaultOpen={isActivePath('/settings')}
+              >
+                <SidebarItem
+                  href="/settings/general"
+                  icon={<Settings className="h-4 w-4" />}
+                  title="General"
+                  isCurrent={isActivePath('/settings/general')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/settings/users"
+                  icon={<Users className="h-4 w-4" />}
+                  title="Users & Roles"
+                  isCurrent={isActivePath('/settings/users')}
+                  onClick={handleSidebarClick}
+                />
+                <SidebarItem
+                  href="/settings/billing"
+                  icon={<CreditCard className="h-4 w-4" />}
+                  title="Billing"
+                  isCurrent={isActivePath('/settings/billing')}
+                  onClick={handleSidebarClick}
+                />
+              </SidebarGroup>
+            </>
+          )}
         </div>
       </ScrollArea>
     </aside>
