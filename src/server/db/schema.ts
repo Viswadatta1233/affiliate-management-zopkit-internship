@@ -200,12 +200,11 @@ export const campaigns = pgTable('campaigns', {
   description: text('description').notNull(),
   startDate: timestamp('start_date').notNull(),
   endDate: timestamp('end_date'),
-  status: text('status').notNull().default('draft'),
+  status: text('status').notNull().default('active'),
   type: text('type').notNull(),
   metrics: jsonb('metrics').notNull().default({
     totalReach: 0,
     engagementRate: 0,
-    conversions: 0,
     revenue: 0
   }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -215,47 +214,13 @@ export const campaigns = pgTable('campaigns', {
 export const campaignParticipations = pgTable('campaign_participations', {
   id: uuid('id').defaultRandom().primaryKey(),
   campaignId: uuid('campaign_id').notNull().references(() => campaigns.id, { onDelete: 'cascade' }),
-  affiliateId: uuid('affiliate_id').notNull().references(() => affiliates.id, { onDelete: 'cascade' }),
+  influencerId: uuid('influencer_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   status: text('status').notNull().default('active'),
-  metrics: jsonb('metrics').notNull().default({
-    reach: 0,
-    engagement: 0,
-    clicks: 0,
-    conversions: 0,
-    revenue: 0
-  }),
   promotionalLinks: jsonb('promotional_links').notNull().default([]),
   promotionalCodes: jsonb('promotional_codes').notNull().default([]),
   joinedAt: timestamp('joined_at').notNull().defaultNow(),
   completedAt: timestamp('completed_at')
-});
-
-// Analytics Tables
-export const campaignClicks = pgTable('campaign_clicks', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  campaignId: uuid('campaign_id').notNull().references(() => campaigns.id, { onDelete: 'cascade' }),
-  participationId: uuid('participation_id').notNull().references(() => campaignParticipations.id, { onDelete: 'cascade' }),
-  affiliateId: uuid('affiliate_id').notNull().references(() => affiliates.id, { onDelete: 'cascade' }),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  linkId: text('link_id').notNull(),
-  referrer: text('referrer'),
-  userAgent: text('user_agent'),
-  ipAddress: text('ip_address'),
-  createdAt: timestamp('created_at').notNull().defaultNow()
-});
-
-export const campaignConversions = pgTable('campaign_conversions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  campaignId: uuid('campaign_id').notNull().references(() => campaigns.id, { onDelete: 'cascade' }),
-  participationId: uuid('participation_id').notNull().references(() => campaignParticipations.id, { onDelete: 'cascade' }),
-  affiliateId: uuid('affiliate_id').notNull().references(() => affiliates.id, { onDelete: 'cascade' }),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  orderId: text('order_id').notNull(),
-  amount: integer('amount').notNull(),
-  currency: text('currency').notNull(),
-  promoCode: text('promo_code'),
-  createdAt: timestamp('created_at').notNull().defaultNow()
 });
 
 // Marketing Resources
@@ -379,9 +344,7 @@ export const affiliatesRelations = relations(affiliates, ({ one, many }) => ({
     references: [affiliates.id]
   }),
   childAffiliates: many(affiliates),
-  campaignParticipations: many(campaignParticipations),
-  campaignClicks: many(campaignClicks),
-  campaignConversions: many(campaignConversions)
+  campaignParticipations: many(campaignParticipations)
 }));
 
 export const affiliateInvitesRelations = relations(affiliateInvites, ({ one }) => ({
@@ -470,62 +433,20 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
     fields: [campaigns.tenantId],
     references: [tenants.id]
   }),
-  participations: many(campaignParticipations),
-  clicks: many(campaignClicks),
-  conversions: many(campaignConversions)
+  participations: many(campaignParticipations)
 }));
 
-export const campaignParticipationsRelations = relations(campaignParticipations, ({ one, many }) => ({
+export const campaignParticipationsRelations = relations(campaignParticipations, ({ one }) => ({
   campaign: one(campaigns, {
     fields: [campaignParticipations.campaignId],
     references: [campaigns.id]
   }),
-  affiliate: one(affiliates, {
-    fields: [campaignParticipations.affiliateId],
-    references: [affiliates.id]
+  influencer: one(users, {
+    fields: [campaignParticipations.influencerId],
+    references: [users.id]
   }),
   tenant: one(tenants, {
     fields: [campaignParticipations.tenantId],
-    references: [tenants.id]
-  }),
-  clicks: many(campaignClicks),
-  conversions: many(campaignConversions)
-}));
-
-export const campaignClicksRelations = relations(campaignClicks, ({ one }) => ({
-  campaign: one(campaigns, {
-    fields: [campaignClicks.campaignId],
-    references: [campaigns.id]
-  }),
-  participation: one(campaignParticipations, {
-    fields: [campaignClicks.participationId],
-    references: [campaignParticipations.id]
-  }),
-  affiliate: one(affiliates, {
-    fields: [campaignClicks.affiliateId],
-    references: [affiliates.id]
-  }),
-  tenant: one(tenants, {
-    fields: [campaignClicks.tenantId],
-    references: [tenants.id]
-  })
-}));
-
-export const campaignConversionsRelations = relations(campaignConversions, ({ one }) => ({
-  campaign: one(campaigns, {
-    fields: [campaignConversions.campaignId],
-    references: [campaigns.id]
-  }),
-  participation: one(campaignParticipations, {
-    fields: [campaignConversions.participationId],
-    references: [campaignParticipations.id]
-  }),
-  affiliate: one(affiliates, {
-    fields: [campaignConversions.affiliateId],
-    references: [affiliates.id]
-  }),
-  tenant: one(tenants, {
-    fields: [campaignConversions.tenantId],
     references: [tenants.id]
   })
 }));
@@ -643,12 +564,6 @@ export type NewCampaign = typeof campaigns.$inferInsert;
 
 export type CampaignParticipation = typeof campaignParticipations.$inferSelect;
 export type NewCampaignParticipation = typeof campaignParticipations.$inferInsert;
-
-export type CampaignClick = typeof campaignClicks.$inferSelect;
-export type NewCampaignClick = typeof campaignClicks.$inferInsert;
-
-export type CampaignConversion = typeof campaignConversions.$inferSelect;
-export type NewCampaignConversion = typeof campaignConversions.$inferInsert;
 
 export type MarketingAsset = typeof marketingAssets.$inferSelect;
 export type NewMarketingAsset = typeof marketingAssets.$inferInsert;

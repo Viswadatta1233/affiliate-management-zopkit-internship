@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth-store';
 import { Toaster } from '@/components/ui/sonner';
@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 const AppShell: React.FC = () => {
-  const { isAuthenticated, isLoading, loadUserData } = useAuthStore();
+  const { isAuthenticated, isLoading, loadUserData, user } = useAuthStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
 
@@ -34,12 +34,16 @@ const AppShell: React.FC = () => {
     };
   }, []);
 
-  // Load user data on component mount
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadUserData();
+  // Load user data only if authenticated and no user data exists
+  const loadData = useCallback(async () => {
+    if (isAuthenticated && !user) {
+      await loadUserData();
     }
-  }, [isAuthenticated, loadUserData]);
+  }, [isAuthenticated, user, loadUserData]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Toggle sidebar visibility
   const toggleSidebar = () => {
@@ -47,7 +51,7 @@ const AppShell: React.FC = () => {
   };
 
   // Loading skeleton with improved visual hierarchy
-  if (isLoading) {
+  if (isLoading && !isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <div className="border-b bg-card">

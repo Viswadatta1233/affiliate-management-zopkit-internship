@@ -50,7 +50,6 @@ async function createTables() {
         tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
         role_name varchar NOT NULL,
         description text,
-        permissions jsonb DEFAULT '[]'::jsonb NOT NULL,
         is_custom boolean DEFAULT false,
         created_by uuid,
         created_at timestamp DEFAULT now() NOT NULL

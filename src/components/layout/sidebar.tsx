@@ -61,6 +61,13 @@ interface SidebarGroupProps {
   defaultOpen?: boolean;
 }
 
+interface MenuItem {
+  title: string;
+  href: string;
+  icon: React.ReactNode;
+  roles?: string[];
+}
+
 // Individual sidebar item
 const SidebarItem: React.FC<SidebarItemProps & { onClick?: () => void }> = ({ href, icon, title, isCurrent, badge, onClick }) => {
   return (
@@ -110,34 +117,36 @@ const SidebarGroup: React.FC<SidebarGroupProps> = ({ title, icon, children, defa
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
   const location = useLocation();
   const { user, role, tenant } = useAuthStore();
-  const t: any = tenant;
-  console.log('Sidebar tenant:', tenant);
+  const t = tenant;
 
   // Check if the current path matches a given path
   const isActivePath = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  // Filter menu items based on user permissions
-  const hasPermission = (requiredPermission: string) => {
-    if (!role || !role.permissions) return false;
-    return role.permissions.includes(requiredPermission) || role.permissions.includes('*');
+  // Filter menu items based on user role
+  const hasAccess = (menuItem: MenuItem) => {
+    if (!role) return false;
+    return true; // All authenticated users have access
   };
 
-  // Permission checks
+  // Role-based access checks
   const canViewDashboard = useMemo(() => true, []); // Everyone can view dashboard
-  const canViewAffiliates = useMemo(() => hasPermission('affiliates:view'), [role]);
-  const canViewCommissions = useMemo(() => hasPermission('commissions:view'), [role]);
-  const canViewPayments = useMemo(() => hasPermission('payments:view'), [role]);
-  const canViewReports = useMemo(() => hasPermission('reports:view'), [role]);
-  const canViewFraud = useMemo(() => hasPermission('fraud:view'), [role]);
-  const canViewContent = useMemo(() => hasPermission('content:view'), [role]);
-  const canViewNotifications = useMemo(() => hasPermission('notifications:view'), [role]);
-  const canViewIntegrations = useMemo(() => hasPermission('integrations:view'), [role]);
-  const canManageTenant = useMemo(() => hasPermission('tenant:manage'), [role]);
+  const canViewAffiliates = useMemo(() => true, []);
+  const canViewCommissions = useMemo(() => true, []);
+  const canViewPayments = useMemo(() => true, []);
+  const canViewReports = useMemo(() => true, []);
+  const canViewFraud = useMemo(() => true, []);
+  const canViewContent = useMemo(() => true, []);
+  const canViewNotifications = useMemo(() => true, []);
+  const canViewIntegrations = useMemo(() => true, []);
+  const canManageTenant = useMemo(() => true, []);
 
   const isAffiliate = useMemo(() => user?.isAffiliate, [user]);
-  const isInfluencer = useMemo(() => user?.role === 'influencer' || user?.role === 'potential_influencer', [user]);
+  const isInfluencer = useMemo(() => {
+    const roleName = user?.role?.roleName;
+    return roleName === 'influencer' || roleName === 'potential_influencer';
+  }, [user?.role?.roleName]);
 
   // Handle sidebar click in mobile view
   const handleSidebarClick = () => {
@@ -173,15 +182,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
         </button>
       )}
       {/* Tenant Name Display */}
-      {t?.tenantName || t?.name ? (
+      {t?.tenantName ? (
         <div className="px-4 pt-2 pb-4 flex flex-col items-center">
           <div className="flex items-center justify-center w-full mb-2">
             <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-400 text-white text-2xl font-bold shadow-md border-2 border-white">
-              {(t.tenantName?.[0] || t.name?.[0] || '?').toUpperCase()}
+              {(t.tenantName[0] || '?').toUpperCase()}
             </span>
           </div>
           <div className="rounded-xl bg-gradient-to-tr from-blue-50 to-indigo-100 text-blue-900 font-extrabold text-xl text-center tracking-wide shadow border border-blue-200 px-4 py-2 w-full">
-            {t.tenantName || t.name}
+            {t.tenantName}
           </div>
         </div>
       ) : (

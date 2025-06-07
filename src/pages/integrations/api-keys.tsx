@@ -56,7 +56,7 @@ export default function ApiKeys() {
       <Card>
         <CardHeader>
           <CardTitle>API Keys</CardTitle>
-          <CardDescription>Manage your API keys and their permissions</CardDescription>
+          <CardDescription>Manage your API keys and access levels</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

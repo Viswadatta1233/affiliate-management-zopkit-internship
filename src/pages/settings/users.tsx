@@ -2,6 +2,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, UserPlus, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const defaultRoles = [
+  {
+    id: 'admin',
+    name: 'Administrator',
+    description: 'Full access to all features'
+  },
+  {
+    id: 'manager',
+    name: 'Manager',
+    description: 'Access to manage content and users'
+  },
+  {
+    id: 'viewer',
+    name: 'Viewer',
+    description: 'Basic access to view content'
+  }
+];
 
 export default function UsersAndRoles() {
   return (
@@ -10,7 +29,7 @@ export default function UsersAndRoles() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Users & Roles</h1>
-            <p className="text-muted-foreground">Manage users and their permissions</p>
+            <p className="text-muted-foreground">Manage users and their roles</p>
           </div>
         </div>
 
@@ -58,7 +77,7 @@ export default function UsersAndRoles() {
         <Card>
           <CardHeader>
             <CardTitle>Platform Users</CardTitle>
-            <CardDescription>Manage user accounts and permissions</CardDescription>
+            <CardDescription>Manage user accounts and roles</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -120,49 +139,20 @@ export default function UsersAndRoles() {
 
         <Card>
           <CardHeader>
-            <CardTitle>User Roles</CardTitle>
-            <CardDescription>Configure role permissions and access levels</CardDescription>
+            <CardTitle>Roles</CardTitle>
+            <CardDescription>Configure role access levels</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                {
-                  name: "Admin",
-                  description: "Full system access",
-                  users: 3,
-                  permissions: ["all"]
-                },
-                {
-                  name: "Manager",
-                  description: "Manage users and content",
-                  users: 5,
-                  permissions: ["users.manage", "content.manage"]
-                },
-                {
-                  name: "User",
-                  description: "Basic platform access",
-                  users: 17,
-                  permissions: ["content.view"]
-                }
-              ].map((role, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
+              {defaultRoles.map((role) => (
+                <div key={role.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
-                    <p className="font-medium">{role.name}</p>
+                    <h3 className="font-medium">{role.name}</h3>
                     <p className="text-sm text-muted-foreground">{role.description}</p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {role.permissions.map((permission, i) => (
-                        <Badge key={i} variant="outline">
-                          {permission}
-                        </Badge>
-                      ))}
-                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{role.users} users</p>
-                  </div>
+                  <Button variant="outline" size="sm">
+                    Edit
+                  </Button>
                 </div>
               ))}
             </div>

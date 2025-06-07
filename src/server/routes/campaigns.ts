@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db';
-import { campaigns, campaignParticipations, affiliates, tenants, users } from '../db/schema';
+import { campaigns, campaignParticipations, affiliates, tenants, users, influencers, roles } from '../db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { generatePromoCode } from '@/lib/utils';
 
@@ -26,81 +26,58 @@ const campaignSchema = z.object({
   })
 });
 
+interface UserWithRole {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role?: {
+    id: string;
+    roleName: string;
+    description: string;
+  };
+}
+
 export default async function campaignRoutes(fastify: FastifyInstance) {
-  // Get all campaigns
+  // Get all campaigns (for influencer dashboard)
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       if (!request.user) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
 
-      console.log('User data:', {
-        id: request.user.userId,
-        role: request.user.role?.name,
+      fastify.log.info('Fetching campaigns for user:', {
+        userId: request.user.userId,
         tenantId: request.user.tenantId
       });
 
-      // Get user's role from database to ensure we have the latest role
+      // Get user's role from database
       const userWithRole = await db.query.users.findFirst({
         where: eq(users.id, request.user.userId),
         with: {
           role: true
         }
-      });
+      }) as UserWithRole | null;
 
-      console.log('User role from database:', userWithRole?.role?.roleName);
+      fastify.log.info('User role:', userWithRole?.role?.roleName);
 
-      // If user is an influencer or potential influencer, show all campaigns
+      // If user is an influencer or potential influencer, show all active campaigns
       if (userWithRole?.role?.roleName === 'influencer' || userWithRole?.role?.roleName === 'potential_influencer') {
-        console.log('User is an influencer, fetching all campaigns');
-        
-        // First, let's check if there are any campaigns in the database
-        const campaignCount = await db.select({ count: sql<number>`count(*)` })
-          .from(campaigns);
-        console.log('Total campaigns in database:', campaignCount[0].count);
+        const allCampaigns = await db.select()
+          .from(campaigns)
+          .where(eq(campaigns.status, 'active'));
+          console.log(allCampaigns);
 
-        const allCampaigns = await db.select({
-          id: campaigns.id,
-          name: campaigns.name,
-          description: campaigns.description,
-          startDate: campaigns.startDate,
-          endDate: campaigns.endDate,
-          status: campaigns.status,
-          type: campaigns.type,
-          metrics: campaigns.metrics,
-          tenant: {
-            name: tenants.tenantName,
-            domain: tenants.domain
-          }
-        })
-        .from(campaigns)
-        .leftJoin(tenants, eq(campaigns.tenantId, tenants.id));
-
-        console.log('Fetched campaigns for influencer:', allCampaigns);
+        fastify.log.info('Found active campaigns for influencer:', allCampaigns.length);
         return reply.send(allCampaigns);
       }
 
-      // For other users, show only their tenant's campaigns
-      console.log('User is not an influencer, fetching tenant campaigns');
-      const tenantCampaigns = await db.select({
-        id: campaigns.id,
-        name: campaigns.name,
-        description: campaigns.description,
-        startDate: campaigns.startDate,
-        endDate: campaigns.endDate,
-        status: campaigns.status,
-        type: campaigns.type,
-        metrics: campaigns.metrics,
-        tenant: {
-          name: tenants.tenantName,
-          domain: tenants.domain
-        }
-      })
-      .from(campaigns)
-      .leftJoin(tenants, eq(campaigns.tenantId, tenants.id))
-      .where(eq(campaigns.tenantId, request.user.tenantId));
+      // For other users (admins), show only their tenant's campaigns
+      const tenantCampaigns = await db.select()
+        .from(campaigns)
+        .where(eq(campaigns.tenantId, request.user.tenantId));
 
-      console.log('Fetched tenant campaigns:', tenantCampaigns);
+      fastify.log.info('Found tenant campaigns for admin:', tenantCampaigns.length);
       return reply.send(tenantCampaigns);
     } catch (error) {
       fastify.log.error('Error fetching campaigns:', error);
@@ -178,6 +155,7 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
       const [newCampaign] = await db.insert(campaigns)
         .values({
           ...result.data,
+          status: 'active',
           tenantId: request.user.tenantId,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -310,16 +288,54 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
     };
   });
 
-  // Get campaign participations for influencer
+  // Get campaign participations for a specific campaign (admin dashboard)
   fastify.get('/participations', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       if (!request.user) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
 
-      const participations = await db.select()
+      // Get user's role from database
+      const userWithRole = await db.query.users.findFirst({
+        where: eq(users.id, request.user.userId),
+        with: { role: true }
+      });
+
+      let participations;
+      if (userWithRole?.role?.roleName === 'Tenant Admin' || userWithRole?.role?.roleName === 'super-admin') {
+        // Admin: get all participations for campaigns of this tenant
+        participations = await db.select({
+          id: campaignParticipations.id,
+          campaignId: campaignParticipations.campaignId,
+          influencerId: campaignParticipations.influencerId,
+          status: campaignParticipations.status,
+          joinedAt: campaignParticipations.joinedAt,
+          completedAt: campaignParticipations.completedAt,
+          promotionalLinks: campaignParticipations.promotionalLinks,
+          promotionalCodes: campaignParticipations.promotionalCodes,
+          influencerName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`
+        })
         .from(campaignParticipations)
-        .where(eq(campaignParticipations.affiliateId, request.user.userId));
+        .leftJoin(users, eq(campaignParticipations.influencerId, users.id))
+        .leftJoin(campaigns, eq(campaignParticipations.campaignId, campaigns.id))
+        .where(eq(campaigns.tenantId, request.user.tenantId));
+      } else {
+        // Influencer: only their own participations
+        participations = await db.select({
+          id: campaignParticipations.id,
+          campaignId: campaignParticipations.campaignId,
+          influencerId: campaignParticipations.influencerId,
+          status: campaignParticipations.status,
+          joinedAt: campaignParticipations.joinedAt,
+          completedAt: campaignParticipations.completedAt,
+          promotionalLinks: campaignParticipations.promotionalLinks,
+          promotionalCodes: campaignParticipations.promotionalCodes,
+          influencerName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`
+        })
+        .from(campaignParticipations)
+        .leftJoin(users, eq(campaignParticipations.influencerId, users.id))
+        .where(eq(campaignParticipations.influencerId, request.user.userId));
+      }
 
       return reply.send(participations);
     } catch (error) {
@@ -331,45 +347,44 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Create new campaign participation
-  fastify.post('/participations', async (request: FastifyRequest<{
-    Body: {
-      campaignId: string;
-      metrics: {
-        followers: number;
-        engagement: number;
-        reach: number;
-      };
-    }
-  }>, reply: FastifyReply) => {
+  // Join campaign (influencer dashboard)
+  fastify.post('/:id/join', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     try {
       if (!request.user) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
 
-      const { campaignId, metrics } = request.body;
+      const { id: campaignId } = request.params;
 
-      // Check if user is an influencer
-      const userWithRole = await db.query.users.findFirst({
-        where: eq(users.id, request.user.userId),
-        with: {
-          role: true
-        }
-      });
+      // Check if user has influencer role
+      const user = await db.select()
+        .from(users)
+        .leftJoin(roles, eq(users.roleId, roles.id))
+        .where(eq(users.id, request.user.userId))
+        .limit(1);
 
-      if (!userWithRole?.role?.roleName || 
-          (userWithRole.role.roleName !== 'influencer' && userWithRole.role.roleName !== 'potential_influencer')) {
-        return reply.status(403).send({ error: 'Only influencers can participate in campaigns' });
+ 
+      // Check if influencer status is approved
+      const influencer = await db.select()
+        .from(influencers)
+        .where(eq(influencers.userId, request.user.userId))
+        .limit(1);
+
+      if (!influencer.length || influencer[0].status !== 'approved') {
+        return reply.status(403).send({ error: 'Only approved influencers can join campaigns (status check)' });
       }
 
-      // Check if campaign exists
+      // Check if campaign exists and is active
       const campaign = await db.select()
         .from(campaigns)
-        .where(eq(campaigns.id, campaignId))
+        .where(and(
+          eq(campaigns.id, campaignId),
+          eq(campaigns.status, 'active')
+        ))
         .limit(1);
 
       if (!campaign.length) {
-        return reply.status(404).send({ error: 'Campaign not found' });
+        return reply.status(404).send({ error: 'Campaign not found or not active' });
       }
 
       // Check if already participating
@@ -377,7 +392,7 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
         .from(campaignParticipations)
         .where(and(
           eq(campaignParticipations.campaignId, campaignId),
-          eq(campaignParticipations.affiliateId, request.user.userId)
+          eq(campaignParticipations.influencerId, request.user.userId)
         ))
         .limit(1);
 
@@ -385,99 +400,34 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Already participating in this campaign' });
       }
 
-      // Create new participation
-      const participation = await db.insert(campaignParticipations)
+      // Generate promotional code and link
+      const promoCode = generatePromoCode(campaign[0].name, request.user.userId);
+      const promoLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/campaign/${campaignId}?ref=${promoCode}`;
+
+      // Create participation
+      const [participation] = await db.insert(campaignParticipations)
         .values({
           campaignId,
-          affiliateId: request.user.userId,
+          influencerId: request.user.userId,
           tenantId: campaign[0].tenantId,
-          status: 'pending',
-          metrics: {
-            reach: metrics.reach,
-            engagement: metrics.engagement,
-            clicks: 0,
-            conversions: 0,
-            revenue: 0
-          },
-          promotionalLinks: [],
-          promotionalCodes: [],
-          createdAt: new Date(),
-          updatedAt: new Date()
-        } as typeof campaignParticipations.$inferInsert)
+          status: 'active',
+          promotionalLinks: [promoLink],
+          promotionalCodes: [promoCode],
+          joinedAt: new Date()
+        })
         .returning();
 
-      return reply.status(201).send(participation[0]);
+      return reply.status(201).send({
+        ...participation,
+        influencerName: `${user[0].firstName} ${user[0].lastName}`
+      });
     } catch (error) {
-      fastify.log.error('Error creating campaign participation:', error);
+      fastify.log.error('Error joining campaign:', error);
       return reply.status(500).send({ 
-        error: 'Failed to create campaign participation',
+        error: 'Failed to join campaign',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
-
-  // Opt-in to campaign
-  fastify.post('/:id/opt-in', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const { id: campaignId } = request.params;
-
-    // Check if already participating
-    const existing = await db.select()
-      .from(campaignParticipations)
-      .where(and(
-        eq(campaignParticipations.campaignId, campaignId),
-        eq(campaignParticipations.affiliateId, request.user.id)
-      ))
-      .limit(1);
-
-    if (existing.length > 0) {
-      return reply.status(400).send({ error: 'Already participating in this campaign' });
-    }
-
-    // Get campaign details to check requirements
-    const campaign = await db.select()
-      .from(campaigns)
-      .where(eq(campaigns.id, campaignId))
-      .limit(1);
-
-    if (!campaign.length) {
-      return reply.status(404).send({ error: 'Campaign not found' });
-    }
-
-    // Get affiliate details
-    const affiliate = await db.select()
-      .from(affiliates)
-      .where(eq(affiliates.id, request.user.id))
-      .limit(1);
-
-    if (!affiliate.length) {
-      return reply.status(404).send({ error: 'Affiliate not found' });
-    }
-
-    // Generate promo code
-    const promoCode = generatePromoCode(campaign[0].name, request.user.id);
-
-    const participation = await db.insert(campaignParticipations)
-      .values({
-        campaignId,
-        affiliateId: request.user.id,
-        tenantId: request.user.tenantId,
-        status: 'pending',
-        metrics: {
-          reach: 0,
-          engagement: 0,
-          clicks: 0,
-          conversions: 0,
-          revenue: 0
-        },
-        promotionalLinks: [],
-        promotionalCodes: [promoCode],
-        promoCode,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      } as typeof campaignParticipations.$inferInsert)
-      .returning();
-
-    return participation[0];
   });
 
   // Test endpoint to create a sample campaign

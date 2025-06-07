@@ -1,5 +1,5 @@
 {
-  "id": "f91c284c-55a9-45cb-ae77-a116a02c42a7",
+  "id": "ab59264e-64b7-48cd-8d21-26efb22f61ad",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -568,262 +568,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.campaign_clicks": {
-      "name": "campaign_clicks",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "campaign_id": {
-          "name": "campaign_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "participation_id": {
-          "name": "participation_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "affiliate_id": {
-          "name": "affiliate_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "link_id": {
-          "name": "link_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "referrer": {
-          "name": "referrer",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "user_agent": {
-          "name": "user_agent",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ip_address": {
-          "name": "ip_address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "campaign_clicks_campaign_id_campaigns_id_fk": {
-          "name": "campaign_clicks_campaign_id_campaigns_id_fk",
-          "tableFrom": "campaign_clicks",
-          "tableTo": "campaigns",
-          "columnsFrom": [
-            "campaign_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "campaign_clicks_participation_id_campaign_participations_id_fk": {
-          "name": "campaign_clicks_participation_id_campaign_participations_id_fk",
-          "tableFrom": "campaign_clicks",
-          "tableTo": "campaign_participations",
-          "columnsFrom": [
-            "participation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "campaign_clicks_affiliate_id_affiliates_id_fk": {
-          "name": "campaign_clicks_affiliate_id_affiliates_id_fk",
-          "tableFrom": "campaign_clicks",
-          "tableTo": "affiliates",
-          "columnsFrom": [
-            "affiliate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "campaign_clicks_tenant_id_tenants_id_fk": {
-          "name": "campaign_clicks_tenant_id_tenants_id_fk",
-          "tableFrom": "campaign_clicks",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.campaign_conversions": {
-      "name": "campaign_conversions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "campaign_id": {
-          "name": "campaign_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "participation_id": {
-          "name": "participation_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "affiliate_id": {
-          "name": "affiliate_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "order_id": {
-          "name": "order_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount": {
-          "name": "amount",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "currency": {
-          "name": "currency",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "promo_code": {
-          "name": "promo_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "campaign_conversions_campaign_id_campaigns_id_fk": {
-          "name": "campaign_conversions_campaign_id_campaigns_id_fk",
-          "tableFrom": "campaign_conversions",
-          "tableTo": "campaigns",
-          "columnsFrom": [
-            "campaign_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "campaign_conversions_participation_id_campaign_participations_id_fk": {
-          "name": "campaign_conversions_participation_id_campaign_participations_id_fk",
-          "tableFrom": "campaign_conversions",
-          "tableTo": "campaign_participations",
-          "columnsFrom": [
-            "participation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "campaign_conversions_affiliate_id_affiliates_id_fk": {
-          "name": "campaign_conversions_affiliate_id_affiliates_id_fk",
-          "tableFrom": "campaign_conversions",
-          "tableTo": "affiliates",
-          "columnsFrom": [
-            "affiliate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "campaign_conversions_tenant_id_tenants_id_fk": {
-          "name": "campaign_conversions_tenant_id_tenants_id_fk",
-          "tableFrom": "campaign_conversions",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.campaign_participations": {
       "name": "campaign_participations",
       "schema": "",
@@ -841,8 +585,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "affiliate_id": {
-          "name": "affiliate_id",
+        "influencer_id": {
+          "name": "influencer_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -859,13 +603,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'active'"
-        },
-        "metrics": {
-          "name": "metrics",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{\"reach\":0,\"engagement\":0,\"clicks\":0,\"conversions\":0,\"revenue\":0}'::jsonb"
         },
         "promotional_links": {
           "name": "promotional_links",
@@ -910,12 +647,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "campaign_participations_affiliate_id_affiliates_id_fk": {
-          "name": "campaign_participations_affiliate_id_affiliates_id_fk",
+        "campaign_participations_influencer_id_users_id_fk": {
+          "name": "campaign_participations_influencer_id_users_id_fk",
           "tableFrom": "campaign_participations",
-          "tableTo": "affiliates",
+          "tableTo": "users",
           "columnsFrom": [
-            "affiliate_id"
+            "influencer_id"
           ],
           "columnsTo": [
             "id"
@@ -1002,7 +739,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{\"totalReach\":0,\"engagementRate\":0,\"conversions\":0,\"revenue\":0}'::jsonb"
+          "default": "'{\"totalReach\":0,\"engagementRate\":0,\"revenue\":0}'::jsonb"
         },
         "created_at": {
           "name": "created_at",
@@ -1199,6 +936,99 @@
           "tableTo": "tenants",
           "columnsFrom": [
             "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.influencers": {
+      "name": "influencers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "social_media": {
+          "name": "social_media",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "niche": {
+          "name": "niche",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "country": {
+          "name": "country",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bio": {
+          "name": "bio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "metrics": {
+          "name": "metrics",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{\"followers\":0,\"engagement\":0,\"reach\":0}'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "influencers_user_id_users_id_fk": {
+          "name": "influencers_user_id_users_id_fk",
+          "tableFrom": "influencers",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -1871,6 +1701,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "password": {
+          "name": "password",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
         "first_name": {
           "name": "first_name",
           "type": "varchar",
@@ -1941,12 +1777,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": false
-        },
-        "password": {
-          "name": "password",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
         },
         "reset_token": {
           "name": "reset_token",

@@ -56,7 +56,7 @@ export function LoginForm() {
       await login(data.email, data.password, data.tenant);
       
       // Get fresh state
-      const { user, error: loginError } = useAuthStore.getState();
+      const { user, role, error: loginError } = useAuthStore.getState();
       
       if (loginError) {
         toast({
@@ -78,7 +78,7 @@ export function LoginForm() {
       }
 
       // Handle role-based redirection
-      if (user?.role === 'influencer' || user?.role === 'potential_influencer') {
+      if (role?.roleName === 'influencer' || role?.roleName === 'potential_influencer') {
         navigate('/influencer/dashboard');
         toast({
           title: 'Welcome!',

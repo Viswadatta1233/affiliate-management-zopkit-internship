@@ -64,39 +64,12 @@ CREATE TABLE "affiliates" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "campaign_clicks" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"campaign_id" uuid NOT NULL,
-	"participation_id" uuid NOT NULL,
-	"affiliate_id" uuid NOT NULL,
-	"tenant_id" uuid NOT NULL,
-	"link_id" text NOT NULL,
-	"referrer" text,
-	"user_agent" text,
-	"ip_address" text,
-	"created_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "campaign_conversions" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"campaign_id" uuid NOT NULL,
-	"participation_id" uuid NOT NULL,
-	"affiliate_id" uuid NOT NULL,
-	"tenant_id" uuid NOT NULL,
-	"order_id" text NOT NULL,
-	"amount" integer NOT NULL,
-	"currency" text NOT NULL,
-	"promo_code" text,
-	"created_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE "campaign_participations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"campaign_id" uuid NOT NULL,
-	"affiliate_id" uuid NOT NULL,
+	"influencer_id" uuid NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"status" text DEFAULT 'active' NOT NULL,
-	"metrics" jsonb DEFAULT '{"reach":0,"engagement":0,"clicks":0,"conversions":0,"revenue":0}'::jsonb NOT NULL,
 	"promotional_links" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"promotional_codes" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"joined_at" timestamp DEFAULT now() NOT NULL,
@@ -112,7 +85,7 @@ CREATE TABLE "campaigns" (
 	"end_date" timestamp,
 	"status" text DEFAULT 'draft' NOT NULL,
 	"type" text NOT NULL,
-	"metrics" jsonb DEFAULT '{"totalReach":0,"engagementRate":0,"conversions":0,"revenue":0}'::jsonb NOT NULL,
+	"metrics" jsonb DEFAULT '{"totalReach":0,"engagementRate":0,"revenue":0}'::jsonb NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -140,6 +113,19 @@ CREATE TABLE "commission_tiers" (
 	"commission_percent" numeric(5, 2) NOT NULL,
 	"min_sales" integer NOT NULL,
 	"created_at" timestamp DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "influencers" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" uuid NOT NULL,
+	"social_media" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"niche" varchar NOT NULL,
+	"country" varchar NOT NULL,
+	"bio" text,
+	"status" varchar DEFAULT 'pending' NOT NULL,
+	"metrics" jsonb DEFAULT '{"followers":0,"engagement":0,"reach":0}'::jsonb NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "marketing_assets" (
@@ -229,6 +215,7 @@ CREATE TABLE "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"email" varchar NOT NULL,
+	"password" varchar NOT NULL,
 	"first_name" varchar NOT NULL,
 	"last_name" varchar NOT NULL,
 	"phone" varchar,
@@ -240,7 +227,6 @@ CREATE TABLE "users" (
 	"marketing_consent" boolean DEFAULT false,
 	"role_id" uuid NOT NULL,
 	"is_affiliate" boolean DEFAULT false,
-	"password" varchar NOT NULL,
 	"reset_token" text,
 	"reset_token_expires_at" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -263,20 +249,13 @@ ALTER TABLE "affiliates" ADD CONSTRAINT "affiliates_user_id_users_id_fk" FOREIGN
 ALTER TABLE "affiliates" ADD CONSTRAINT "affiliates_current_tier_id_commission_tiers_id_fk" FOREIGN KEY ("current_tier_id") REFERENCES "public"."commission_tiers"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "affiliates" ADD CONSTRAINT "affiliates_parent_affiliate_id_affiliates_id_fk" FOREIGN KEY ("parent_affiliate_id") REFERENCES "public"."affiliates"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "affiliates" ADD CONSTRAINT "affiliates_approved_by_users_id_fk" FOREIGN KEY ("approved_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_clicks" ADD CONSTRAINT "campaign_clicks_campaign_id_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."campaigns"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_clicks" ADD CONSTRAINT "campaign_clicks_participation_id_campaign_participations_id_fk" FOREIGN KEY ("participation_id") REFERENCES "public"."campaign_participations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_clicks" ADD CONSTRAINT "campaign_clicks_affiliate_id_affiliates_id_fk" FOREIGN KEY ("affiliate_id") REFERENCES "public"."affiliates"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_clicks" ADD CONSTRAINT "campaign_clicks_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_conversions" ADD CONSTRAINT "campaign_conversions_campaign_id_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."campaigns"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_conversions" ADD CONSTRAINT "campaign_conversions_participation_id_campaign_participations_id_fk" FOREIGN KEY ("participation_id") REFERENCES "public"."campaign_participations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_conversions" ADD CONSTRAINT "campaign_conversions_affiliate_id_affiliates_id_fk" FOREIGN KEY ("affiliate_id") REFERENCES "public"."affiliates"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_conversions" ADD CONSTRAINT "campaign_conversions_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "campaign_participations" ADD CONSTRAINT "campaign_participations_campaign_id_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."campaigns"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_participations" ADD CONSTRAINT "campaign_participations_affiliate_id_affiliates_id_fk" FOREIGN KEY ("affiliate_id") REFERENCES "public"."affiliates"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "campaign_participations" ADD CONSTRAINT "campaign_participations_influencer_id_users_id_fk" FOREIGN KEY ("influencer_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "campaign_participations" ADD CONSTRAINT "campaign_participations_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "campaigns" ADD CONSTRAINT "campaigns_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "commission_rules" ADD CONSTRAINT "commission_rules_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "commission_tiers" ADD CONSTRAINT "commission_tiers_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "influencers" ADD CONSTRAINT "influencers_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "marketing_assets" ADD CONSTRAINT "marketing_assets_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "marketing_guidelines" ADD CONSTRAINT "marketing_guidelines_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "products" ADD CONSTRAINT "products_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

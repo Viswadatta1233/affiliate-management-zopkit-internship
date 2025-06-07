@@ -150,11 +150,22 @@ export const authRoutes = async (server: FastifyInstance) => {
   });
 
   server.post('/register', async (request: FastifyRequest<{ Body: RegisterBody }>, reply) => {
-    console.log('Registration attempt:', { email: request.body.email, companyName: request.body.companyName });
+    console.log('Registration attempt:', request.body);
     
     try {
+      // Validate request body
       const body = registerSchema.parse(request.body);
       
+      // Check if user with same email exists
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.email, body.email),
+      });
+
+      if (existingUser) {
+        console.log('Registration failed: Email already exists:', body.email);
+        return reply.code(400).send({ error: 'Email already registered' });
+      }
+
       // Check if tenant with same domain or subdomain exists
       const existingTenant = await db.query.tenants.findFirst({
         where: eq(tenants.domain, body.domain),
@@ -181,35 +192,10 @@ export const authRoutes = async (server: FastifyInstance) => {
         tenantId: tenant.id,
         roleName: 'Tenant Admin',
         description: 'Admin role with full access',
-        permissions: [
-          'manage_users',
-          'manage_affiliates',
-          'view_reports',
-          'products:view',
-          'products:manage',
-          'affiliates:view',
-          'affiliates:manage',
-          'tracking:manage',
-          'campaigns:view',
-          'campaigns:manage',
-          'commissions:view',
-          'commissions:manage',
-          'payments:view',
-          'payments:manage',
-          'analytics:view',
-          'marketing:view',
-          'marketing:manage',
-          'fraud:view',
-          'fraud:manage',
-          'communications:view',
-          'communications:manage',
-          'settings:manage',
-          '*'  // Grant all permissions to admin
-        ],
         isCustom: false,
       }).returning();
 
-      console.log('Admin role created:', { id: role.id, tenantId: role.tenantId, permissions: role.permissions });
+      console.log('Admin role created:', { id: role.id, tenantId: role.tenantId });
 
       // Hash password
       const hashedPassword = await bcrypt.hash(body.password, 10);
@@ -223,6 +209,9 @@ export const authRoutes = async (server: FastifyInstance) => {
         password: hashedPassword,
         roleId: role.id,
         termsAccepted: true,
+        countryCode: 'US', // Default country code
+        timezone: 'UTC', // Default timezone
+        language: 'en', // Default language
       }).returning();
 
       console.log('User created:', { id: user.id, email: user.email });
@@ -235,7 +224,7 @@ export const authRoutes = async (server: FastifyInstance) => {
           email: user.email,
           role: {
             id: role.id,
-            permissions: role.permissions as string[]
+            roleName: role.roleName
           }
         },
         process.env.JWT_SECRET || 'your-secret-key',
@@ -275,7 +264,13 @@ export const authRoutes = async (server: FastifyInstance) => {
     } catch (error) {
       console.error('Registration error:', error);
       if (error instanceof z.ZodError) {
-        return reply.code(400).send({ error: error.errors });
+        return reply.code(400).send({ 
+          error: 'Validation failed',
+          details: error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          }))
+        });
       }
       return reply.code(500).send({ error: 'Internal server error' });
     }
@@ -313,7 +308,7 @@ export const authRoutes = async (server: FastifyInstance) => {
             email: body.email,
             role: {
               id: 'super-admin',
-              permissions: ['*']
+              roleName: 'super-admin'
             }
           },
           process.env.JWT_SECRET || 'your-secret-key',
@@ -338,8 +333,7 @@ export const authRoutes = async (server: FastifyInstance) => {
           },
           role: {
             id: 'super-admin',
-            name: 'Super Administrator',
-            permissions: ['*']
+            roleName: 'super-admin'
           }
         };
       }
@@ -416,7 +410,7 @@ export const authRoutes = async (server: FastifyInstance) => {
           email: user.email,
           role: role ? {
             id: role.id,
-            permissions: role.permissions as string[]
+            roleName: role.roleName
           } : undefined
         },
         process.env.JWT_SECRET || 'your-secret-key',
@@ -442,8 +436,7 @@ export const authRoutes = async (server: FastifyInstance) => {
         },
         role: role ? {
           id: role.id,
-          name: role.roleName,
-          permissions: role.permissions
+          roleName: role.roleName
         } : undefined
       };
     } catch (error) {

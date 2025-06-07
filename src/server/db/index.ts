@@ -12,7 +12,7 @@ export const dbConfig = {
   port: parseInt(process.env.DB_PORT || '5432'),
   user: process.env.DB_USER||'postgres',
   password: process.env.DB_PASSWORD||'datta1234',
-  database: process.env.DB_NAME||'affiliate_management',
+  database: process.env.DB_NAME||'affiliate_db',
   min: parseInt(process.env.DB_POOL_MIN || '2'),
   max: parseInt(process.env.DB_POOL_MAX || '10'),
   idleTimeoutMillis: 30000,

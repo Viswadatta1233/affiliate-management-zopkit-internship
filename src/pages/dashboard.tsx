@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { SalesChart } from '@/components/dashboard/sales-chart';
@@ -66,48 +66,42 @@ const sampleAffiliates = [
 ];
 
 const Dashboard: React.FC = () => {
-  const { user, tenant, role, loadUserData } = useAuthStore();
-  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuthStore();
   const [timeFrame, setTimeFrame] = useState('month');
 
-  useEffect(() => {
-    let mounted = true;
-
-    const loadData = async () => {
-      if (!mounted) return;
-      
-      try {
-        // Only load if we don't have user data
-        if (!user || !tenant || !role) {
-          await loadUserData();
-        }
-      } catch (error) {
-        console.error('Failed to load user data:', error);
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    loadData();
-
-    return () => {
-      mounted = false;
-    };
-  }, [loadUserData, user, tenant, role]);
-
-  // Show loading state only if we're actually loading and don't have user data
-  if (isLoading && (!user || !tenant || !role)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  // Memoize the time frame buttons to prevent unnecessary re-renders
+  const TimeFrameButtons = memo(() => (
+    <div className="flex items-center mt-4 md:mt-0 space-x-2">
+      <Button
+        variant={timeFrame === 'week' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setTimeFrame('week')}
+      >
+        Week
+      </Button>
+      <Button
+        variant={timeFrame === 'month' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setTimeFrame('month')}
+      >
+        Month
+      </Button>
+      <Button
+        variant={timeFrame === 'quarter' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setTimeFrame('quarter')}
+      >
+        Quarter
+      </Button>
+      <Button
+        variant={timeFrame === 'year' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setTimeFrame('year')}
+      >
+        Year
+      </Button>
+    </div>
+  ));
 
   return (
     <div className="space-y-6">
@@ -118,37 +112,7 @@ const Dashboard: React.FC = () => {
             Welcome back, {user?.firstName}! Here's an overview of your affiliate program.
           </p>
         </div>
-
-        <div className="flex items-center mt-4 md:mt-0 space-x-2">
-          <Button
-            variant={timeFrame === 'week' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTimeFrame('week')}
-          >
-            Week
-          </Button>
-          <Button
-            variant={timeFrame === 'month' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTimeFrame('month')}
-          >
-            Month
-          </Button>
-          <Button
-            variant={timeFrame === 'quarter' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTimeFrame('quarter')}
-          >
-            Quarter
-          </Button>
-          <Button
-            variant={timeFrame === 'year' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTimeFrame('year')}
-          >
-            Year
-          </Button>
-        </div>
+        <TimeFrameButtons />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -201,4 +165,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default memo(Dashboard);

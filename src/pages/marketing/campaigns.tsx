@@ -1,30 +1,67 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import { useCampaignStore } from '@/store/campaign-store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Users, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, Users, ArrowRight, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+interface CampaignParticipation {
+  id: string;
+  campaignId: string;
+  influencerId: string;
+  status: string;
+  joinedAt: string | Date;
+  completedAt: string | Date | null;
+  promotionalLinks: string[];
+  promotionalCodes: string[];
+  influencerName: string;
+}
+
+interface Campaign {
+  id: string;
+  name: string;
+  description: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  targetAudience?: string;
+  budget?: number;
+  status: string;
+  type?: string;
+  participations?: CampaignParticipation[];
+}
 
 export default function MarketingCampaigns() {
   const { user } = useAuthStore();
-  const { campaigns, participations, loadCampaigns, loadParticipations, optInToCampaign, error } = useCampaignStore();
+  const { campaigns, participations, loadCampaigns, loadParticipations, error } = useCampaignStore();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isAdmin = user?.role?.roleName === 'admin' || user?.role?.roleName === 'super-admin';
+  const isInfluencer = user?.role?.roleName === 'influencer';
+  const isPotentialInfluencer = user?.role?.roleName === 'potential_influencer';
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadCampaigns();
-    loadParticipations();
-  }, []);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        await Promise.all([
+          loadCampaigns(),
+          loadParticipations()
+        ]);
+      } catch (err) {
+        console.error('Error loading campaigns:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  useEffect(() => {
-    // Debug logging
-    console.log('All campaigns:', campaigns);
-    console.log('Participations:', participations);
-  }, [campaigns, participations]);
+    fetchData();
+  }, [loadCampaigns, loadParticipations]);
 
   useEffect(() => {
     if (error) {
@@ -35,22 +72,6 @@ export default function MarketingCampaigns() {
       });
     }
   }, [error]);
-
-  const handleOptIn = async (campaignId: string) => {
-    try {
-      await optInToCampaign(campaignId);
-      toast({
-        title: "Success",
-        description: "Successfully joined the campaign",
-      });
-    } catch (error) {
-      // Error is handled by the store
-    }
-  };
-
-  const isParticipating = (campaignId: string) => {
-    return participations.some(p => p.campaignId === campaignId);
-  };
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -73,128 +94,173 @@ export default function MarketingCampaigns() {
     });
   };
 
-  const CampaignCardNew = ({ campaign }: { campaign: any }) => (
-    <Card className="hover:shadow-lg transition-shadow duration-200 px-2 py-1 sm:px-4 sm:py-2">
-      <CardHeader className="pb-2">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
+  const copyPromotionalLink = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied!",
+      description: "Promotional link copied to clipboard",
+    });
+  };
+
+  const CampaignCard = ({ campaign }: { campaign: Campaign }) => (
+    <Card className="hover:shadow-lg transition-shadow duration-200">
+      <CardHeader>
+        <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-lg sm:text-xl mb-1 sm:mb-2 break-words">{campaign?.name || 'Untitled Campaign'}</CardTitle>
-            <Badge className={getStatusBadgeColor(campaign?.status || 'draft') + ' mt-1 sm:mt-0'}>
+            <CardTitle>{campaign?.name || 'Untitled Campaign'}</CardTitle>
+            <Badge className={getStatusBadgeColor(campaign?.status || 'draft')}>
               {(campaign?.status || 'Draft').charAt(0).toUpperCase() + (campaign?.status || 'draft').slice(1)}
             </Badge>
           </div>
-          <Badge variant="outline" className="capitalize mt-2 sm:mt-0 w-fit">{campaign?.type || 'Unknown'}</Badge>
+          <Badge variant="outline" className="capitalize">{campaign?.type || 'Unknown'}</Badge>
         </div>
       </CardHeader>
-      <CardContent className="pt-1 pb-2">
-        <p className="text-gray-600 mb-2 sm:mb-4 text-sm sm:text-base break-words">{campaign?.description || 'No description available'}</p>
-        <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 sm:gap-4 mb-2 sm:mb-4">
+      <CardContent>
+        <p className="text-gray-600 mb-4">{campaign?.description || 'No description available'}</p>
+        <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-gray-500" />
-            <span className="text-xs sm:text-sm">
-              Starts: {campaign?.startDate ? formatDate(campaign.startDate) : 'Not set'}
+            <span className="text-sm">
+              Starts: {campaign?.startDate ? formatDate(campaign.startDate.toString()) : 'Not set'}
             </span>
           </div>
           {campaign?.endDate && (
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-gray-500" />
-              <span className="text-xs sm:text-sm">
-                Ends: {formatDate(campaign.endDate)}
+              <span className="text-sm">
+                Ends: {formatDate(campaign.endDate.toString())}
               </span>
             </div>
           )}
         </div>
-      </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-2">
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-gray-500" />
-          <span className="text-xs sm:text-sm">
-            {campaign?.metrics?.totalReach || 0} Reach
-          </span>
-        </div>
-        {!isParticipating(campaign?.id) ? (
-          <Button 
-            onClick={() => handleOptIn(campaign.id)}
-            className="bg-primary hover:bg-primary/90 w-full sm:w-auto text-sm"
-            disabled={!campaign?.id}
-          >
-            <span className="hidden sm:inline">Join Campaign</span>
-            <span className="inline sm:hidden">Join</span>
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        ) : (
-          <Button variant="outline" className="w-full sm:w-auto text-sm">View Details</Button>
+        {participations.filter(p => p.campaignId === campaign.id).length > 0 && (
+          <div className="mt-4">
+            <h4 className="text-sm font-medium mb-2">Influencer Participations</h4>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Influencer</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead>Promotional Links</TableHead>
+                  <TableHead>Promotional Codes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {participations.filter(p => p.campaignId === campaign.id).map((participation: CampaignParticipation) => (
+                  <TableRow key={participation.id}>
+                    <TableCell>{participation.influencerName}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          participation.status === "completed"
+                            ? "default"
+                            : participation.status === "in_progress"
+                            ? "secondary"
+                            : "outline"
+                        }
+                      >
+                        {participation.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {typeof participation.joinedAt === 'string' ? participation.joinedAt.split('T')[0] : participation.joinedAt instanceof Date ? participation.joinedAt.toLocaleDateString() : ''}
+                    </TableCell>
+                    <TableCell>
+                      {participation.promotionalLinks?.map((link: string, index: number) => (
+                        <div key={index} className="flex items-center gap-2 mb-1">
+                          <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                            {link}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => copyPromotionalLink(link)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </TableCell>
+                    <TableCell>
+                      {participation.promotionalCodes?.map((code: string, index: number) => (
+                        <div key={index} className="flex items-center gap-2 mb-1">
+                          <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                            {code}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => copyPromotionalLink(code)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
-      </CardFooter>
+      </CardContent>
     </Card>
   );
 
   return (
-    <div className="container mx-auto px-2 sm:px-6 py-4 sm:py-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Marketing Campaigns</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">Browse and participate in brand campaigns</p>
+          <h1 className="text-3xl font-bold tracking-tight">Marketing Campaigns</h1>
+          <p className="text-muted-foreground">
+            {isAdmin ? 'Manage your marketing campaigns' : 'Browse available campaigns'}
+          </p>
         </div>
+        {isAdmin && (
+          <Button onClick={() => navigate('/marketing/campaigns/new')}>
+            Create Campaign
+          </Button>
+        )}
       </div>
 
-      <Tabs defaultValue="available" className="space-y-2 sm:space-y-4">
-        <TabsList className="bg-muted p-1 rounded-lg w-full sm:w-auto flex flex-wrap gap-2">
-          <TabsTrigger value="available" className="rounded-md flex-1 sm:flex-none">Available Campaigns</TabsTrigger>
-          <TabsTrigger value="active" className="rounded-md flex-1 sm:flex-none">My Active Campaigns</TabsTrigger>
-          <TabsTrigger value="completed" className="rounded-md flex-1 sm:flex-none">Completed</TabsTrigger>
+      <Tabs defaultValue="all" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="all">All Campaigns</TabsTrigger>
+          {!isAdmin && <TabsTrigger value="participating">My Campaigns</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="available" className="space-y-2 sm:space-y-4">
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {Array.isArray(campaigns) && campaigns
-              .filter(campaign => {
-                // Debug logging
-                console.log('Checking campaign:', campaign);
-                return campaign?.status !== 'completed' && !isParticipating(campaign?.id);
-              })
-              .map((campaign) => (
-                <CampaignCardNew key={campaign?.id || Math.random()} campaign={campaign} />
-              ))}
+        <TabsContent value="all" className="space-y-4">
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {campaigns.map((campaign) => (
+              <CampaignCard key={campaign.id} campaign={campaign} />
+            ))}
           </div>
-          {(!Array.isArray(campaigns) || campaigns.filter(campaign => 
-            campaign?.status !== 'completed' && !isParticipating(campaign?.id)
-          ).length === 0) && (
-            <Card className="p-6 sm:p-8 text-center">
-              <CardDescription>No available campaigns at the moment.</CardDescription>
+          {campaigns.length === 0 && (
+            <Card className="p-8 text-center">
+              <CardDescription>No campaigns available.</CardDescription>
             </Card>
           )}
         </TabsContent>
 
-        <TabsContent value="active" className="space-y-2 sm:space-y-4">
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {campaigns
-              .filter(campaign => isParticipating(campaign.id))
-              .map((campaign) => (
-                <CampaignCardNew key={campaign.id} campaign={campaign} />
-              ))}
-          </div>
-          {campaigns.filter(campaign => isParticipating(campaign.id)).length === 0 && (
-            <Card className="p-6 sm:p-8 text-center">
-              <CardDescription>You haven't joined any campaigns yet.</CardDescription>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="completed">
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {campaigns
-              .filter(campaign => campaign.status === 'completed' && isParticipating(campaign.id))
-              .map((campaign) => (
-                <CampaignCardNew key={campaign.id} campaign={campaign} />
-              ))}
-          </div>
-          {campaigns.filter(campaign => campaign.status === 'completed' && isParticipating(campaign.id)).length === 0 && (
-            <Card className="p-6 sm:p-8 text-center">
-              <CardDescription>No completed campaigns yet.</CardDescription>
-            </Card>
-          )}
-        </TabsContent>
+        {!isAdmin && (
+          <TabsContent value="participating" className="space-y-4">
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {campaigns
+                .filter(campaign => participations.some(p => p.campaignId === campaign.id))
+                .map((campaign) => (
+                  <CampaignCard key={campaign.id} campaign={campaign} />
+                ))}
+            </div>
+            {campaigns.filter(campaign => participations.some(p => p.campaignId === campaign.id)).length === 0 && (
+              <Card className="p-8 text-center">
+                <CardDescription>You haven't joined any campaigns yet.</CardDescription>
+              </Card>
+            )}
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

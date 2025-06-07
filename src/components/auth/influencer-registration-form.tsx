@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/store/auth-store';
 
 const influencerFormSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
@@ -79,6 +80,7 @@ const countries = [
 export function InfluencerRegistrationForm() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { login } = useAuthStore();
   const form = useForm<InfluencerFormValues>({
     resolver: zodResolver(influencerFormSchema),
     defaultValues: {
@@ -100,7 +102,8 @@ export function InfluencerRegistrationForm() {
     try {
       console.log('Submitting registration form:', data);
 
-      const response = await fetch('/api/influencer/register', {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${API_BASE_URL}/api/influencers/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,12 +149,24 @@ export function InfluencerRegistrationForm() {
         description: responseData.message || 'Your account is pending approval. We will notify you once approved.',
       });
 
-      // Store the user data in localStorage
-      if (responseData.user?.id) {
-        localStorage.setItem('registeredUserId', responseData.user.id);
+      // Store the token and user data directly
+      localStorage.setItem('token', responseData.token);
+      localStorage.setItem('user', JSON.stringify(responseData.user));
+
+      // Check if we have the required data in localStorage
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+
+      if (storedToken && storedUser) {
+        // Update auth store
+        await login(data.email, data.password);
+        
+        // Redirect immediately to influencer dashboard
+        navigate('/influencer/dashboard', { replace: true });
+      } else {
+        throw new Error('Failed to store authentication data');
       }
 
-      navigate('/login');
     } catch (error) {
       console.error('Registration error:', error);
       toast({

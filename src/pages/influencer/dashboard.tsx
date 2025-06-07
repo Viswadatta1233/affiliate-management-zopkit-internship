@@ -1,120 +1,162 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth-store';
+import { useCampaignStore } from '@/store/campaign-store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import api from '@/lib/axios';
-import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, Copy } from 'lucide-react';
 
-interface Campaign {
-  id: string;
-  name: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  status: 'draft' | 'active' | 'paused' | 'completed';
-  type: 'product' | 'service' | 'event';
-  metrics: {
-    totalReach: number;
-    engagementRate: number;
-    conversions: number;
-    revenue: number;
-  };
-  tenant: {
-    name: string;
-    domain: string;
-  };
-}
-
-interface Participation {
+interface CampaignParticipation {
   id: string;
   campaignId: string;
   influencerId: string;
-  status: 'pending' | 'approved' | 'rejected';
-  metrics: {
-    followers: number;
-    engagement: number;
-    reach: number;
-  };
-  createdAt: string;
-  updatedAt: string;
+  status: string;
+  joinedAt: string;
+  completedAt: string | null;
+  promotionalLinks: string[];
+  promotionalCodes: string[];
+  influencerName: string;
 }
 
 export default function InfluencerDashboard() {
-  const { user, isLoading: authLoading } = useAuthStore();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [participations, setParticipations] = useState<Participation[]>([]);
+  const { user, role } = useAuthStore();
+  const { campaigns, participations, loadCampaigns, loadParticipations, joinCampaign, error } = useCampaignStore();
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const isApprovedInfluencer = role?.roleName === 'influencer';
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login');
-    }
-  }, [user, authLoading, navigate]);
-
-  useEffect(() => {
-    const fetchCampaigns = async () => {
+    const fetchData = async () => {
       try {
-        console.log('Fetching campaigns...');
-        const response = await api.get('/campaigns');
-        console.log('Campaigns response:', response.data);
-        setCampaigns(response.data);
+        console.log('Loading campaigns and participations...');
+        await loadCampaigns();
+        await loadParticipations();
+        console.log('Campaigns loaded:', campaigns);
+        console.log('Participations loaded:', participations);
       } catch (error) {
-        console.error('Error fetching campaigns:', error);
-        toast.error('Failed to load campaigns');
+        console.error('Error loading data:', error);
       } finally {
         setIsLoading(false);
       }
     };
+    fetchData();
+  }, []);
 
-    const fetchParticipations = async () => {
-      try {
-        console.log('Fetching participations...');
-        const response = await api.get('/campaign-participations');
-        console.log('Participations response:', response.data);
-        setParticipations(response.data);
-      } catch (error) {
-        console.error('Error fetching participations:', error);
-        toast.error('Failed to load participations');
-      }
-    };
-
-    if (user) {
-      console.log('User authenticated, fetching data...');
-      fetchCampaigns();
-      fetchParticipations();
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
     }
-  }, [user]);
+  }, [error]);
 
-  const handleParticipate = async (campaignId: string) => {
+  const handleJoinCampaign = async (campaignId: string) => {
     try {
-      // Get influencer metrics from the user's profile
-      const influencerResponse = await api.get('/influencers/me');
-      const influencerData = influencerResponse.data;
-
-      await api.post('/campaigns/participations', {
-        campaignId,
-        metrics: {
-          followers: influencerData.metrics.followers || 0,
-          engagement: influencerData.metrics.engagement || 0,
-          reach: influencerData.metrics.reach || 0
-        }
-      });
-      toast.success('Participation request sent successfully');
-      // Refresh participations
-      const participationsRes = await api.get('/campaign-participations');
-      setParticipations(participationsRes.data);
+      console.log('Joining campaign:', campaignId);
+      await joinCampaign(campaignId);
+      toast.success('Successfully joined the campaign');
     } catch (error) {
-      console.error('Error participating in campaign:', error);
-      toast.error('Failed to participate in campaign');
+      console.error('Error joining campaign:', error);
+      // Error is handled by the store
     }
   };
 
-  if (authLoading || isLoading) {
+  const copyPromotionalLink = (link: string) => {
+    navigator.clipboard.writeText(link);
+    toast.success('Promotional link copied to clipboard');
+  };
+
+  const CampaignCard = ({ campaign }: { campaign: any }) => {
+    const participation = participations.find(p => p.campaignId === campaign.id);
+    const isParticipating = !!participation;
+    const isActive = campaign.status === 'active';
+
+    // Debug log for join button condition
+    console.log('Campaign:', campaign.name, 'isActive:', isActive, 'isApprovedInfluencer:', isApprovedInfluencer, 'isParticipating:', isParticipating);
+
+    return (
+      <Card className="hover:shadow-lg transition-shadow duration-200">
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>{campaign.name}</CardTitle>
+              <Badge variant={isActive ? 'default' : 'secondary'}>
+                {campaign.status}
+              </Badge>
+            </div>
+            <Badge variant="outline" className="capitalize">{campaign.type}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-600 mb-4">{campaign.description}</p>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Start Date</p>
+              <p>{new Date(campaign.startDate).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">End Date</p>
+              <p>{campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : 'No end date'}</p>
+            </div>
+          </div>
+
+          {isParticipating ? (
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              {participation.promotionalLinks && participation.promotionalLinks.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium mb-2">Your Promotional Links</p>
+                  {participation.promotionalLinks.map((link, index) => (
+                    <div key={index} className="flex items-center gap-2 mb-2">
+                      <code className="text-sm bg-background px-2 py-1 rounded flex-1 overflow-x-auto">
+                        {link}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyPromotionalLink(link)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {participation.promotionalCodes && participation.promotionalCodes.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium mb-2">Your Promotional Codes</p>
+                  {participation.promotionalCodes.map((code, index) => (
+                    <div key={index} className="flex items-center gap-2 mb-2">
+                      <code className="text-sm bg-background px-2 py-1 rounded flex-1 overflow-x-auto">
+                        {code}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyPromotionalLink(code)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : isActive && isApprovedInfluencer && (
+            <Button 
+              className="w-full mt-4"
+              onClick={() => handleJoinCampaign(campaign.id)}
+            >
+              Join Campaign
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -122,14 +164,20 @@ export default function InfluencerDashboard() {
     );
   }
 
-  if (!user) {
-    return null;
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
-  const getParticipationStatus = (campaignId: string) => {
-    const participation = participations.find(p => p.campaignId === campaignId);
-    return participation?.status || null;
-  };
+  const availableCampaigns = campaigns.filter(campaign => !participations.some(p => p.campaignId === campaign.id));
+  const participatingCampaigns = campaigns.filter(campaign => participations.some(p => p.campaignId === campaign.id));
 
   return (
     <div className="container mx-auto py-8">
@@ -137,112 +185,36 @@ export default function InfluencerDashboard() {
       
       <Tabs defaultValue="available" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="available">Available Campaigns</TabsTrigger>
-          <TabsTrigger value="participating">My Participations</TabsTrigger>
+          <TabsTrigger value="available">Available Campaigns ({availableCampaigns.length})</TabsTrigger>
+          <TabsTrigger value="participating">My Campaigns ({participatingCampaigns.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="available" className="space-y-4">
-          {campaigns.length === 0 ? (
-            <p className="text-muted-foreground">No campaigns available at the moment.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {campaigns.map((campaign) => (
-                <Card key={campaign.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{campaign.name}</CardTitle>
-                        <CardDescription>{campaign.tenant.name}</CardDescription>
-                      </div>
-                      <Badge variant={campaign.status === 'active' ? 'default' : 'secondary'}>
-                        {campaign.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">{campaign.description}</p>
-                    
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Start Date</p>
-                          <p>{new Date(campaign.startDate).toLocaleDateString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">End Date</p>
-                          <p>{new Date(campaign.endDate).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>Campaign Type</span>
-                          <Badge variant="outline">{campaign.type}</Badge>
-                        </div>
-                      </div>
-
-                      <Button 
-                        className="w-full" 
-                        disabled={campaign.status !== 'active'}
-                        onClick={() => handleParticipate(campaign.id)}
-                      >
-                        Participate
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {availableCampaigns.map((campaign) => (
+              <CampaignCard key={campaign.id} campaign={campaign} />
+            ))}
+          </div>
+          {availableCampaigns.length === 0 && (
+            <Card className="p-8 text-center">
+              <CardDescription>No available campaigns at the moment.</CardDescription>
+            </Card>
           )}
         </TabsContent>
 
         <TabsContent value="participating" className="space-y-4">
-          {participations.length === 0 ? (
-            <p className="text-muted-foreground">You haven't participated in any campaigns yet.</p>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {participations.map((participation) => {
-                const campaign = campaigns.find(c => c.id === participation.campaignId);
-                if (!campaign) return null;
-
-                return (
-                  <Card key={participation.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-xl">{campaign.name}</CardTitle>
-                        <Badge variant={
-                          participation.status === 'approved' ? 'default' :
-                          participation.status === 'rejected' ? 'destructive' :
-                          'secondary'
-                        }>
-                          {participation.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{campaign.tenant.name}</p>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="mb-4">{campaign.description}</p>
-                      <div className="space-y-2 text-sm">
-                        <p><strong>Type:</strong> {campaign.type}</p>
-                        <p><strong>Start Date:</strong> {new Date(campaign.startDate).toLocaleDateString()}</p>
-                        <p><strong>End Date:</strong> {new Date(campaign.endDate).toLocaleDateString()}</p>
-                        <div className="mt-4">
-                          <h4 className="font-semibold mb-2">Your Metrics:</h4>
-                          <ul className="list-disc list-inside">
-                            <li>Followers: {participation.metrics.followers.toLocaleString()}</li>
-                            <li>Engagement: {participation.metrics.engagement}%</li>
-                            <li>Reach: {participation.metrics.reach.toLocaleString()}</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {participatingCampaigns.map((campaign) => (
+              <CampaignCard key={campaign.id} campaign={campaign} />
+            ))}
+          </div>
+          {participatingCampaigns.length === 0 && (
+            <Card className="p-8 text-center">
+              <CardDescription>You haven't joined any campaigns yet.</CardDescription>
+            </Card>
           )}
         </TabsContent>
       </Tabs>
     </div>
   );
-} 
+}

@@ -14,19 +14,21 @@ type AuthState = {
   isSuperAdmin: boolean;
   
   // Actions
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    companyName: string;
-    domain: string;
-    subdomain: string;
-  }) => Promise<void>;
-  logout: () => Promise<void>;
-  clearError: () => void;
+  login: (email: string, password: string, tenant?: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => void;
   loadUserData: () => Promise<void>;
+  clearError: () => void;
+};
+
+type RegisterData = {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  companyName: string;
+  domain: string;
+  subdomain: string;
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -41,201 +43,137 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isSuperAdmin: false,
 
+      clearError: () => {
+        set({ error: null });
+      },
+
+      login: async (email: string, password: string, tenantSubdomain?: string) => {
+        const state = get();
+        if (state.isLoading) return;
+
+        try {
+          set({ isLoading: true, error: null });
+          const response = await api.post<{
+            token: string;
+            user: User;
+            tenant: Tenant;
+            role: Role;
+          }>('/auth/login', { email, password, tenant: tenantSubdomain });
+          const { token, user, tenant, role } = response.data;
+          
+          localStorage.setItem('token', token);
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          set({
+            user,
+            tenant,
+            role,
+            token,
+            isAuthenticated: true,
+            isSuperAdmin: user?.email === 'zopkit@gmail.com',
+            isLoading: false,
+          });
+        } catch (error) {
+          set({
+            error: error instanceof Error ? error.message : 'Login failed',
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
+      register: async (data: RegisterData) => {
+        const state = get();
+        if (state.isLoading) return;
+
+        try {
+          set({ isLoading: true, error: null });
+          const response = await api.post('/auth/register', data);
+          const { token, user, tenant, role } = response.data;
+          
+          localStorage.setItem('token', token);
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          set({
+            user,
+            tenant,
+            role,
+            token,
+            isAuthenticated: true,
+            isSuperAdmin: user?.email === 'zopkit@gmail.com',
+            isLoading: false,
+          });
+        } catch (error) {
+          set({
+            error: error instanceof Error ? error.message : 'Registration failed',
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
+      logout: () => {
+        delete api.defaults.headers.common['Authorization'];
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        set({
+          user: null,
+          tenant: null,
+          role: null,
+          token: null,
+          isAuthenticated: false,
+          isSuperAdmin: false,
+          error: null,
+        });
+      },
+
       loadUserData: async () => {
-        // Don't load if already loading
-        if (get().isLoading) {
-          console.log('Already loading user data, skipping');
+        const state = get();
+        if (state.isLoading) return;
+
+        const storedToken = localStorage.getItem('token');
+        if (!storedToken) {
+          set({ isAuthenticated: false });
           return;
         }
 
-        set({ isLoading: true, error: null });
         try {
-          const token = localStorage.getItem('token');
-          console.log('Loading user data with token:', token ? token.substring(0, 10) + '...' : 'none');
+          set({ isLoading: true });
+          api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
           
-          if (!token) {
-            console.log('No token found, clearing auth state');
-            set((state) => ({
-              ...state,
-              user: null,
-              tenant: null,
-              role: null,
-              isAuthenticated: false,
-              isLoading: false,
-              error: null,
-              token: null,
-              isSuperAdmin: false
-            }));
-            return;
-          }
+          const response = await api.get('/auth/me');
+          const { user, tenant, role } = response.data;
           
-          // Only make the API call if we have a token and no user data
-          if (!get().user || !get().tenant || !get().role) {
-            const response = await api.get('/auth/me');
-            let { user, tenant, role } = response.data;
-            // Normalize tenant
-            if (tenant && !tenant.tenantName && tenant.name) {
-              tenant = { ...tenant, tenantName: tenant.name };
-            }
-            
-            console.log('User data loaded successfully:', { user, tenant, role });
-            
-            set((state) => ({
-              ...state,
-              user: {
-                ...user,
-                role: role?.name // Ensure role is set on user object
-              },
-              tenant,
-              role,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null,
-              token,
-              isSuperAdmin: user.email === 'zopkit@gmail.com'
-            }));
-          } else {
-            console.log('User data already exists, skipping API call');
-            set({ isLoading: false });
-          }
-        } catch (error) {
-          console.error('Error loading user data:', error);
-          // Clear invalid token
-          localStorage.removeItem('token');
-          
-          set((state) => ({
-            ...state,
-            user: null,
-            tenant: null,
-            role: null,
-            isAuthenticated: false,
+          set({
+            user,
+            tenant,
+            role,
+            token: storedToken,
+            isAuthenticated: true,
+            isSuperAdmin: user?.email === 'zopkit@gmail.com',
             isLoading: false,
-            error: error instanceof Error ? error.message : "Failed to load user data",
-            token: null,
-            isSuperAdmin: false
-          }));
-        }
-      },
-
-      login: async (email, password) => {
-        set({ isLoading: true, error: null });
-        try {
-          const response = await api.post('/auth/login', {
-            email,
-            password,
           });
-
-          let { token, user, tenant, role } = response.data;
-          // Normalize tenant
-          if (tenant && !tenant.tenantName && tenant.name) {
-            tenant = { ...tenant, tenantName: tenant.name };
-          }
-          localStorage.setItem('token', token);
-          set((state) => ({
-            ...state,
-            user: {
-              ...user,
-              role: role?.name // Ensure role is set on user object
-            },
-            tenant,
-            role,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-            token,
-            isSuperAdmin: email === 'zopkit@gmail.com'
-          }));
         } catch (error) {
-          set((state) => ({
-            ...state,
-            error: error instanceof Error ? error.message : "An error occurred during login",
-            isLoading: false,
-            isAuthenticated: false,
-            user: null,
-            tenant: null,
-            role: null,
-            isSuperAdmin: false
-          }));
-          throw error;
-        }
-      },
-
-      register: async (data) => {
-        set({ isLoading: true, error: null });
-        try {
-          const response = await api.post('/auth/register', data);
-          let { token, user, tenant, role } = response.data;
-          // Normalize tenant
-          if (tenant && !tenant.tenantName && tenant.name) {
-            tenant = { ...tenant, tenantName: tenant.name };
-          }
-          localStorage.setItem('token', token);
-          set((state) => ({
-            ...state,
-            user: {
-              ...user,
-              role: role?.name // Ensure role is set on user object
-            },
-            tenant,
-            role,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-            token,
-            isSuperAdmin: data.email === 'zopkit@gmail.com'
-          }));
-        } catch (error) {
-          set((state) => ({
-            ...state,
-            error: error instanceof Error ? error.message : "An error occurred during registration",
-            isLoading: false,
-            isAuthenticated: false,
-            user: null,
-            tenant: null,
-            role: null,
-            isSuperAdmin: false
-          }));
-          throw error;
-        }
-      },
-
-      logout: async () => {
-        set({ isLoading: true });
-        try {
           localStorage.removeItem('token');
-          set((state) => ({
-            ...state,
-            user: null,
-            tenant: null,
-            role: null,
+          localStorage.removeItem('user');
+          
+          set({
             isAuthenticated: false,
             isLoading: false,
-            error: null,
-            token: null,
-            isSuperAdmin: false
-          }));
-        } catch (error) {
-          set((state) => ({
-            ...state,
-            error: error instanceof Error ? error.message : "An error occurred during logout",
-            isLoading: false
-          }));
-          throw error;
+            error: error instanceof Error ? error.message : 'Failed to load user data',
+          });
         }
       },
-
-      clearError: () => set({ error: null }),
     }),
     {
-      name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        tenant: state.tenant,
-        role: state.role,
-        isAuthenticated: state.isAuthenticated,
-        token: state.token,
-        isSuperAdmin: state.isSuperAdmin
-      }),
+      name: 'auth-store',
+      getStorage: () => localStorage,
+      onRehydrateStorage: () => (state) => {
+        if (state?.token) {
+          api.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
+        }
+      },
     }
   )
 );

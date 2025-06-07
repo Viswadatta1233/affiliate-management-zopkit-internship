@@ -4,6 +4,7 @@ import { db } from '../db';
 import { users, influencers, roles, tenants } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 // Define the validation schema
 const influencerRegistrationSchema = z.object({
@@ -26,6 +27,35 @@ const influencerRegistrationSchema = z.object({
 });
 
 type InfluencerRegistrationBody = z.infer<typeof influencerRegistrationSchema>;
+
+interface InfluencerWithUser {
+  id: string;
+  userId: string;
+  niche: string;
+  country: string;
+  bio: string | null;
+  socialMedia: {
+    instagram?: string;
+    youtube?: string;
+  };
+  status: string;
+  metrics: {
+    followers: number;
+    engagement: number;
+    reach: number;
+    total_campaigns: number;
+    total_earnings: number;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    tenantId: string;
+  };
+}
 
 export async function influencerRoutes(server: FastifyInstance) {
   // Register influencer
@@ -72,14 +102,6 @@ export async function influencerRoutes(server: FastifyInstance) {
         [influencerRole] = await db.insert(roles).values({
           roleName: 'potential_influencer',
           description: 'Default role for potential influencers',
-          permissions: [
-            'view_profile',
-            'edit_profile',
-            'view_campaigns',
-            'apply_campaigns',
-            'view_earnings',
-            'view_analytics'
-          ],
           isCustom: false,
           tenantId: defaultTenant.id,
         }).returning();
@@ -115,27 +137,40 @@ export async function influencerRoutes(server: FastifyInstance) {
 
       // Create influencer profile with social media links
       const [influencer] = await db.insert(influencers).values({
-          userId: user.id,
+        userId: user.id,
         niche: body.niche,
         country: body.country,
         bio: body.bio || '',
-          status: 'pending',
+        status: 'pending',
         socialMedia: {
           instagram: body.instagram || '',
           youtube: body.youtube || '',
         },
-          metrics: {
-            followers: 0,
-            engagement: 0,
-            reach: 0,
-            total_campaigns: 0,
-            total_earnings: 0,
-          },
-        }).returning();
+        metrics: {
+          followers: 0,
+          engagement: 0,
+          reach: 0,
+          total_campaigns: 0,
+          total_earnings: 0,
+        },
+      }).returning();
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          userId: user.id,
+          email: user.email,
+          role: 'potential_influencer',
+          tenantId: defaultTenant.id
+        },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '7d' }
+      );
 
       return {
         success: true,
-        message: 'Influencer registered successfully',
+        message: 'Influencer registered successfully. Your account is pending approval.',
+        token,
         user: {
           id: user.id,
           email: user.email,
@@ -143,6 +178,7 @@ export async function influencerRoutes(server: FastifyInstance) {
           lastName: user.lastName,
           isAffiliate: user.isAffiliate,
           tenantId: user.tenantId,
+          role: 'potential_influencer'
         },
         influencer: {
           id: influencer.id,
@@ -154,15 +190,15 @@ export async function influencerRoutes(server: FastifyInstance) {
     } catch (error) {
       console.error('Error in influencer registration:', error);
       if (error instanceof z.ZodError) {
-        return reply.code(400).send({ error: error.errors });
+        return reply.code(400).send({ 
+          error: 'Validation failed',
+          details: error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          }))
+        });
       }
-      // Log the full error for debugging
-      console.error('Full error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      });
-      return reply.code(500).send({ error: 'Error creating user', details: error.message });
+      return reply.code(500).send({ error: 'Internal server error' });
     }
   });
 
@@ -209,7 +245,7 @@ export async function influencerRoutes(server: FastifyInstance) {
           user: true
         },
         orderBy: (influencers, { desc }) => [desc(influencers.createdAt)]
-      });
+      }) as InfluencerWithUser[];
 
       return allInfluencers.map(influencer => ({
         id: influencer.id,
@@ -245,7 +281,7 @@ export async function influencerRoutes(server: FastifyInstance) {
           user: true
         },
         orderBy: (influencers, { desc }) => [desc(influencers.createdAt)]
-      });
+      }) as InfluencerWithUser[];
 
       return pendingInfluencers.map(influencer => ({
         id: influencer.id,
@@ -286,7 +322,7 @@ export async function influencerRoutes(server: FastifyInstance) {
         with: {
           user: true
         }
-      });
+      }) as InfluencerWithUser | null;
 
       if (!influencer) {
         return reply.code(404).send({ error: 'Influencer not found' });
@@ -303,15 +339,6 @@ export async function influencerRoutes(server: FastifyInstance) {
           [influencerRole] = await db.insert(roles).values({
             roleName: 'influencer',
             description: 'Approved influencer role',
-            permissions: [
-              'view_profile',
-              'edit_profile',
-              'view_campaigns',
-              'apply_campaigns',
-              'join_campaigns',
-              'view_earnings',
-              'view_analytics'
-            ],
             isCustom: false,
             tenantId: influencer.user.tenantId
           }).returning();

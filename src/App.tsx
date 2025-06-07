@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/auth-store';
 import AppShell from '@/components/layout/app-shell';
 import SuperAdminShell from '@/components/layout/super-admin-shell';
 import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
 
 // Import pages
 import Dashboard from '@/pages/dashboard';
@@ -79,13 +80,16 @@ const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Route guard for influencer routes
 const InfluencerRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const { user, role, isAuthenticated, isLoading } = useAuthStore();
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  if (!isAuthenticated || (user?.role !== 'influencer' && user?.role !== 'potential_influencer')) {
+  const hasInfluencerRole = role?.roleName === 'potential_influencer' || role?.roleName === 'influencer';
+
+  if (!isAuthenticated || !hasInfluencerRole) {
+    console.log('Redirecting: isAuthenticated:', isAuthenticated, 'hasInfluencerRole:', hasInfluencerRole, 'role:', role);
     return <Navigate to="/" replace />;
   }
 

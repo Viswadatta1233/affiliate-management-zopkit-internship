@@ -20,6 +20,8 @@ const PUBLIC_ROUTES = [
   '/api/affiliates/accept',
   '/api/influencer/register',
   '/api/influencer/registration',
+  '/influencers/register',
+  '/api/influencers/register',
   '/influencer/register',
   '/register/influencer'
 ];
@@ -32,6 +34,8 @@ const PUBLIC_PATHS = [
   '/api/affiliates/accept',
   '/api/influencer/register',
   '/api/influencer/registration',
+  '/influencers/register',
+  '/api/influencers/register',
   '/influencer/register',
   '/register/influencer'
 ];
@@ -45,7 +49,11 @@ const CSRF_EXEMPT_ROUTES = [
   '/api/influencer/register',
   '/api/influencer/registration',
   '/influencer/register',
-  '/register/influencer'
+  '/register/influencer',
+  '/api/products',
+  '/api/products/create',
+  '/api/products/update',
+  '/api/products/delete'
 ];
 
 interface UserJwtPayload extends JwtPayload {
@@ -54,6 +62,7 @@ interface UserJwtPayload extends JwtPayload {
   email: string;
   role?: {
     id: string;
+    roleName: string;
   };
 }
 
@@ -61,8 +70,8 @@ export type { UserJwtPayload };
 
 export const configureSecurity = async (server: FastifyInstance) => {
   // Ensure required environment variables
-  const JWT_SECRET = process.env.JWT_SECRET;
-  const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
+  const JWT_SECRET = process.env.JWT_SECRET||'your-secret-key';
+  const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET||'your-refresh-secret-key';
 
   if (!JWT_SECRET || !REFRESH_TOKEN_SECRET) {
     throw new Error('JWT_SECRET and REFRESH_TOKEN_SECRET must be set in environment variables');
@@ -94,21 +103,6 @@ export const configureSecurity = async (server: FastifyInstance) => {
       if (request.method === 'OPTIONS') {
         return reply.send();
       }
-    }
-  });
-
-  // Add CSRF protection
-  server.addHook('onRequest', async (request, reply) => {
-    // Skip CSRF check for development or exempt routes
-    if (process.env.NODE_ENV === 'development' || CSRF_EXEMPT_ROUTES.includes(request.url)) {
-      return;
-    }
-
-    const csrfToken = request.headers['x-csrf-token'];
-    const sessionToken = request.headers['x-session-token'];
-
-    if (!csrfToken || !sessionToken || csrfToken !== sessionToken) {
-      return reply.code(403).send({ error: 'Invalid CSRF token' });
     }
   });
 
@@ -162,7 +156,8 @@ export const configureSecurity = async (server: FastifyInstance) => {
                 tenantId: user.tenantId,
                 email: user.email,
                 role: user.role ? {
-                  id: user.role.id
+                  id: user.role.id,
+                  roleName: user.role.roleName
                 } : undefined
               },
               JWT_SECRET,

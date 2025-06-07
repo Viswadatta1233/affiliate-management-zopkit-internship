@@ -79,8 +79,25 @@ const startServer = async () => {
       }
     });
 
-    // Add auth middleware before routes
+    // Configure routes first
+    await configureRoutes(server);
+
+    // Add auth middleware after routes, but skip public routes
     server.addHook('preHandler', async (request, reply) => {
+      // List of public routes that should not require authentication
+      const publicRoutes = [
+        '/api/auth/login',
+        '/api/auth/register',
+        '/api/influencers/register',
+        '/api/affiliates/accept',
+        '/api/influencers/register',
+        '/api/influencer/registration',
+        '/influencer/register',
+        '/register/influencer'
+      ];
+      if (publicRoutes.some(route => request.url.startsWith(route))) {
+        return;
+      }
       server.log.debug({
         msg: 'Auth middleware',
         url: request.url,
@@ -88,9 +105,6 @@ const startServer = async () => {
       });
       return authMiddleware(request, reply);
     });
-
-    // Configure routes
-    await configureRoutes(server);
 
     // Add rate limiting
     await server.register(rateLimit, {

@@ -9,13 +9,10 @@ export type Campaign = {
   startDate: Date;
   endDate: Date | null;
   status: 'draft' | 'active' | 'completed' | 'archived';
-  type: 'product' | 'service' | 'event';
-  metrics: {
-    totalReach: number;
-    engagementRate: number;
-    conversions: number;
-    revenue: number;
-  };
+  type: 'referral' | 'affiliate';
+  requirements: Record<string, any>;
+  rewards: Record<string, any>;
+  content: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -23,19 +20,13 @@ export type Campaign = {
 export type CampaignParticipation = {
   id: string;
   campaignId: string;
-  affiliateId: string;
-  status: 'pending' | 'approved' | 'rejected' | 'active' | 'completed';
-  metrics: {
-    reach: number;
-    engagement: number;
-    clicks: number;
-    conversions: number;
-    revenue: number;
-  };
+  influencerId: string;
+  status: 'active' | 'completed' | 'pending' | 'rejected';
   promotionalLinks: string[];
   promotionalCodes: string[];
   joinedAt: Date;
   completedAt: Date | null;
+  influencerName?: string;
 };
 
 // Add to existing types...
@@ -45,7 +36,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'admin' | 'user' | 'influencer' | 'potential_influencer';
+  role: Role;
   tenantId: string;
   isAffiliate?: boolean;
   createdAt: Date;
@@ -73,7 +64,6 @@ export interface Role {
   tenantId: string;
   roleName: string;
   description?: string;
-  permissions: string[];
   isCustom: boolean;
   createdBy?: string;
   createdAt: Date;

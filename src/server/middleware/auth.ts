@@ -8,7 +8,8 @@ const publicRoutes = [
   '/api/auth/register',
   '/api/influencer/registration',
   '/influencer/register',
-  '/register/influencer'
+  '/register/influencer',
+  '/api/affiliates/accept'
 ];
 
 export async function authMiddleware(
@@ -26,7 +27,7 @@ export async function authMiddleware(
 
   // Allow public routes without any auth check
   if (publicRoutes.some(route => url.startsWith(route))) {
-    console.log('Public route accessed:', url);
+    console.log('Skipping authentication for public route:', url);
     return; // Skip auth check for public routes
   }
 

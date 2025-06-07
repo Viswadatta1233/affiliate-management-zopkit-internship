@@ -2,7 +2,7 @@ import { Router, Response, RequestHandler } from 'express';
 import { z } from 'zod';
 import { auth, AuthenticatedRequest, AuthenticatedRequestHandler } from '@/lib/auth';
 import { db } from '../db';
-import { campaigns, campaignParticipations, affiliates } from '../db/schema';
+import { campaigns, campaignParticipations, users, influencers } from '../db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { generatePromoCode } from '@/lib/utils';
 
@@ -97,73 +97,109 @@ const getCampaignMetrics: AuthenticatedRequestHandler = async (req, res) => {
 };
 
 const getCampaignParticipations: AuthenticatedRequestHandler = async (req, res) => {
-  const participations = await db.select()
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    console.log('Fetching participations for user:', req.user.id);
+
+    const participations = await db.select({
+      id: campaignParticipations.id,
+      campaignId: campaignParticipations.campaignId,
+      influencerId: campaignParticipations.influencerId,
+      status: campaignParticipations.status,
+      joinedAt: campaignParticipations.joinedAt,
+      completedAt: campaignParticipations.completedAt,
+      promotionalLinks: campaignParticipations.promotionalLinks,
+      promotionalCodes: campaignParticipations.promotionalCodes,
+      influencerName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`
+    })
     .from(campaignParticipations)
-    .where(eq(campaignParticipations.affiliateId, req.user.id));
-  res.json(participations);
+    .leftJoin(users, eq(campaignParticipations.influencerId, users.id))
+    .where(eq(campaignParticipations.influencerId, req.user.id));
+
+    console.log('Found participations:', participations.length);
+
+    res.json(participations);
+  } catch (error) {
+    console.error('Error fetching participations:', error);
+    if (error instanceof Error) {
+      return res.status(500).json({ 
+        error: 'Failed to fetch participations',
+        details: error.message
+      });
+    }
+    res.status(500).json({ error: 'Failed to fetch participations' });
+  }
 };
 
-const optInToCampaign: AuthenticatedRequestHandler = async (req, res) => {
-  const campaignId = req.params.id;
+const joinCampaign: AuthenticatedRequestHandler = async (req, res) => {
+  try {
+    const campaignId = req.params.id;
 
-  // Check if already participating
-  const existing = await db.select()
-    .from(campaignParticipations)
-    .where(and(
-      eq(campaignParticipations.campaignId, campaignId),
-      eq(campaignParticipations.affiliateId, req.user.id)
-    ))
-    .limit(1);
+    // Check if user is an approved influencer
+    const influencer = await db.select()
+      .from(influencers)
+      .where(eq(influencers.userId, req.user.id))
+      .limit(1);
 
-  if (existing.length > 0) {
-    return res.status(400).json({ error: 'Already participating in this campaign' });
+    if (!influencer.length || influencer[0].status !== 'approved') {
+      return res.status(403).json({ error: 'Only approved influencers can join campaigns' });
+    }
+
+    // Check if already participating
+    const existing = await db.select()
+      .from(campaignParticipations)
+      .where(and(
+        eq(campaignParticipations.campaignId, campaignId),
+        eq(campaignParticipations.influencerId, req.user.id)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'Already participating in this campaign' });
+    }
+
+    // Get campaign details
+    const campaign = await db.select()
+      .from(campaigns)
+      .where(eq(campaigns.id, campaignId))
+      .limit(1);
+
+    if (!campaign.length) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+
+    // Generate promotional code
+    const promoCode = generatePromoCode(campaign[0].id, req.user.id);
+
+    const participation = await db.insert(campaignParticipations)
+      .values({
+        campaignId,
+        influencerId: req.user.id,
+        tenantId: req.user.tenantId,
+        status: 'active',
+        promotionalLinks: [],
+        promotionalCodes: [promoCode],
+        joinedAt: new Date()
+      } as typeof campaignParticipations.$inferInsert)
+      .returning();
+
+    // Get user details for response
+    const user = await db.select()
+      .from(users)
+      .where(eq(users.id, req.user.id))
+      .limit(1);
+
+    res.json({
+      ...participation[0],
+      influencerName: `${user[0].firstName} ${user[0].lastName}`
+    });
+  } catch (error) {
+    console.error('Error joining campaign:', error);
+    res.status(500).json({ error: 'Failed to join campaign' });
   }
-
-  // Get campaign details to check requirements
-  const campaign = await db.select()
-    .from(campaigns)
-    .where(eq(campaigns.id, campaignId))
-    .limit(1);
-
-  if (!campaign.length) {
-    return res.status(404).json({ error: 'Campaign not found' });
-  }
-
-  // Get affiliate details
-  const affiliate = await db.select()
-    .from(affiliates)
-    .where(eq(affiliates.id, req.user.id))
-    .limit(1);
-
-  if (!affiliate.length) {
-    return res.status(404).json({ error: 'Affiliate not found' });
-  }
-
-  // Generate promo code
-  const promoCode = generatePromoCode(campaign[0].name, req.user.id);
-
-  const participation = await db.insert(campaignParticipations)
-    .values({
-      campaignId,
-      affiliateId: req.user.id,
-      tenantId: req.user.tenantId,
-      status: 'pending',
-      metrics: {
-        reach: 0,
-        engagement: 0,
-        clicks: 0,
-        conversions: 0,
-        revenue: 0
-      },
-      promotionalLinks: [],
-      promotionalCodes: [promoCode],
-      promoCode,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    } as typeof campaignParticipations.$inferInsert)
-    .returning();
-
-  res.json(participation[0]);
 };
 
 // Register routes with auth middleware
@@ -171,6 +207,6 @@ router.get('/', auth, getAllCampaigns as RequestHandler);
 router.post('/', auth, createCampaign as RequestHandler);
 router.get('/:id/metrics', auth, getCampaignMetrics as RequestHandler);
 router.get('/participations', auth, getCampaignParticipations as RequestHandler);
-router.post('/:id/opt-in', auth, optInToCampaign as RequestHandler);
+router.post('/:id/join', auth, joinCampaign as RequestHandler);
 
 export default router; 

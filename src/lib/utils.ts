@@ -17,3 +17,8 @@ export function generatePromoCode(campaignName: string, affiliateId: string): st
   const suffix = affiliateId.substring(0, 4).toUpperCase();
   return `${prefix}${suffix}`;
 }
+
+export function generateTrackingLink(campaignId: string, influencerId: string): string {
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  return `${baseUrl}/track/${campaignId}/${influencerId}`;
+}
