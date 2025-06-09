@@ -370,7 +370,7 @@ export const authRoutes = async (server: FastifyInstance) => {
       }
 
       const user = userResult[0].users;
-      const role = userResult[0].roles;
+      const role = Array.isArray(userResult[0].roles) ? userResult[0].roles[0] : userResult[0].roles;
 
       console.log('Found user with role:', { user, role });
 
@@ -427,13 +427,7 @@ export const authRoutes = async (server: FastifyInstance) => {
           lastName: user.lastName,
           isAffiliate: user.isAffiliate,
         },
-        tenant: {
-          id: tenant.id,
-          name: tenant.tenantName,
-          domain: tenant.domain,
-          subdomain: tenant.subdomain,
-          status: tenant.status
-        },
+        tenant,
         role: role ? {
           id: role.id,
           roleName: role.roleName

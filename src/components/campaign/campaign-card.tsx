@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { DollarSign, Users, AlertCircle } from "lucide-react";
+import { DollarSign, Users, AlertCircle, Share2, Target, ClipboardList } from "lucide-react";
 import { Campaign } from '@/types';
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from 'sonner';
@@ -96,15 +96,57 @@ export function CampaignCard({ campaign, onOptIn, isParticipating, isLoading, er
       </CardHeader>
       <CardContent className="flex-1">
         <div className="space-y-4">
+          {campaign.rewards?.commissionRate && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <DollarSign className="w-4 h-4 mr-2 text-muted-foreground" />
+                <span>Commission Rate</span>
+              </div>
+              <span className="font-medium">{campaign.rewards.commissionRate}%</span>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <DollarSign className="w-4 h-4 mr-2 text-muted-foreground" />
-              <span>Commission Rate</span>
+              <Users className="w-4 h-4 mr-2 text-muted-foreground" />
+              <span>Target Age Group</span>
             </div>
-            <span className="font-medium">{campaign.rewards.commissionRate}%</span>
+            <span className="font-medium">{campaign.targetAudienceAgeGroup}</span>
           </div>
 
-          {campaign.rewards.bonusThreshold && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Users className="w-4 h-4 mr-2 text-muted-foreground" />
+              <span>Required Niche</span>
+            </div>
+            <span className="font-medium">{campaign.requiredInfluencerNiche}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Share2 className="w-4 h-4 mr-2 text-muted-foreground" />
+              <span>Platform</span>
+            </div>
+            <span className="font-medium">{campaign.preferredSocialMedia}</span>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center text-sm">
+              <Target className="w-4 h-4 mr-2 text-muted-foreground" />
+              <span>Marketing Objective</span>
+            </div>
+            <p className="text-sm text-muted-foreground">{campaign.marketingObjective}</p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center text-sm">
+              <ClipboardList className="w-4 h-4 mr-2 text-muted-foreground" />
+              <span>Guidelines</span>
+            </div>
+            <p className="text-sm text-muted-foreground">{campaign.basicGuidelines}</p>
+          </div>
+
+          {campaign.rewards?.bonusThreshold && campaign.rewards?.bonusAmount && (
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <DollarSign className="w-4 h-4 mr-2 text-muted-foreground" />
@@ -116,7 +158,7 @@ export function CampaignCard({ campaign, onOptIn, isParticipating, isLoading, er
             </div>
           )}
 
-          {campaign.requirements.minFollowers && (
+          {campaign.requirements?.minFollowers && (
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Users className="w-4 h-4 mr-2 text-muted-foreground" />

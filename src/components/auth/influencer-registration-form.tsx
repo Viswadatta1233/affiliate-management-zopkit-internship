@@ -10,6 +10,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,6 +24,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth-store';
+import { NICHE_OPTIONS } from '@/lib/constants';
 
 const influencerFormSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
@@ -37,7 +39,9 @@ const influencerFormSchema = z.object({
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),
   instagram: z.string().url('Invalid Instagram URL').optional(),
   youtube: z.string().url('Invalid YouTube URL').optional(),
-  niche: z.string().min(1, 'Please select a niche'),
+  niche: z.enum(NICHE_OPTIONS.map(n => n.value) as [string, ...string[]], {
+    required_error: "Please select your niche",
+  }),
   country: z.string().min(1, 'Please select a country'),
   bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
   agreedToTerms: z.boolean().refine((val) => val === true, {
@@ -49,20 +53,6 @@ const influencerFormSchema = z.object({
 });
 
 type InfluencerFormValues = z.infer<typeof influencerFormSchema>;
-
-const niches = [
-  'Fashion',
-  'Beauty',
-  'Technology',
-  'Fitness',
-  'Food',
-  'Travel',
-  'Lifestyle',
-  'Gaming',
-  'Education',
-  'Business',
-  'Other',
-];
 
 const countries = [
   'United States',
@@ -283,7 +273,7 @@ export function InfluencerRegistrationForm() {
           name="niche"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Niche/Category</FormLabel>
+              <FormLabel>Niche</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -291,13 +281,16 @@ export function InfluencerRegistrationForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {niches.map((niche) => (
-                    <SelectItem key={niche} value={niche}>
-                      {niche}
+                  {NICHE_OPTIONS.map((niche) => (
+                    <SelectItem key={niche.value} value={niche.value}>
+                      {niche.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <FormDescription>
+                Select the primary niche you create content for
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

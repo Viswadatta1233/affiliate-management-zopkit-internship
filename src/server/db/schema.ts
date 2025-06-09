@@ -202,9 +202,15 @@ export const campaigns = pgTable('campaigns', {
   endDate: timestamp('end_date'),
   status: text('status').notNull().default('active'),
   type: text('type').notNull(),
+  targetAudienceAgeGroup: text('target_audience_age_group').notNull(),
+  requiredInfluencerNiche: text('required_influencer_niche').notNull(),
+  basicGuidelines: text('basic_guidelines').notNull(),
+  preferredSocialMedia: text('preferred_social_media').notNull(),
+  marketingObjective: text('marketing_objective').notNull(),
   metrics: jsonb('metrics').notNull().default({
     totalReach: 0,
     engagementRate: 0,
+    conversions: 0,
     revenue: 0
   }),
   createdAt: timestamp('created_at').notNull().defaultNow(),

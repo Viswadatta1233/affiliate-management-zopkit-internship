@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react';
-import { useAuthStore } from '@/store/auth-store';
-import { useCampaignStore } from '@/store/campaign-store';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Copy, Share2, Target, Users, Calendar, ClipboardList, BarChart } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { CampaignFilters } from "@/components/campaign/campaign-filters";
+import { useAuthStore } from "@/store/auth-store";
+import { api } from "@/lib/api";
+import { NICHE_OPTIONS, AGE_GROUP_OPTIONS } from '@/lib/constants';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, Copy } from 'lucide-react';
 
 interface CampaignParticipation {
   id: string;
@@ -22,196 +24,393 @@ interface CampaignParticipation {
   influencerName: string;
 }
 
+interface Campaign {
+  id: string;
+  name: string;
+  description: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  status: string;
+  type: string;
+  targetAudienceAgeGroup: string;
+  requiredInfluencerNiche: string;
+  basicGuidelines: string;
+  preferredSocialMedia: string;
+  marketingObjective: string;
+  metrics: {
+    totalReach: number;
+    engagementRate: number;
+    conversions: number;
+    revenue: number;
+  };
+}
+
 export default function InfluencerDashboard() {
-  const { user, role } = useAuthStore();
-  const { campaigns, participations, loadCampaigns, loadParticipations, joinCampaign, error } = useCampaignStore();
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const isApprovedInfluencer = role?.roleName === 'influencer';
+  const { toast } = useToast();
+  const { user, role } = useAuthStore();
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [participations, setParticipations] = useState<CampaignParticipation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [expandedGuidelines, setExpandedGuidelines] = useState<Record<string, boolean>>({});
+  const [expandedObjectives, setExpandedObjectives] = useState<Record<string, boolean>>({});
+  const [filters, setFilters] = useState({
+    targetAudienceAgeGroup: "all",
+    requiredNiche: "all",
+    startDate: null as Date | null,
+    endDate: null as Date | null
+  });
+
+  const isInfluencer = role?.roleName === 'influencer';
+  const isPotentialInfluencer = role?.roleName === 'potential_influencer';
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        console.log('Loading campaigns and participations...');
-        await loadCampaigns();
-        await loadParticipations();
-        console.log('Campaigns loaded:', campaigns);
-        console.log('Participations loaded:', participations);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchData();
   }, []);
 
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [campaignsResponse, participationsResponse] = await Promise.all([
+        api.get('/api/campaigns'),
+        api.get('/api/campaigns/participations')
+      ]);
+      setCampaigns(campaignsResponse.data);
+      setParticipations(participationsResponse.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch campaigns and participations",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-  }, [error]);
+  };
 
   const handleJoinCampaign = async (campaignId: string) => {
     try {
-      console.log('Joining campaign:', campaignId);
-      await joinCampaign(campaignId);
-      toast.success('Successfully joined the campaign');
+      const response = await api.post(`/api/campaigns/${campaignId}/join`, {});
+      setParticipations(prev => [...prev, response.data]);
+      toast({
+        title: "Success",
+        description: "Successfully joined the campaign",
+      });
     } catch (error) {
       console.error('Error joining campaign:', error);
-      // Error is handled by the store
+      toast({
+        title: "Error",
+        description: "Failed to join campaign",
+        variant: "destructive"
+      });
     }
   };
 
   const copyPromotionalLink = (link: string) => {
     navigator.clipboard.writeText(link);
-    toast.success('Promotional link copied to clipboard');
+    toast({
+      title: "Copied!",
+      description: "Promotional link copied to clipboard",
+    });
   };
 
-  const CampaignCard = ({ campaign }: { campaign: any }) => {
-    const participation = participations.find(p => p.campaignId === campaign.id);
-    const isParticipating = !!participation;
-    const isActive = campaign.status === 'active';
+  const toggleGuidelines = (campaignId: string) => {
+    setExpandedGuidelines(prev => ({
+      ...prev,
+      [campaignId]: !prev[campaignId]
+    }));
+  };
 
-    // Debug log for join button condition
-    console.log('Campaign:', campaign.name, 'isActive:', isActive, 'isApprovedInfluencer:', isApprovedInfluencer, 'isParticipating:', isParticipating);
+  const toggleObjectives = (campaignId: string) => {
+    setExpandedObjectives(prev => ({
+      ...prev,
+      [campaignId]: !prev[campaignId]
+    }));
+  };
+
+  const formatDate = (date: string | Date) => {
+    if (typeof date === 'string') {
+      return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const handleFilterChange = (newFilters: typeof filters) => {
+    setFilters(newFilters);
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      targetAudienceAgeGroup: "all",
+      requiredNiche: "all",
+      startDate: null,
+      endDate: null
+    });
+  };
+
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter(campaign => {
+      // Age group filter
+      if (filters.targetAudienceAgeGroup !== "all" && 
+          campaign.targetAudienceAgeGroup !== filters.targetAudienceAgeGroup) {
+        return false;
+      }
+
+      // Niche filter - case insensitive comparison
+      if (filters.requiredNiche !== "all" && 
+          campaign.requiredInfluencerNiche.toLowerCase() !== filters.requiredNiche.toLowerCase()) {
+        console.log('Niche filter:', {
+          campaignNiche: campaign.requiredInfluencerNiche,
+          filterNiche: filters.requiredNiche,
+          normalizedCampaignNiche: campaign.requiredInfluencerNiche.toLowerCase(),
+          normalizedFilterNiche: filters.requiredNiche.toLowerCase()
+        });
+        return false;
+      }
+
+      // Date range filtering
+      if (filters.startDate || filters.endDate) {
+        const campaignStartDate = new Date(campaign.startDate);
+        const campaignEndDate = new Date(campaign.endDate);
+
+        // Start date filter
+        if (filters.startDate) {
+          const filterStartDate = new Date(filters.startDate);
+          // Set both dates to start of day for accurate comparison
+          campaignStartDate.setHours(0, 0, 0, 0);
+          filterStartDate.setHours(0, 0, 0, 0);
+          
+          console.log('Start date filter:', {
+            campaignStart: campaignStartDate,
+            filterStart: filterStartDate
+          });
+
+          if (campaignStartDate < filterStartDate) {
+            return false;
+          }
+        }
+
+        // End date filter
+        if (filters.endDate) {
+          const filterEndDate = new Date(filters.endDate);
+          // Set both dates to end of day for accurate comparison
+          campaignEndDate.setHours(23, 59, 59, 999);
+          filterEndDate.setHours(23, 59, 59, 999);
+          
+          console.log('End date filter:', {
+            campaignEnd: campaignEndDate,
+            filterEnd: filterEndDate
+          });
+
+          if (campaignEndDate > filterEndDate) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [campaigns, filters]);
+
+  const joinedCampaigns = filteredCampaigns.filter(campaign => 
+    participations.some(p => p.campaignId === campaign.id)
+  );
+
+  const availableCampaigns = filteredCampaigns.filter(campaign => 
+    !participations.some(p => p.campaignId === campaign.id)
+  );
+
+  const CampaignCard = ({ campaign }: { campaign: Campaign }) => {
+    const isParticipating = participations.some(p => p.campaignId === campaign.id);
+    const participation = participations.find(p => p.campaignId === campaign.id);
 
     return (
-      <Card className="hover:shadow-lg transition-shadow duration-200">
+      <Card className="mb-4">
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
               <CardTitle>{campaign.name}</CardTitle>
-              <Badge variant={isActive ? 'default' : 'secondary'}>
-                {campaign.status}
-              </Badge>
+              <CardDescription>{campaign.description}</CardDescription>
             </div>
-            <Badge variant="outline" className="capitalize">{campaign.type}</Badge>
+            <Badge variant={campaign.status === 'active' ? 'default' : 'secondary'}>
+              {campaign.status}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600 mb-4">{campaign.description}</p>
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Start Date</p>
-              <p>{new Date(campaign.startDate).toLocaleDateString()}</p>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              <span>Start: {formatDate(campaign.startDate)}</span>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">End Date</p>
-              <p>{campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : 'No end date'}</p>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              <span>End: {formatDate(campaign.endDate)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span>Target Age: {campaign.targetAudienceAgeGroup}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              <span>Niche: {campaign.requiredInfluencerNiche}</span>
             </div>
           </div>
 
-          {isParticipating ? (
-            <div className="mt-4 p-4 bg-muted rounded-lg">
-              {participation.promotionalLinks && participation.promotionalLinks.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-sm font-medium mb-2">Your Promotional Links</p>
-                  {participation.promotionalLinks.map((link, index) => (
-                    <div key={index} className="flex items-center gap-2 mb-2">
-                      <code className="text-sm bg-background px-2 py-1 rounded flex-1 overflow-x-auto">
-                        {link}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyPromotionalLink(link)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {participation.promotionalCodes && participation.promotionalCodes.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium mb-2">Your Promotional Codes</p>
-                  {participation.promotionalCodes.map((code, index) => (
-                    <div key={index} className="flex items-center gap-2 mb-2">
-                      <code className="text-sm bg-background px-2 py-1 rounded flex-1 overflow-x-auto">
-                        {code}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyPromotionalLink(code)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+          <div className="space-y-4">
+            <div>
+              <Button
+                variant="ghost"
+                className="w-full justify-between"
+                onClick={() => toggleGuidelines(campaign.id)}
+              >
+                <span className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Guidelines
+                </span>
+                <span>{expandedGuidelines[campaign.id] ? '▼' : '▶'}</span>
+              </Button>
+              {expandedGuidelines[campaign.id] && (
+                <div className="mt-2 p-2 bg-muted rounded-md">
+                  {campaign.basicGuidelines}
                 </div>
               )}
             </div>
-          ) : isActive && isApprovedInfluencer && (
-            <Button 
-              className="w-full mt-4"
+
+            <div>
+              <Button
+                variant="ghost"
+                className="w-full justify-between"
+                onClick={() => toggleObjectives(campaign.id)}
+              >
+                <span className="flex items-center gap-2">
+                  <BarChart className="h-4 w-4" />
+                  Marketing Objective
+                </span>
+                <span>{expandedObjectives[campaign.id] ? '▼' : '▶'}</span>
+              </Button>
+              {expandedObjectives[campaign.id] && (
+                <div className="mt-2 p-2 bg-muted rounded-md">
+                  {campaign.marketingObjective}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {isParticipating && participation && (
+            <div className="mt-4 space-y-2">
+              <h4 className="font-medium">Your Promotional Links</h4>
+              {participation.promotionalLinks.map((link, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <code className="flex-1 text-xs bg-muted p-2 rounded">
+                    {link}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => copyPromotionalLink(link)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <h4 className="font-medium mt-2">Your Promotional Codes</h4>
+              {participation.promotionalCodes.map((code, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <code className="flex-1 text-xs bg-muted p-2 rounded">
+                    {code}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => copyPromotionalLink(code)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+        <CardFooter>
+          {isInfluencer && !isParticipating && (
+            <Button
+              className="w-full"
               onClick={() => handleJoinCampaign(campaign.id)}
             >
               Join Campaign
             </Button>
           )}
-        </CardContent>
+          {isPotentialInfluencer && (
+            <Button
+              className="w-full"
+              variant="outline"
+              disabled
+            >
+              Upgrade to Influencer to Join
+            </Button>
+          )}
+        </CardFooter>
       </Card>
     );
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto py-8">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  const availableCampaigns = campaigns.filter(campaign => !participations.some(p => p.campaignId === campaign.id));
-  const participatingCampaigns = campaigns.filter(campaign => participations.some(p => p.campaignId === campaign.id));
-
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Influencer Dashboard</h1>
-      
-      <Tabs defaultValue="available" className="space-y-4">
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Influencer Dashboard</h1>
+      </div>
+
+      <CampaignFilters
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onReset={handleResetFilters}
+      />
+
+      <Tabs defaultValue="available" className="mt-6">
         <TabsList>
-          <TabsTrigger value="available">Available Campaigns ({availableCampaigns.length})</TabsTrigger>
-          <TabsTrigger value="participating">My Campaigns ({participatingCampaigns.length})</TabsTrigger>
+          <TabsTrigger value="available">Available Campaigns</TabsTrigger>
+          <TabsTrigger value="my-campaigns">My Campaigns</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="available" className="space-y-4">
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {availableCampaigns.map((campaign) => (
-              <CampaignCard key={campaign.id} campaign={campaign} />
-            ))}
-          </div>
-          {availableCampaigns.length === 0 && (
-            <Card className="p-8 text-center">
-              <CardDescription>No available campaigns at the moment.</CardDescription>
-            </Card>
+        <TabsContent value="available">
+          {isLoading ? (
+            <div>Loading campaigns...</div>
+          ) : availableCampaigns.length > 0 ? (
+            <div className="grid gap-4">
+              {availableCampaigns.map(campaign => (
+                <CampaignCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No available campaigns match your filters
+            </div>
           )}
         </TabsContent>
 
-        <TabsContent value="participating" className="space-y-4">
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {participatingCampaigns.map((campaign) => (
-              <CampaignCard key={campaign.id} campaign={campaign} />
-            ))}
-          </div>
-          {participatingCampaigns.length === 0 && (
-            <Card className="p-8 text-center">
-              <CardDescription>You haven't joined any campaigns yet.</CardDescription>
-            </Card>
+        <TabsContent value="my-campaigns">
+          {isLoading ? (
+            <div>Loading your campaigns...</div>
+          ) : joinedCampaigns.length > 0 ? (
+            <div className="grid gap-4">
+              {joinedCampaigns.map(campaign => (
+                <CampaignCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              You haven't joined any campaigns yet
+            </div>
           )}
         </TabsContent>
       </Tabs>

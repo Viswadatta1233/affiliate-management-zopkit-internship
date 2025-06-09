@@ -83,9 +83,14 @@ CREATE TABLE "campaigns" (
 	"description" text NOT NULL,
 	"start_date" timestamp NOT NULL,
 	"end_date" timestamp,
-	"status" text DEFAULT 'draft' NOT NULL,
+	"status" text DEFAULT 'active' NOT NULL,
 	"type" text NOT NULL,
-	"metrics" jsonb DEFAULT '{"totalReach":0,"engagementRate":0,"revenue":0}'::jsonb NOT NULL,
+	"target_audience_age_group" text NOT NULL,
+	"required_influencer_niche" text NOT NULL,
+	"basic_guidelines" text NOT NULL,
+	"preferred_social_media" text NOT NULL,
+	"marketing_objective" text NOT NULL,
+	"metrics" jsonb DEFAULT '{"totalReach":0,"engagementRate":0,"conversions":0,"revenue":0}'::jsonb NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );

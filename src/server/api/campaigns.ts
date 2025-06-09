@@ -13,10 +13,23 @@ const campaignSchema = z.object({
   description: z.string(),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
-  type: z.enum(['referral', 'affiliate']),
-  requirements: z.record(z.any()),
-  rewards: z.record(z.any()),
-  content: z.record(z.any())
+  type: z.enum(['product', 'service', 'event']),
+  targetAudienceAgeGroup: z.string().min(1),
+  requiredInfluencerNiche: z.string().min(1),
+  basicGuidelines: z.string().min(1),
+  preferredSocialMedia: z.string().min(1),
+  marketingObjective: z.string().min(1),
+  metrics: z.object({
+    totalReach: z.number().default(0),
+    engagementRate: z.number().default(0),
+    conversions: z.number().default(0),
+    revenue: z.number().default(0)
+  }).default({
+    totalReach: 0,
+    engagementRate: 0,
+    conversions: 0,
+    revenue: 0
+  })
 });
 
 // Type-safe request handlers
@@ -61,9 +74,12 @@ const createCampaign: AuthenticatedRequestHandler = async (req, res) => {
       startDate: start,
       endDate: end,
       type: result.data.type,
-      requirements: result.data.requirements,
-      rewards: result.data.rewards,
-      content: result.data.content,
+      targetAudienceAgeGroup: result.data.targetAudienceAgeGroup,
+      requiredInfluencerNiche: result.data.requiredInfluencerNiche,
+      basicGuidelines: result.data.basicGuidelines,
+      preferredSocialMedia: result.data.preferredSocialMedia,
+      marketingObjective: result.data.marketingObjective,
+      metrics: result.data.metrics,
       tenantId: req.user.tenantId,
       createdAt: new Date(),
       updatedAt: new Date()

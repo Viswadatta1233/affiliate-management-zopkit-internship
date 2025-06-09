@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import { useCampaignStore } from '@/store/campaign-store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Users, ArrowRight, Copy } from 'lucide-react';
+import { Calendar, Clock, Users, ArrowRight, Copy, Target, Share2, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CampaignFilters } from "@/components/campaign/campaign-filters";
+import { NICHE_OPTIONS, AGE_GROUP_OPTIONS } from '@/lib/constants';
 
 interface CampaignParticipation {
   id: string;
@@ -33,6 +35,17 @@ interface Campaign {
   status: string;
   type?: string;
   participations?: CampaignParticipation[];
+  targetAudienceAgeGroup?: string;
+  requiredInfluencerNiche?: string;
+  preferredSocialMedia?: string;
+  marketingObjective?: string;
+  basicGuidelines?: string;
+  metrics?: {
+    totalReach: number;
+    engagementRate: number;
+    conversions: number;
+    revenue: number;
+  };
 }
 
 export default function MarketingCampaigns() {
@@ -44,6 +57,12 @@ export default function MarketingCampaigns() {
   const isInfluencer = user?.role?.roleName === 'influencer';
   const isPotentialInfluencer = user?.role?.roleName === 'potential_influencer';
   const [isLoading, setIsLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    targetAudienceAgeGroup: "all",
+    requiredNiche: "all",
+    startDate: null as Date | null,
+    endDate: null as Date | null
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -117,6 +136,7 @@ export default function MarketingCampaigns() {
       </CardHeader>
       <CardContent>
         <p className="text-gray-600 mb-4">{campaign?.description || 'No description available'}</p>
+        
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-gray-500" />
@@ -133,8 +153,72 @@ export default function MarketingCampaigns() {
             </div>
           )}
         </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Users className="h-4 w-4 text-gray-500 mr-2" />
+              <span className="text-sm">Target Age Group</span>
+            </div>
+            <span className="text-sm font-medium">{campaign?.targetAudienceAgeGroup}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Target className="h-4 w-4 text-gray-500 mr-2" />
+              <span className="text-sm">Required Niche</span>
+            </div>
+            <span className="text-sm font-medium">{campaign?.requiredInfluencerNiche}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Share2 className="h-4 w-4 text-gray-500 mr-2" />
+              <span className="text-sm">Platform</span>
+            </div>
+            <span className="text-sm font-medium">{campaign?.preferredSocialMedia}</span>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <Target className="h-4 w-4 text-gray-500 mr-2" />
+              <span className="text-sm font-medium">Marketing Objective</span>
+            </div>
+            <p className="text-sm text-gray-600">{campaign?.marketingObjective}</p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <ClipboardList className="h-4 w-4 text-gray-500 mr-2" />
+              <span className="text-sm font-medium">Guidelines</span>
+            </div>
+            <p className="text-sm text-gray-600">{campaign?.basicGuidelines}</p>
+          </div>
+
+          {campaign?.metrics && (
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div>
+                <p className="text-sm text-gray-500">Total Reach</p>
+                <p className="text-lg font-semibold">{campaign.metrics.totalReach}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Engagement Rate</p>
+                <p className="text-lg font-semibold">{campaign.metrics.engagementRate}%</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Conversions</p>
+                <p className="text-lg font-semibold">{campaign.metrics.conversions}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Revenue</p>
+                <p className="text-lg font-semibold">${campaign.metrics.revenue}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
         {participations.filter(p => p.campaignId === campaign.id).length > 0 && (
-          <div className="mt-4">
+          <div className="mt-6">
             <h4 className="text-sm font-medium mb-2">Influencer Participations</h4>
             <Table>
               <TableHeader>
@@ -147,15 +231,15 @@ export default function MarketingCampaigns() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {participations.filter(p => p.campaignId === campaign.id).map((participation: CampaignParticipation) => (
+                {participations.filter(p => p.campaignId === campaign.id).map((participation) => (
                   <TableRow key={participation.id}>
-                    <TableCell>{participation.influencerName}</TableCell>
+                    <TableCell>{participation.influencerName || 'Unknown Influencer'}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
                           participation.status === "completed"
                             ? "default"
-                            : participation.status === "in_progress"
+                            : participation.status === "active"
                             ? "secondary"
                             : "outline"
                         }
@@ -164,10 +248,12 @@ export default function MarketingCampaigns() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {typeof participation.joinedAt === 'string' ? participation.joinedAt.split('T')[0] : participation.joinedAt instanceof Date ? participation.joinedAt.toLocaleDateString() : ''}
+                      {participation.joinedAt 
+                        ? new Date(participation.joinedAt).toLocaleDateString()
+                        : ''}
                     </TableCell>
                     <TableCell>
-                      {participation.promotionalLinks?.map((link: string, index: number) => (
+                      {participation.promotionalLinks?.map((link, index) => (
                         <div key={index} className="flex items-center gap-2 mb-1">
                           <code className="text-xs bg-muted px-1 py-0.5 rounded">
                             {link}
@@ -184,7 +270,7 @@ export default function MarketingCampaigns() {
                       ))}
                     </TableCell>
                     <TableCell>
-                      {participation.promotionalCodes?.map((code: string, index: number) => (
+                      {participation.promotionalCodes?.map((code, index) => (
                         <div key={index} className="flex items-center gap-2 mb-1">
                           <code className="text-xs bg-muted px-1 py-0.5 rounded">
                             {code}
@@ -210,21 +296,98 @@ export default function MarketingCampaigns() {
     </Card>
   );
 
+  const handleFilterChange = (newFilters: typeof filters) => {
+    setFilters(newFilters);
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      targetAudienceAgeGroup: "all",
+      requiredNiche: "all",
+      startDate: null,
+      endDate: null
+    });
+  };
+
+  // Fixed filtering logic
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter(campaign => {
+      // Age group filter
+      if (filters.targetAudienceAgeGroup !== "all" && 
+          campaign.targetAudienceAgeGroup !== filters.targetAudienceAgeGroup) {
+        return false;
+      }
+
+      // Niche filter - case insensitive comparison
+      if (filters.requiredNiche !== "all" && 
+          campaign.requiredInfluencerNiche.toLowerCase() !== filters.requiredNiche.toLowerCase()) {
+        console.log('Niche filter:', {
+          campaignNiche: campaign.requiredInfluencerNiche,
+          filterNiche: filters.requiredNiche,
+          normalizedCampaignNiche: campaign.requiredInfluencerNiche.toLowerCase(),
+          normalizedFilterNiche: filters.requiredNiche.toLowerCase()
+        });
+        return false;
+      }
+
+      // Date range filtering
+      if (filters.startDate || filters.endDate) {
+        const campaignStartDate = new Date(campaign.startDate);
+        const campaignEndDate = new Date(campaign.endDate);
+
+        // Start date filter
+        if (filters.startDate) {
+          const filterStartDate = new Date(filters.startDate);
+          // Set both dates to start of day for accurate comparison
+          campaignStartDate.setHours(0, 0, 0, 0);
+          filterStartDate.setHours(0, 0, 0, 0);
+          
+          console.log('Start date filter:', {
+            campaignStart: campaignStartDate,
+            filterStart: filterStartDate
+          });
+
+          if (campaignStartDate < filterStartDate) {
+            return false;
+          }
+        }
+
+        // End date filter
+        if (filters.endDate) {
+          const filterEndDate = new Date(filters.endDate);
+          // Set both dates to end of day for accurate comparison
+          campaignEndDate.setHours(23, 59, 59, 999);
+          filterEndDate.setHours(23, 59, 59, 999);
+          
+          console.log('End date filter:', {
+            campaignEnd: campaignEndDate,
+            filterEnd: filterEndDate
+          });
+
+          if (campaignEndDate > filterEndDate) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [campaigns, filters]);
+
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Marketing Campaigns</h1>
-          <p className="text-muted-foreground">
-            {isAdmin ? 'Manage your marketing campaigns' : 'Browse available campaigns'}
-          </p>
-        </div>
-        {isAdmin && (
-          <Button onClick={() => navigate('/marketing/campaigns/new')}>
-            Create Campaign
-          </Button>
-        )}
+        <h1 className="text-3xl font-bold">Campaigns</h1>
+        <Button onClick={() => navigate('/marketing/campaigns/create')}>
+          Create Campaign
+        </Button>
       </div>
+
+      <CampaignFilters
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onReset={handleResetFilters}
+      />
 
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
@@ -234,13 +397,17 @@ export default function MarketingCampaigns() {
 
         <TabsContent value="all" className="space-y-4">
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {campaigns.map((campaign) => (
+            {filteredCampaigns.map((campaign) => (
               <CampaignCard key={campaign.id} campaign={campaign} />
             ))}
           </div>
-          {campaigns.length === 0 && (
+          {filteredCampaigns.length === 0 && (
             <Card className="p-8 text-center">
-              <CardDescription>No campaigns available.</CardDescription>
+              <CardDescription>
+                {campaigns.length === 0 
+                  ? "No campaigns available."
+                  : "No campaigns match your current filters."}
+              </CardDescription>
             </Card>
           )}
         </TabsContent>
@@ -248,15 +415,19 @@ export default function MarketingCampaigns() {
         {!isAdmin && (
           <TabsContent value="participating" className="space-y-4">
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {campaigns
+              {filteredCampaigns
                 .filter(campaign => participations.some(p => p.campaignId === campaign.id))
                 .map((campaign) => (
                   <CampaignCard key={campaign.id} campaign={campaign} />
                 ))}
             </div>
-            {campaigns.filter(campaign => participations.some(p => p.campaignId === campaign.id)).length === 0 && (
+            {filteredCampaigns.filter(campaign => participations.some(p => p.campaignId === campaign.id)).length === 0 && (
               <Card className="p-8 text-center">
-                <CardDescription>You haven't joined any campaigns yet.</CardDescription>
+                <CardDescription>
+                  {campaigns.filter(campaign => participations.some(p => p.campaignId === campaign.id)).length === 0
+                    ? "You haven't joined any campaigns yet."
+                    : "No campaigns match your current filters."}
+                </CardDescription>
               </Card>
             )}
           </TabsContent>

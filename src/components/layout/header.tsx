@@ -44,12 +44,13 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
 
   // Get tenant name or default
   const getTenantName = () => {
-    return tenant?.tenantName || 'Affiliate Platform';
+    return tenant?.name || 'Affiliate Platform';
   };
 
   // Get tenant initial or default
   const getTenantInitial = () => {
-    return tenant?.tenantName?.charAt(0) || 'A';
+    console.log(tenant?.name);
+    return tenant?.name?.charAt(0) || 'A';
   };
 
   return (

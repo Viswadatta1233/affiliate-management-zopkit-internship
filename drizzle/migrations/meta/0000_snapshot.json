@@ -1,5 +1,5 @@
 {
-  "id": "ab59264e-64b7-48cd-8d21-26efb22f61ad",
+  "id": "9cee3b35-aecc-41ec-88af-847726a8937b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -726,10 +726,40 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'draft'"
+          "default": "'active'"
         },
         "type": {
           "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_audience_age_group": {
+          "name": "target_audience_age_group",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "required_influencer_niche": {
+          "name": "required_influencer_niche",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "basic_guidelines": {
+          "name": "basic_guidelines",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preferred_social_media": {
+          "name": "preferred_social_media",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "marketing_objective": {
+          "name": "marketing_objective",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -739,7 +769,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{\"totalReach\":0,\"engagementRate\":0,\"revenue\":0}'::jsonb"
+          "default": "'{\"totalReach\":0,\"engagementRate\":0,\"conversions\":0,\"revenue\":0}'::jsonb"
         },
         "created_at": {
           "name": "created_at",

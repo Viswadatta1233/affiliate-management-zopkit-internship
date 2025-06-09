@@ -1,21 +1,36 @@
 // Existing types...
 
 // Campaign Management
-export type Campaign = {
+export interface Campaign {
   id: string;
-  tenantId: string;
   name: string;
   description: string;
-  startDate: Date;
-  endDate: Date | null;
-  status: 'draft' | 'active' | 'completed' | 'archived';
-  type: 'referral' | 'affiliate';
-  requirements: Record<string, any>;
-  rewards: Record<string, any>;
-  content: Record<string, any>;
-  createdAt: Date;
-  updatedAt: Date;
-};
+  startDate: string | Date;
+  endDate: string | Date;
+  status: string;
+  type: string;
+  targetAudienceAgeGroup: string;
+  requiredInfluencerNiche: string;
+  basicGuidelines: string;
+  preferredSocialMedia: string;
+  marketingObjective: string;
+  metrics: {
+    totalReach: number;
+    engagementRate: number;
+    conversions: number;
+    revenue: number;
+  };
+  rewards?: {
+    commissionRate: number;
+    bonusAmount?: number;
+    bonusThreshold?: number;
+  };
+  requirements?: {
+    minFollowers?: number;
+  };
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
 
 export type CampaignParticipation = {
   id: string;

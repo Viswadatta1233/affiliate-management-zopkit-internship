@@ -182,15 +182,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
         </button>
       )}
       {/* Tenant Name Display */}
-      {t?.tenantName ? (
+      {t?.name ? (
         <div className="px-4 pt-2 pb-4 flex flex-col items-center">
           <div className="flex items-center justify-center w-full mb-2">
-            <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-400 text-white text-2xl font-bold shadow-md border-2 border-white">
-              {(t.tenantName[0] || '?').toUpperCase()}
-            </span>
+            {t.logoUrl ? (
+              <img
+                src={t.logoUrl}
+                alt={`${t.name} Logo`}
+                className="h-10 w-auto min-w-[2.5rem] rounded-full bg-white border-2 border-white shadow"
+              />
+            ) : (
+              <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-400 text-white text-2xl font-bold shadow-md border-2 border-white">
+                {(t.name[0] || '?').toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="rounded-xl bg-gradient-to-tr from-blue-50 to-indigo-100 text-blue-900 font-extrabold text-xl text-center tracking-wide shadow border border-blue-200 px-4 py-2 w-full">
-            {t.tenantName}
+            {t.name}
           </div>
         </div>
       ) : (

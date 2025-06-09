@@ -13,11 +13,16 @@ const campaignSchema = z.object({
   endDate: z.string().optional().transform(str => str ? new Date(str) : undefined),
   status: z.enum(['draft', 'active', 'paused', 'completed']).default('draft'),
   type: z.enum(['product', 'service', 'event']),
+  targetAudienceAgeGroup: z.string().min(1),
+  requiredInfluencerNiche: z.string().min(1),
+  basicGuidelines: z.string().min(1),
+  preferredSocialMedia: z.string().min(1),
+  marketingObjective: z.string().min(1),
   metrics: z.object({
-    totalReach: z.number(),
-    engagementRate: z.number(),
-    conversions: z.number(),
-    revenue: z.number()
+    totalReach: z.number().default(0),
+    engagementRate: z.number().default(0),
+    conversions: z.number().default(0),
+    revenue: z.number().default(0)
   }).default({
     totalReach: 0,
     engagementRate: 0,

@@ -26,14 +26,53 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth-store';
 import { apiCampaigns } from '@/lib/api';
+import { NICHE_OPTIONS, AGE_GROUP_OPTIONS } from '@/lib/constants';
+
+const influencerNiches = [
+  'Fashion',
+  'Beauty',
+  'Fitness',
+  'Food',
+  'Travel',
+  'Technology',
+  'Gaming',
+  'Lifestyle',
+  'Business',
+  'Education',
+  'Entertainment',
+  'Sports',
+  'Health',
+  'Art',
+  'Music'
+];
+
+const socialMediaPlatforms = [
+  'Instagram',
+  'YouTube',
+  'TikTok',
+  'Facebook',
+  'Twitter',
+  'LinkedIn',
+  'Pinterest',
+  'Snapchat'
+];
 
 // Campaign schema matching the backend
 const campaignSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, 'Campaign name is required'),
   description: z.string().min(1, 'Description is required'),
-  startDate: z.date(),
-  endDate: z.date().nullable(),
-  type: z.enum(['product', 'service', 'event']),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().min(1, 'End date is required'),
+  type: z.string().min(1, 'Campaign type is required'),
+  targetAudienceAgeGroup: z.enum(AGE_GROUP_OPTIONS.map(a => a.value) as [string, ...string[]], {
+    required_error: "Please select target audience age group",
+  }),
+  requiredInfluencerNiche: z.enum(NICHE_OPTIONS.map(n => n.value) as [string, ...string[]], {
+    required_error: "Please select required influencer niche",
+  }),
+  basicGuidelines: z.string().min(1, 'Basic guidelines are required'),
+  preferredSocialMedia: z.string().min(1, 'Preferred social media platform is required'),
+  marketingObjective: z.string().min(1, 'Marketing objective is required')
 });
 
 type CampaignFormValues = z.infer<typeof campaignSchema>;
@@ -45,8 +84,17 @@ export default function CreateCampaign() {
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignSchema),
     defaultValues: {
-      type: 'product',
-    },
+      name: '',
+      description: '',
+      startDate: '',
+      endDate: '',
+      type: '',
+      targetAudienceAgeGroup: '',
+      requiredInfluencerNiche: '',
+      basicGuidelines: '',
+      preferredSocialMedia: '',
+      marketingObjective: ''
+    }
   });
 
   const onSubmit = async (data: CampaignFormValues) => {
@@ -87,7 +135,7 @@ export default function CreateCampaign() {
                     <FormItem>
                       <FormLabel>Campaign Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input placeholder="Enter campaign name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -101,7 +149,7 @@ export default function CreateCampaign() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea {...field} />
+                        <Textarea placeholder="Enter campaign description" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -116,10 +164,7 @@ export default function CreateCampaign() {
                       <FormItem>
                         <FormLabel>Start Date</FormLabel>
                         <FormControl>
-                          <DatePicker
-                            date={field.value}
-                            setDate={(date) => field.onChange(date || new Date())}
-                          />
+                          <Input type="date" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -131,12 +176,9 @@ export default function CreateCampaign() {
                     name="endDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>End Date (Optional)</FormLabel>
+                        <FormLabel>End Date</FormLabel>
                         <FormControl>
-                          <DatePicker
-                            date={field.value || undefined}
-                            setDate={(date) => field.onChange(date)}
-                          />
+                          <Input type="date" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -150,10 +192,7 @@ export default function CreateCampaign() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Campaign Type</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select campaign type" />
@@ -169,9 +208,121 @@ export default function CreateCampaign() {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="targetAudienceAgeGroup"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Target Audience Age Group</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select age group" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {AGE_GROUP_OPTIONS.map((ageGroup) => (
+                            <SelectItem key={ageGroup.value} value={ageGroup.value}>
+                              {ageGroup.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="requiredInfluencerNiche"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Required Influencer Niche</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select niche" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {NICHE_OPTIONS.map((niche) => (
+                            <SelectItem key={niche.value} value={niche.value}>
+                              {niche.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="basicGuidelines"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Basic Guidelines</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Enter campaign guidelines" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="preferredSocialMedia"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferred Social Media Platform</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select platform" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {socialMediaPlatforms.map((platform) => (
+                            <SelectItem key={platform} value={platform}>
+                              {platform}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="marketingObjective"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Marketing Objective</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Enter marketing objective" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
-              <Button type="submit" className="w-full">Create Campaign</Button>
+              <div className="flex justify-end space-x-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/marketing/campaigns')}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Create Campaign</Button>
+              </div>
             </form>
           </Form>
         </CardContent>
