@@ -12,6 +12,13 @@ import { useAuthStore } from "@/store/auth-store";
 import { api } from "@/lib/api";
 import { NICHE_OPTIONS, AGE_GROUP_OPTIONS } from '@/lib/constants';
 import { useNavigate } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { DateRange } from 'react-day-picker';
 
 interface CampaignParticipation {
   id: string;
@@ -59,9 +66,10 @@ export default function InfluencerDashboard() {
   const [filters, setFilters] = useState({
     targetAudienceAgeGroup: "all",
     requiredNiche: "all",
-    startDate: null as Date | null,
-    endDate: null as Date | null
+    dateRange: null as DateRange | null
   });
+  const [guidelinesModal, setGuidelinesModal] = useState<{ open: boolean, text: string }>({ open: false, text: '' });
+  const [objectivesModal, setObjectivesModal] = useState<{ open: boolean, text: string }>({ open: false, text: '' });
 
   const isInfluencer = role?.roleName === 'influencer';
   const isPotentialInfluencer = role?.roleName === 'potential_influencer';
@@ -188,8 +196,7 @@ export default function InfluencerDashboard() {
     setFilters({
       targetAudienceAgeGroup: "all",
       requiredNiche: "all",
-      startDate: null,
-      endDate: null
+      dateRange: null
     });
   };
 
@@ -204,52 +211,23 @@ export default function InfluencerDashboard() {
       // Niche filter - case insensitive comparison
       if (filters.requiredNiche !== "all" && 
           campaign.requiredInfluencerNiche.toLowerCase() !== filters.requiredNiche.toLowerCase()) {
-        console.log('Niche filter:', {
-          campaignNiche: campaign.requiredInfluencerNiche,
-          filterNiche: filters.requiredNiche,
-          normalizedCampaignNiche: campaign.requiredInfluencerNiche.toLowerCase(),
-          normalizedFilterNiche: filters.requiredNiche.toLowerCase()
-        });
         return false;
       }
 
-      // Date range filtering
-      if (filters.startDate || filters.endDate) {
+      // Date range filtering (only if both from and to are set)
+      if (filters.dateRange && filters.dateRange.from && filters.dateRange.to) {
         const campaignStartDate = new Date(campaign.startDate);
         const campaignEndDate = new Date(campaign.endDate);
-
-        // Start date filter
-        if (filters.startDate) {
-          const filterStartDate = new Date(filters.startDate);
-          // Set both dates to start of day for accurate comparison
-          campaignStartDate.setHours(0, 0, 0, 0);
-          filterStartDate.setHours(0, 0, 0, 0);
-          
-          console.log('Start date filter:', {
-            campaignStart: campaignStartDate,
-            filterStart: filterStartDate
-          });
-
-          if (campaignStartDate < filterStartDate) {
-            return false;
-          }
-        }
-
-        // End date filter
-        if (filters.endDate) {
-          const filterEndDate = new Date(filters.endDate);
-          // Set both dates to end of day for accurate comparison
-          campaignEndDate.setHours(23, 59, 59, 999);
-          filterEndDate.setHours(23, 59, 59, 999);
-          
-          console.log('End date filter:', {
-            campaignEnd: campaignEndDate,
-            filterEnd: filterEndDate
-          });
-
-          if (campaignEndDate > filterEndDate) {
-            return false;
-          }
+        const filterStart = new Date(filters.dateRange.from);
+        const filterEnd = new Date(filters.dateRange.to);
+        // Set both dates to start/end of day for accurate comparison
+        campaignStartDate.setHours(0, 0, 0, 0);
+        campaignEndDate.setHours(23, 59, 59, 999);
+        filterStart.setHours(0, 0, 0, 0);
+        filterEnd.setHours(23, 59, 59, 999);
+        // Only include campaigns that start on/after filterStart AND end on/before filterEnd
+        if (campaignStartDate < filterStart || campaignEndDate > filterEnd) {
+          return false;
         }
       }
 
@@ -305,40 +283,20 @@ export default function InfluencerDashboard() {
           <div className="space-y-4">
             <div>
               <Button
-                variant="ghost"
-                className="w-full justify-between"
-                onClick={() => toggleGuidelines(campaign.id)}
+                variant="outline"
+                size="sm"
+                className="mr-2"
+                onClick={() => setObjectivesModal({ open: true, text: campaign.marketingObjective })}
               >
-                <span className="flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4" />
-                  Guidelines
-                </span>
-                <span>{expandedGuidelines[campaign.id] ? '▼' : '▶'}</span>
+                View Objectives
               </Button>
-              {expandedGuidelines[campaign.id] && (
-                <div className="mt-2 p-2 bg-muted rounded-md">
-                  {campaign.basicGuidelines}
-                </div>
-              )}
-            </div>
-
-            <div>
               <Button
-                variant="ghost"
-                className="w-full justify-between"
-                onClick={() => toggleObjectives(campaign.id)}
+                variant="outline"
+                size="sm"
+                onClick={() => setGuidelinesModal({ open: true, text: campaign.basicGuidelines })}
               >
-                <span className="flex items-center gap-2">
-                  <BarChart className="h-4 w-4" />
-                  Marketing Objective
-                </span>
-                <span>{expandedObjectives[campaign.id] ? '▼' : '▶'}</span>
+                View Guidelines
               </Button>
-              {expandedObjectives[campaign.id] && (
-                <div className="mt-2 p-2 bg-muted rounded-md">
-                  {campaign.marketingObjective}
-                </div>
-              )}
             </div>
           </div>
 

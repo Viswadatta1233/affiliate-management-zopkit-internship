@@ -5,12 +5,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Users, ArrowRight, Copy, Target, Share2, ClipboardList } from 'lucide-react';
+import { Calendar, Clock, Users, ArrowRight, Copy, Target, Share2, ClipboardList, Loader2, ExternalLink, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CampaignFilters } from "@/components/campaign/campaign-filters";
 import { NICHE_OPTIONS, AGE_GROUP_OPTIONS } from '@/lib/constants';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { format } from 'date-fns';
+import { DateRange } from 'react-day-picker';
 
 interface CampaignParticipation {
   id: string;
@@ -50,7 +59,7 @@ interface Campaign {
 
 export default function MarketingCampaigns() {
   const { user } = useAuthStore();
-  const { campaigns, participations, loadCampaigns, loadParticipations, error } = useCampaignStore();
+  const { campaigns, participations, loadCampaigns, loadParticipations, error, joinCampaign } = useCampaignStore();
   const { toast } = useToast();
   const navigate = useNavigate();
   const isAdmin = user?.role?.roleName === 'admin' || user?.role?.roleName === 'super-admin';
@@ -60,9 +69,12 @@ export default function MarketingCampaigns() {
   const [filters, setFilters] = useState({
     targetAudienceAgeGroup: "all",
     requiredNiche: "all",
-    startDate: null as Date | null,
-    endDate: null as Date | null
+    dateRange: null as DateRange | null
   });
+  const [selectedGuidelines, setSelectedGuidelines] = useState<string>('');
+  const [selectedObjectives, setSelectedObjectives] = useState<string>('');
+  const [guidelinesModal, setGuidelinesModal] = useState<{ open: boolean, text: string }>({ open: false, text: '' });
+  const [objectivesModal, setObjectivesModal] = useState<{ open: boolean, text: string }>({ open: false, text: '' });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -184,7 +196,13 @@ export default function MarketingCampaigns() {
               <Target className="h-4 w-4 text-gray-500 mr-2" />
               <span className="text-sm font-medium">Marketing Objective</span>
             </div>
-            <p className="text-sm text-gray-600">{campaign?.marketingObjective}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setObjectivesModal({ open: true, text: campaign?.marketingObjective || '' })}
+            >
+              View Objectives
+            </Button>
           </div>
 
           <div className="space-y-2">
@@ -192,7 +210,13 @@ export default function MarketingCampaigns() {
               <ClipboardList className="h-4 w-4 text-gray-500 mr-2" />
               <span className="text-sm font-medium">Guidelines</span>
             </div>
-            <p className="text-sm text-gray-600">{campaign?.basicGuidelines}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setGuidelinesModal({ open: true, text: campaign?.basicGuidelines || '' })}
+            >
+              View Guidelines
+            </Button>
           </div>
 
           {campaign?.metrics && (
@@ -304,8 +328,7 @@ export default function MarketingCampaigns() {
     setFilters({
       targetAudienceAgeGroup: "all",
       requiredNiche: "all",
-      startDate: null,
-      endDate: null
+      dateRange: null
     });
   };
 
@@ -321,52 +344,23 @@ export default function MarketingCampaigns() {
       // Niche filter - case insensitive comparison
       if (filters.requiredNiche !== "all" && 
           campaign.requiredInfluencerNiche.toLowerCase() !== filters.requiredNiche.toLowerCase()) {
-        console.log('Niche filter:', {
-          campaignNiche: campaign.requiredInfluencerNiche,
-          filterNiche: filters.requiredNiche,
-          normalizedCampaignNiche: campaign.requiredInfluencerNiche.toLowerCase(),
-          normalizedFilterNiche: filters.requiredNiche.toLowerCase()
-        });
         return false;
       }
 
-      // Date range filtering
-      if (filters.startDate || filters.endDate) {
+      // Date range filtering (only if both from and to are set)
+      if (filters.dateRange && filters.dateRange.from && filters.dateRange.to) {
         const campaignStartDate = new Date(campaign.startDate);
         const campaignEndDate = new Date(campaign.endDate);
-
-        // Start date filter
-        if (filters.startDate) {
-          const filterStartDate = new Date(filters.startDate);
-          // Set both dates to start of day for accurate comparison
-          campaignStartDate.setHours(0, 0, 0, 0);
-          filterStartDate.setHours(0, 0, 0, 0);
-          
-          console.log('Start date filter:', {
-            campaignStart: campaignStartDate,
-            filterStart: filterStartDate
-          });
-
-          if (campaignStartDate < filterStartDate) {
-            return false;
-          }
-        }
-
-        // End date filter
-        if (filters.endDate) {
-          const filterEndDate = new Date(filters.endDate);
-          // Set both dates to end of day for accurate comparison
-          campaignEndDate.setHours(23, 59, 59, 999);
-          filterEndDate.setHours(23, 59, 59, 999);
-          
-          console.log('End date filter:', {
-            campaignEnd: campaignEndDate,
-            filterEnd: filterEndDate
-          });
-
-          if (campaignEndDate > filterEndDate) {
-            return false;
-          }
+        const filterStart = new Date(filters.dateRange.from);
+        const filterEnd = new Date(filters.dateRange.to);
+        // Set both dates to start/end of day for accurate comparison
+        campaignStartDate.setHours(0, 0, 0, 0);
+        campaignEndDate.setHours(23, 59, 59, 999);
+        filterStart.setHours(0, 0, 0, 0);
+        filterEnd.setHours(23, 59, 59, 999);
+        // Only include campaigns that start on/after filterStart AND end on/before filterEnd
+        if (campaignStartDate < filterStart || campaignEndDate > filterEnd) {
+          return false;
         }
       }
 
@@ -374,13 +368,48 @@ export default function MarketingCampaigns() {
     });
   }, [campaigns, filters]);
 
+  const handleJoinCampaign = async (campaignId: string) => {
+    try {
+      await joinCampaign(campaignId);
+      toast({
+        title: 'Success',
+        description: 'You have successfully joined the campaign!',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to join campaign. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-500">
+        <p>Error loading campaigns: {error}</p>
+        <Button onClick={() => loadCampaigns()} className="mt-4">
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Campaigns</h1>
         <Button onClick={() => navigate('/marketing/campaigns/create')}>
-            Create Campaign
-          </Button>
+          Create Campaign
+        </Button>
       </div>
 
       <CampaignFilters
@@ -389,50 +418,42 @@ export default function MarketingCampaigns() {
         onReset={handleResetFilters}
       />
 
-      <Tabs defaultValue="all" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="all">All Campaigns</TabsTrigger>
-          {!isAdmin && <TabsTrigger value="participating">My Campaigns</TabsTrigger>}
-        </TabsList>
-
-        <TabsContent value="all" className="space-y-4">
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {filteredCampaigns.map((campaign) => (
-              <CampaignCard key={campaign.id} campaign={campaign} />
-            ))}
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+        {filteredCampaigns.map((campaign) => (
+          <CampaignCard key={campaign.id} campaign={campaign} />
+        ))}
+      </div>
+      {filteredCampaigns.length === 0 && (
+        <Card className="p-8 text-center">
+          <CardDescription>
+            {campaigns.length === 0 
+              ? "No campaigns available."
+              : "No campaigns match your current filters."}
+          </CardDescription>
+        </Card>
+      )}
+      {/* Guidelines Modal */}
+      <Dialog open={guidelinesModal.open} onOpenChange={open => setGuidelinesModal(m => ({ ...m, open }))}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Campaign Guidelines</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 whitespace-pre-wrap">
+            {guidelinesModal.text || 'No guidelines provided.'}
           </div>
-          {filteredCampaigns.length === 0 && (
-            <Card className="p-8 text-center">
-              <CardDescription>
-                {campaigns.length === 0 
-                  ? "No campaigns available."
-                  : "No campaigns match your current filters."}
-              </CardDescription>
-            </Card>
-          )}
-        </TabsContent>
-
-        {!isAdmin && (
-          <TabsContent value="participating" className="space-y-4">
-            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {filteredCampaigns
-                .filter(campaign => participations.some(p => p.campaignId === campaign.id))
-                .map((campaign) => (
-                  <CampaignCard key={campaign.id} campaign={campaign} />
-                ))}
-            </div>
-            {filteredCampaigns.filter(campaign => participations.some(p => p.campaignId === campaign.id)).length === 0 && (
-              <Card className="p-8 text-center">
-                <CardDescription>
-                  {campaigns.filter(campaign => participations.some(p => p.campaignId === campaign.id)).length === 0
-                    ? "You haven't joined any campaigns yet."
-                    : "No campaigns match your current filters."}
-                </CardDescription>
-              </Card>
-            )}
-          </TabsContent>
-        )}
-      </Tabs>
+        </DialogContent>
+      </Dialog>
+      {/* Objectives Modal */}
+      <Dialog open={objectivesModal.open} onOpenChange={open => setObjectivesModal(m => ({ ...m, open }))}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Marketing Objectives</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 whitespace-pre-wrap">
+            {objectivesModal.text || 'No objectives provided.'}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

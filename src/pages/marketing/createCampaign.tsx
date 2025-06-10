@@ -125,29 +125,165 @@ export default function CreateCampaign() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              {/* Basic Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Basic Information</h3>
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Campaign Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter campaign name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {/* Basics & Demographics side by side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Campaign Basics */}
+                <fieldset className="border border-gray-200 rounded-lg p-6 h-full">
+                  <legend className="text-xl font-bold text-primary bg-gray-50 px-4 py-1 rounded mb-2">Campaign Basics</legend>
+                  <div className="grid grid-cols-1 gap-y-4 mt-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Campaign Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter campaign name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Campaign Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select campaign type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="product">Product</SelectItem>
+                              <SelectItem value="service">Service</SelectItem>
+                              <SelectItem value="event">Event</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="startDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Start Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="endDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>End Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </fieldset>
 
+                {/* Demographics */}
+                <fieldset className="border border-gray-200 rounded-lg p-6 h-full">
+                  <legend className="text-xl font-bold text-primary bg-gray-50 px-4 py-1 rounded mb-2">Demographics</legend>
+                  <div className="grid grid-cols-1 gap-y-4 mt-4">
+                    <FormField
+                      control={form.control}
+                      name="targetAudienceAgeGroup"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Target Audience Age Group</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select age group" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {AGE_GROUP_OPTIONS.map((ageGroup) => (
+                                <SelectItem key={ageGroup.value} value={ageGroup.value}>
+                                  {ageGroup.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="requiredInfluencerNiche"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Required Influencer Niche</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select niche" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {NICHE_OPTIONS.map((niche) => (
+                                <SelectItem key={niche.value} value={niche.value}>
+                                  {niche.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="preferredSocialMedia"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Preferred Social Media Platform</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select platform" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {socialMediaPlatforms.map((platform) => (
+                                <SelectItem key={platform} value={platform}>
+                                  {platform}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </fieldset>
+              </div>
+
+              {/* Description */}
+              <fieldset className="border border-gray-200 rounded-lg p-6 mb-8">
+                <legend className="text-xl font-bold text-primary bg-gray-50 px-4 py-1 rounded mb-2">Description</legend>
                 <FormField
                   control={form.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>Campaign Description</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Enter campaign description" {...field} />
                       </FormControl>
@@ -155,163 +291,40 @@ export default function CreateCampaign() {
                     </FormItem>
                   )}
                 />
+              </fieldset>
 
-                <div className="grid grid-cols-2 gap-4">
+              {/* Guidelines & Objectives */}
+              <fieldset className="border border-gray-200 rounded-lg p-6 mb-8">
+                <legend className="text-xl font-bold text-primary bg-gray-50 px-4 py-1 rounded mb-2">Guidelines & Objectives</legend>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mt-4">
                   <FormField
                     control={form.control}
-                    name="startDate"
+                    name="basicGuidelines"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Start Date</FormLabel>
+                        <FormLabel>Basic Guidelines</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Textarea placeholder="Enter campaign guidelines" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
-                    name="endDate"
+                    name="marketingObjective"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>End Date</FormLabel>
+                        <FormLabel>Marketing Objective</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Textarea placeholder="Enter marketing objective" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Campaign Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select campaign type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="product">Product</SelectItem>
-                          <SelectItem value="service">Service</SelectItem>
-                          <SelectItem value="event">Event</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="targetAudienceAgeGroup"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Target Audience Age Group</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select age group" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {AGE_GROUP_OPTIONS.map((ageGroup) => (
-                            <SelectItem key={ageGroup.value} value={ageGroup.value}>
-                              {ageGroup.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="requiredInfluencerNiche"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Required Influencer Niche</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select niche" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {NICHE_OPTIONS.map((niche) => (
-                            <SelectItem key={niche.value} value={niche.value}>
-                              {niche.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="basicGuidelines"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Basic Guidelines</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Enter campaign guidelines" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="preferredSocialMedia"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preferred Social Media Platform</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select platform" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {socialMediaPlatforms.map((platform) => (
-                            <SelectItem key={platform} value={platform}>
-                              {platform}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="marketingObjective"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Marketing Objective</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Enter marketing objective" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              </fieldset>
 
               <div className="flex justify-end space-x-4">
                 <Button
