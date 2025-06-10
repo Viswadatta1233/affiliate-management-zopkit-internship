@@ -178,7 +178,7 @@ export function InviteDialog({ trigger }: InviteDialogProps) {
                           onCheckedChange={(checked) => toggleProductCommission(product.id, checked as boolean)}
                         />
                         <label htmlFor={`commission-${product.id}`} className="text-sm text-muted-foreground">
-                          Use product commission
+                          Use product commission as default
                         </label>
                       </div>
                     )}

@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth-store';
 import { Toaster } from '@/components/ui/sonner';
 import { ModeToggle } from '@/components/theme/mode-toggle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Home } from 'lucide-react';
+import { Home, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SidebarItem } from './SidebarItem';
+import { Button } from '@/components/ui/button';
 
 const InfluencerShell: React.FC = () => {
-  const { isAuthenticated, isLoading, loadUserData, user } = useAuthStore();
+  const { isAuthenticated, isLoading, loadUserData, user, logout } = useAuthStore();
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Check for mobile view
   useEffect(() => {
@@ -36,6 +38,11 @@ const InfluencerShell: React.FC = () => {
       loadUserData();
     }
   }, [isAuthenticated, user, loadUserData]);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   // Loading skeleton
   if (isLoading && !isAuthenticated) {
@@ -96,6 +103,15 @@ const InfluencerShell: React.FC = () => {
               {user?.firstName} {user?.lastName}
             </span>
             <ModeToggle />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </Button>
           </div>
         </div>
       </header>
