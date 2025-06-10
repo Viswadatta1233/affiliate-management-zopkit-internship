@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Select,
   SelectContent,
@@ -61,10 +61,19 @@ export default function Affiliates() {
         productId,
         useProductCommission: checked,
       });
-      toast({ title: 'Commission status updated' });
+      toast({ 
+        title: 'Success',
+        description: 'Commission status updated successfully',
+        duration: 5000,
+      });
       refetch();
     } catch (error: any) {
-      toast({ title: 'Failed to update commission', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error',
+        description: error.message || 'Failed to update commission status',
+        variant: 'destructive',
+        duration: 5000,
+      });
     }
   };
 

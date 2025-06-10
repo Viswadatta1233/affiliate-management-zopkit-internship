@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -25,6 +25,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth-store';
 import { NICHE_OPTIONS } from '@/lib/constants';
+import { Eye, EyeOff } from 'lucide-react';
 
 const influencerFormSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
@@ -71,6 +72,8 @@ export function InfluencerRegistrationForm() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login } = useAuthStore();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const form = useForm<InfluencerFormValues>({
     resolver: zodResolver(influencerFormSchema),
     defaultValues: {
@@ -235,7 +238,22 @@ export function InfluencerRegistrationForm() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="Enter your password" {...field} />
+                  <div className="relative">
+                    <Input 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="Enter your password" 
+                      {...field} 
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -277,7 +295,22 @@ export function InfluencerRegistrationForm() {
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="Confirm your password" {...field} />
+                  <div className="relative">
+                    <Input 
+                      type={showConfirmPassword ? "text" : "password"} 
+                      placeholder="Confirm your password" 
+                      {...field} 
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>

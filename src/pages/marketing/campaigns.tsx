@@ -379,8 +379,8 @@ export default function MarketingCampaigns() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Campaigns</h1>
         <Button onClick={() => navigate('/marketing/campaigns/create')}>
-          Create Campaign
-        </Button>
+            Create Campaign
+          </Button>
       </div>
 
       <CampaignFilters

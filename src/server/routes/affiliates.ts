@@ -66,6 +66,7 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
         productIds: validatedData.productIds,
         token,
         expiresAt,
+        status: 'pending'
       }).returning();
 
       // Get commission tiers and rules for the email
@@ -150,7 +151,15 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
         throw emailError;
       }
 
-      return { message: 'Invitation sent successfully' };
+      return reply.status(201).send({ 
+        message: 'Invitation sent successfully',
+        invite: {
+          id: invite.id,
+          email: invite.email,
+          status: invite.status,
+          expiresAt: invite.expiresAt
+        }
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return reply.status(400).send({ 
@@ -159,7 +168,10 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
       fastify.log.error('Error sending invite:', error);
-      return reply.status(500).send({ error: 'Failed to send invite' });
+      return reply.status(500).send({ 
+        error: 'Failed to send invite',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
@@ -466,29 +478,43 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
 
       const tenantId = request.user.tenantId;
 
-      // Fetch pending invites with product details
+      // Fetch pending invites
       const pendingInvites = await db.query.affiliateInvites.findMany({
         where: and(
           eq(affiliateInvites.tenantId, tenantId),
           eq(affiliateInvites.status, 'pending')
         ),
-        with: {
-          product: {
+        orderBy: (invites) => invites.createdAt
+      });
+
+      // Get product details for each invite
+      const invitesWithProducts = await Promise.all(
+        pendingInvites.map(async (invite) => {
+          const productIds = invite.productIds as string[];
+          const productList = await db.query.products.findMany({
+            where: inArray(products.id, productIds),
             columns: {
               id: true,
               name: true,
               description: true,
               commissionPercent: true
             }
-          }
-        },
-        orderBy: (invites) => invites.createdAt
-      });
+          });
 
-      return pendingInvites;
+          return {
+            ...invite,
+            product: productList[0] || null // Get the first product for display
+          };
+        })
+      );
+
+      return invitesWithProducts;
     } catch (error) {
       fastify.log.error('Error fetching pending invites:', error);
-      return reply.status(500).send({ error: 'Failed to fetch pending invites' });
+      return reply.status(500).send({ 
+        error: 'Failed to fetch pending invites',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 

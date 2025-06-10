@@ -25,6 +25,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Eye, EyeOff } from 'lucide-react';
 
 type FormData = z.infer<typeof loginSchema>;
 
@@ -184,7 +185,7 @@ export function LoginForm() {
                     className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? 'Hide' : 'Show'}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
               </FormControl>

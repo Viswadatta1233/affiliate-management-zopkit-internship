@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Share2, Target, Users, Calendar, ClipboardList, BarChart } from "lucide-react";
+import { Copy, Share2, Target, Users, Calendar, ClipboardList, BarChart, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/sonner";
 import { CampaignFilters } from "@/components/campaign/campaign-filters";
 import { useAuthStore } from "@/store/auth-store";
 import { api } from "@/lib/api";
@@ -48,12 +49,13 @@ interface Campaign {
 export default function InfluencerDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, role } = useAuthStore();
+  const { user, role, loadUserData } = useAuthStore();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [participations, setParticipations] = useState<CampaignParticipation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedGuidelines, setExpandedGuidelines] = useState<Record<string, boolean>>({});
   const [expandedObjectives, setExpandedObjectives] = useState<Record<string, boolean>>({});
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     targetAudienceAgeGroup: "all",
     requiredNiche: "all",
@@ -63,6 +65,46 @@ export default function InfluencerDashboard() {
 
   const isInfluencer = role?.roleName === 'influencer';
   const isPotentialInfluencer = role?.roleName === 'potential_influencer';
+
+  // Smart role check
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    // Only start checking if user is a potential influencer
+    if (isPotentialInfluencer) {
+      interval = setInterval(async () => {
+        try {
+          await loadUserData();
+          // If role has changed to influencer, show success message and stop checking
+          if (role?.roleName === 'influencer') {
+            setSuccessMessage("Your account has been approved! You can now join campaigns.");
+            if (interval) {
+              clearInterval(interval);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking role update:', error);
+        }
+      }, 10000); // Check every 10 seconds
+    }
+
+    // Cleanup interval on unmount or when role changes
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isPotentialInfluencer, role?.roleName, loadUserData]);
+
+  // Auto-hide success message after 5 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   useEffect(() => {
     fetchData();
@@ -93,17 +135,11 @@ export default function InfluencerDashboard() {
     try {
       const response = await api.post(`/api/campaigns/${campaignId}/join`, {});
       setParticipations(prev => [...prev, response.data]);
-      toast({
-        title: "Success",
-        description: "Successfully joined the campaign",
-      });
-    } catch (error) {
+      setSuccessMessage("Successfully joined the campaign!");
+      fetchData();
+    } catch (error: any) {
       console.error('Error joining campaign:', error);
-      toast({
-        title: "Error",
-        description: "Failed to join campaign",
-        variant: "destructive"
-      });
+      setSuccessMessage(error.message || "Failed to join campaign");
     }
   };
 
@@ -366,9 +402,18 @@ export default function InfluencerDashboard() {
 
   return (
     <div className="container mx-auto py-6">
+      <Toaster position="bottom-right" />
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Influencer Dashboard</h1>
       </div>
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
+          <CheckCircle2 className="h-5 w-5" />
+          <span>{successMessage}</span>
+        </div>
+      )}
 
       <CampaignFilters
         filters={filters}

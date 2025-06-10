@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { Eye, EyeOff } from 'lucide-react';
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -29,6 +30,7 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export const RegisterForm: React.FC = () => {
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { register: registerUser } = useAuthStore();
   const form = useForm<RegisterFormValues>({
@@ -110,7 +112,22 @@ export const RegisterForm: React.FC = () => {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="********" {...field} />
+                <div className="relative">
+                  <Input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="********" 
+                    {...field} 
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>

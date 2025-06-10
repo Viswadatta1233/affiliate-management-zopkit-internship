@@ -97,12 +97,12 @@ export function CampaignCard({ campaign, onOptIn, isParticipating, isLoading, er
       <CardContent className="flex-1">
         <div className="space-y-4">
           {campaign.rewards?.commissionRate && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <DollarSign className="w-4 h-4 mr-2 text-muted-foreground" />
-                <span>Commission Rate</span>
-              </div>
-              <span className="font-medium">{campaign.rewards.commissionRate}%</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <DollarSign className="w-4 h-4 mr-2 text-muted-foreground" />
+              <span>Commission Rate</span>
+            </div>
+            <span className="font-medium">{campaign.rewards.commissionRate}%</span>
             </div>
           )}
 

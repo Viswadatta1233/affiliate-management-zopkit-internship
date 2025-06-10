@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -17,11 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { apiProducts, api } from '@/lib/api';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface InviteDialogProps {
   trigger?: React.ReactNode;
@@ -32,8 +32,25 @@ export function InviteDialog({ trigger }: InviteDialogProps) {
   const [email, setEmail] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [productCommissionSettings, setProductCommissionSettings] = useState<Record<string, boolean>>({});
-  const { toast } = useToast();
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const queryClient = useQueryClient();
+
+  // Debug message state changes
+  useEffect(() => {
+    console.log('Message state updated:', message);
+  }, [message]);
+
+  // Auto-hide message after 5 seconds
+  useEffect(() => {
+    if (message) {
+      console.log('Setting up auto-hide timer for message:', message);
+      const timer = setTimeout(() => {
+        console.log('Auto-hiding message');
+        setMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const { data: products, isLoading: isLoadingProducts } = useQuery({
     queryKey: ['products'],
@@ -46,33 +63,63 @@ export function InviteDialog({ trigger }: InviteDialogProps) {
       productIds: string[]; 
       productCommissionSettings: Record<string, boolean>;
     }) => {
-      return api.post('/api/affiliates/invite', data);
+      console.log('Sending invite with data:', data);
+      const response = await api.post('/api/affiliates/invite', data);
+      console.log('Invite response:', response);
+      return response.data;
     },
-    onSuccess: () => {
-      toast({ title: 'Invitation sent successfully' });
-      setIsOpen(false);
-      setEmail('');
-      setSelectedProducts([]);
-      setProductCommissionSettings({});
-      queryClient.invalidateQueries({ queryKey: ['affiliates'] });
+    onSuccess: (data) => {
+      console.log('Invite sent successfully:', data);
+      // Set message first
+      setMessage({
+        type: 'success',
+        text: `Invitation sent successfully to ${email}`
+      });
+      
+      // Then update other state
+      setTimeout(() => {
+        setIsOpen(false);
+        setEmail('');
+        setSelectedProducts([]);
+        setProductCommissionSettings({});
+        queryClient.invalidateQueries({ queryKey: ['affiliates'] });
+      }, 1000); // Small delay to ensure message is shown
     },
-    onError: (error: Error) => {
-      toast({ 
-        title: 'Error sending invite',
-        description: error.message,
-        variant: 'destructive',
+    onError: (error: any) => {
+      console.error('Error sending invite:', error);
+      setMessage({
+        type: 'error',
+        text: error.message || 'Failed to send invitation. Please try again.'
       });
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || selectedProducts.length === 0) return;
-    inviteMutation.mutate({ 
-      email, 
-      productIds: selectedProducts, 
-      productCommissionSettings 
-    });
+    if (!email || selectedProducts.length === 0) {
+      setMessage({
+        type: 'error',
+        text: 'Please enter an email and select at least one product.'
+      });
+      return;
+    }
+    
+    try {
+      console.log('Submitting invite form:', {
+        email,
+        selectedProducts,
+        productCommissionSettings
+      });
+      
+      await inviteMutation.mutateAsync({ 
+        email, 
+        productIds: selectedProducts, 
+        productCommissionSettings 
+      });
+    } catch (error) {
+      // Error is handled by onError callback
+      console.error('Error in handleSubmit:', error);
+    }
   };
 
   const toggleProduct = (productId: string) => {
@@ -131,6 +178,23 @@ export function InviteDialog({ trigger }: InviteDialogProps) {
             Send an invitation to join your affiliate program. Select one or more products.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-700'
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}>
+            {message.type === 'success' ? (
+              <CheckCircle2 className="h-5 w-5" />
+            ) : (
+              <AlertCircle className="h-5 w-5" />
+            )}
+            <span>{message.text}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Email Address</label>

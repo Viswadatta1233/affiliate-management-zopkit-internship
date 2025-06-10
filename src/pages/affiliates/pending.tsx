@@ -15,17 +15,21 @@ import {
 import { format } from 'date-fns';
 import { CheckCircle, XCircle, UserPlus } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import api from '@/lib/axios';
+import { api } from '@/lib/api';
 
 interface PendingInvite {
   id: string;
   email: string;
+  productIds: string[];
   product: {
+    id: string;
     name: string;
     description: string | null;
-  };
+    commissionPercent: string;
+  } | null;
   createdAt: string;
   expiresAt: string;
+  status: string;
 }
 
 const PendingAffiliates: React.FC = () => {
@@ -39,12 +43,15 @@ const PendingAffiliates: React.FC = () => {
 
   const fetchPendingInvites = async () => {
     try {
-      const response = await api.get('/affiliates/pending-invites');
+      setLoading(true);
+      const response = await api.get('/api/affiliates/pending-invites');
+      console.log('Pending invites response:', response);
       setPendingInvites(response.data);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error fetching pending invites:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch pending invites",
+        description: error.message || "Failed to fetch pending invites",
         variant: "destructive",
       });
     } finally {
@@ -54,16 +61,17 @@ const PendingAffiliates: React.FC = () => {
 
   const handleApprove = async (id: string) => {
     try {
-      await api.post(`/affiliates/approve/${id}`);
+      await api.post(`/api/affiliates/approve/${id}`, {});
       toast({
         title: "Success",
         description: "Affiliate invite approved successfully",
       });
       fetchPendingInvites(); // Refresh the list
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error approving invite:', error);
       toast({
         title: "Error",
-        description: "Failed to approve affiliate invite",
+        description: error.message || "Failed to approve affiliate invite",
         variant: "destructive",
       });
     }
@@ -71,16 +79,17 @@ const PendingAffiliates: React.FC = () => {
 
   const handleReject = async (id: string) => {
     try {
-      await api.post(`/affiliates/reject/${id}`);
+      await api.post(`/api/affiliates/reject/${id}`, {});
       toast({
         title: "Success",
         description: "Affiliate invite rejected successfully",
       });
       fetchPendingInvites(); // Refresh the list
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error rejecting invite:', error);
       toast({
         title: "Error",
-        description: "Failed to reject affiliate invite",
+        description: error.message || "Failed to reject affiliate invite",
         variant: "destructive",
       });
     }
@@ -136,7 +145,16 @@ const PendingAffiliates: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {invite.product.name}
+                      {invite.product ? (
+                        <div>
+                          <div>{invite.product.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Commission: {invite.product.commissionPercent}%
+                          </div>
+                        </div>
+                      ) : (
+                        'N/A'
+                      )}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       {format(new Date(invite.createdAt), 'MMM d, yyyy')}

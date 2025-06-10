@@ -51,7 +51,7 @@ class ApiClient {
           errorDetails: data,
           headers: Object.fromEntries(response.headers.entries())
         });
-        throw new Error(data.error?.message || JSON.stringify(data.error) || `HTTP error! status: ${response.status}`);
+        throw new Error(data.error || data.message || `HTTP error! status: ${response.status}`);
       }
 
       return { data }; // Wrap the response in a data property
