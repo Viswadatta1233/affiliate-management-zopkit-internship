@@ -5,6 +5,7 @@ import { users, influencers, roles, tenants } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 
 // Define the validation schema
 const influencerRegistrationSchema = z.object({
@@ -56,6 +57,15 @@ interface InfluencerWithUser {
     tenantId: string;
   };
 }
+
+// Create nodemailer transporter (reuse from affiliates.ts)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'dattanidumukkala.98@gmail.com',
+    pass: 'pbbmlywqphqiakpz',
+  },
+});
 
 export async function influencerRoutes(server: FastifyInstance) {
   // Register influencer
@@ -329,6 +339,7 @@ export async function influencerRoutes(server: FastifyInstance) {
       }
 
       // If approving, update role to influencer
+      let statusChangedToInfluencer = false;
       if (status === 'approved') {
         // Get or create influencer role
         let influencerRole = await db.query.roles.findFirst({
@@ -348,6 +359,11 @@ export async function influencerRoutes(server: FastifyInstance) {
         await db.update(users)
           .set({ roleId: influencerRole.id })
           .where(eq(users.id, influencer.userId));
+
+        // Check if status is changing from 'potential_influencer' to 'influencer'
+        if (influencer.status === 'pending' || influencer.status === 'potential_influencer') {
+          statusChangedToInfluencer = true;
+        }
       }
 
       // Update influencer status
@@ -359,12 +375,162 @@ export async function influencerRoutes(server: FastifyInstance) {
         .where(eq(influencers.id, id))
         .returning();
 
+      // Send approval notification if opted in
+      if (statusChangedToInfluencer && influencer.allowNotificationForApproval && influencer.user?.email) {
+        try {
+          await transporter.sendMail({
+            from: 'dattanidumukkala.98@gmail.com',
+            to: influencer.user.email,
+            subject: 'You have been approved as an Influencer!',
+            html: `<p>Your status has been updated to <b>influencer</b>. You can now access all influencer features on the platform.</p>`
+          });
+        } catch (err) {
+          server.log.error('Error sending influencer approval email:', err);
+        }
+      }
+
       return {
         success: true,
         influencer: updatedInfluencer
       };
     } catch (error) {
       console.error('Error updating influencer status:', error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Update influencer profile (authenticated)
+  server.patch('/profile', async (request, reply) => {
+    try {
+      const userId = request.user?.userId;
+      if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
+
+      // Validation schema for profile update
+      const profileSchema = z.object({
+        firstName: z.string().min(1),
+        lastName: z.string().min(1),
+        email: z.string().email(),
+        phone: z.string().optional(),
+        country: z.string().min(1),
+        niche: z.string().min(1),
+        bio: z.string().optional(),
+        socialMedia: z.object({
+          instagram: z.string().url().optional(),
+          youtube: z.string().url().optional(),
+        }).optional(),
+      });
+      const body = profileSchema.parse(request.body);
+
+      // Update users table
+      await db.update(users)
+        .set({
+          firstName: body.firstName,
+          lastName: body.lastName,
+          email: body.email,
+          phone: body.phone,
+        })
+        .where(eq(users.id, userId));
+
+      // Update influencers table
+      await db.update(influencers)
+        .set({
+          country: body.country,
+          niche: body.niche,
+          bio: body.bio,
+          socialMedia: body.socialMedia,
+        })
+        .where(eq(influencers.userId, userId));
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.code(400).send({ error: 'Validation failed', details: error.errors });
+      }
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Update influencer password (authenticated)
+  server.patch('/password', async (request, reply) => {
+    try {
+      const userId = request.user?.userId;
+      if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
+
+      // Validation schema for password update
+      const passwordSchema = z.object({
+        currentPassword: z.string().min(8),
+        newPassword: z.string().min(8),
+      });
+      const { currentPassword, newPassword } = passwordSchema.parse(request.body);
+
+      // Get user
+      const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+      if (!user) return reply.code(404).send({ error: 'User not found' });
+
+      // Check current password
+      const valid = await bcrypt.compare(currentPassword, user.password);
+      if (!valid) return reply.code(400).send({ error: 'Current password is incorrect' });
+
+      // Hash new password
+      const salt = await bcrypt.genSalt(10);
+      const hashed = await bcrypt.hash(newPassword, salt);
+
+      // Update password
+      await db.update(users)
+        .set({ password: hashed })
+        .where(eq(users.id, userId));
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.code(400).send({ error: 'Validation failed', details: error.errors });
+      }
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Get current user's notification preferences
+  server.get('/notifications', async (request, reply) => {
+    try {
+      const userId = request.user?.userId;
+      if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
+      const influencer = await db.query.influencers.findFirst({
+        where: eq(influencers.userId, userId),
+      });
+      if (!influencer) return reply.code(404).send({ error: 'Influencer not found' });
+      return reply.send({
+        allowNotificationForCampaign: influencer.allowNotificationForCampaign,
+        allowNotificationForApproval: influencer.allowNotificationForApproval,
+      });
+    } catch (error) {
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Update current user's notification preferences
+  server.patch('/notifications', async (request, reply) => {
+    try {
+      const userId = request.user?.userId;
+      if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
+      const schema = z.object({
+        allowNotificationForCampaign: z.boolean(),
+        allowNotificationForApproval: z.boolean(),
+      });
+      const body = schema.parse(request.body);
+      const [updated] = await db.update(influencers)
+        .set({
+          allowNotificationForCampaign: body.allowNotificationForCampaign,
+          allowNotificationForApproval: body.allowNotificationForApproval,
+          updatedAt: new Date(),
+        })
+        .where(eq(influencers.userId, userId))
+        .returning();
+      if (!updated) return reply.code(404).send({ error: 'Influencer not found' });
+      return reply.send({ success: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.code(400).send({ error: 'Validation failed', details: error.errors });
+      }
       return reply.code(500).send({ error: 'Internal server error' });
     }
   });

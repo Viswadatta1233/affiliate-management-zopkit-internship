@@ -91,6 +91,7 @@ CREATE TABLE "campaigns" (
 	"preferred_social_media" text NOT NULL,
 	"marketing_objective" text NOT NULL,
 	"metrics" jsonb DEFAULT '{"totalReach":0,"engagementRate":0,"conversions":0,"revenue":0}'::jsonb NOT NULL,
+	"commission_rate" numeric(5, 2),
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -129,6 +130,8 @@ CREATE TABLE "influencers" (
 	"bio" text,
 	"status" varchar DEFAULT 'pending' NOT NULL,
 	"metrics" jsonb DEFAULT '{"followers":0,"engagement":0,"reach":0}'::jsonb NOT NULL,
+	"allow_notification_for_campaign" boolean DEFAULT true NOT NULL,
+	"allow_notification_for_approval" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );

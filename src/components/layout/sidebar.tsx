@@ -31,7 +31,9 @@ import {
   Key,
   List,
   DollarSign,
-  User
+  User,
+  LayoutDashboard,
+  Target
 } from 'lucide-react';
 
 import {
@@ -159,6 +161,28 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onClose }) => {
   if (!isOpen) {
     return null;
   }
+
+  const menuItems: MenuItem[] = [
+    {
+      title: 'Dashboard',
+      href: '/',
+      icon: <LayoutDashboard className="h-5 w-5" />,
+      roles: ['Tenant Admin', 'super-admin']
+    },
+    {
+      title: 'Dashboard',
+      href: '/influencer/dashboard',
+      icon: <LayoutDashboard className="h-5 w-5" />,
+      roles: ['influencer', 'potential_influencer']
+    },
+    {
+      title: 'Campaigns',
+      href: '/influencer/campaigns',
+      icon: <Target className="h-5 w-5" />,
+      roles: ['influencer', 'potential_influencer']
+    },
+    // ... rest of the existing menu items ...
+  ];
 
   return (
     <aside 

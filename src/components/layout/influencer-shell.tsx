@@ -6,7 +6,7 @@ import { ModeToggle } from '@/components/theme/mode-toggle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Home, LogOut } from 'lucide-react';
+import { Home, LogOut, Target, Settings, User, Shield, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SidebarItem } from './SidebarItem';
 import { Button } from '@/components/ui/button';
@@ -82,6 +82,26 @@ const InfluencerShell: React.FC = () => {
           title="Dashboard"
           isCurrent={location.pathname === '/influencer/dashboard'}
         />
+        <SidebarItem
+          href="/influencer/campaigns"
+          icon={<Target className="h-4 w-4" />}
+          title="Campaigns"
+          isCurrent={location.pathname === '/influencer/campaigns'}
+        />
+        <SidebarItem
+          href="/influencer/settings/notifications"
+          icon={<Bell className="h-4 w-4" />}
+          title="Notifications"
+          isCurrent={location.pathname === '/influencer/settings/notifications'}
+        />
+        <div className="mt-4">
+          <SidebarItem
+            href="/influencer/settings/profile"
+            icon={<Settings className="h-4 w-4" />}
+            title="Settings"
+            isCurrent={location.pathname.startsWith('/influencer/settings') && !location.pathname.endsWith('/notifications')}
+          />
+        </div>
       </ScrollArea>
     </aside>
   );

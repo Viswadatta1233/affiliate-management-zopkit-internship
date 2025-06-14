@@ -72,7 +72,8 @@ const campaignSchema = z.object({
   }),
   basicGuidelines: z.string().min(1, 'Basic guidelines are required'),
   preferredSocialMedia: z.string().min(1, 'Preferred social media platform is required'),
-  marketingObjective: z.string().min(1, 'Marketing objective is required')
+  marketingObjective: z.string().min(1, 'Marketing objective is required'),
+  commissionRate: z.string().min(1, 'Commission rate is required'),
 });
 
 type CampaignFormValues = z.infer<typeof campaignSchema>;
@@ -93,7 +94,8 @@ export default function CreateCampaign() {
       requiredInfluencerNiche: '',
       basicGuidelines: '',
       preferredSocialMedia: '',
-      marketingObjective: ''
+      marketingObjective: '',
+      commissionRate: ''
     }
   });
 
@@ -106,7 +108,8 @@ export default function CreateCampaign() {
       }
 
       console.log('Submitting campaign data:', data);
-      await apiCampaigns.create(data);
+      const dataToSend = { ...data, commissionRate: parseFloat(data.commissionRate) };
+      await apiCampaigns.create(dataToSend);
       toast.success('Campaign created successfully');
       navigate('/marketing/campaigns');
     } catch (error) {
@@ -187,6 +190,19 @@ export default function CreateCampaign() {
                           <FormLabel>End Date</FormLabel>
                           <FormControl>
                             <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="commissionRate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Commission Rate (%)</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" min="0" placeholder="Enter commission rate" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

@@ -48,6 +48,10 @@ import AcceptInvite from '@/pages/affiliate/accept';
 import AffiliateDashboard from '@/pages/affiliate/dashboard';
 import SuperAdminDashboard from '@/pages/super-admin/dashboard';
 import InfluencerDashboard from '@/pages/influencer/dashboard';
+import InfluencerCampaigns from '@/pages/influencer/campaigns';
+import InfluencerSettingsProfile from '@/pages/influencer/settings/profile';
+import InfluencerSettingsSecurity from '@/pages/influencer/settings/security';
+import InfluencerSettingsNotifications from '@/pages/influencer/settings/notifications';
 
 // Route guard for authenticated routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -132,6 +136,10 @@ function App() {
           {/* Influencer Routes */}
           <Route path="/influencer" element={<InfluencerRoute><InfluencerShell /></InfluencerRoute>}>
             <Route path="dashboard" element={<InfluencerDashboard />} />
+            <Route path="campaigns" element={<InfluencerCampaigns />} />
+            <Route path="settings/profile" element={<InfluencerSettingsProfile />} />
+            <Route path="settings/security" element={<InfluencerSettingsSecurity />} />
+            <Route path="settings/notifications" element={<InfluencerSettingsNotifications />} />
             <Route path="*" element={<Navigate to="/influencer/dashboard" replace />} />
           </Route>
           

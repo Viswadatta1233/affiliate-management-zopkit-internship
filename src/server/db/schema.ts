@@ -213,6 +213,7 @@ export const campaigns = pgTable('campaigns', {
     conversions: 0,
     revenue: 0
   }),
+  commissionRate: numeric('commission_rate', { precision: 5, scale: 2 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow()
 });
@@ -260,6 +261,8 @@ export const influencers = pgTable('influencers', {
     engagement: 0,
     reach: 0,
   }),
+  allowNotificationForCampaign: boolean('allow_notification_for_campaign').notNull().default(true),
+  allowNotificationForApproval: boolean('allow_notification_for_approval').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

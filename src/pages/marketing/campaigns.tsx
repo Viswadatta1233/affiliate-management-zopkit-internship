@@ -43,6 +43,7 @@ interface Campaign {
   budget?: number;
   status: string;
   type?: string;
+  commissionRate?: number | null;
   participations?: CampaignParticipation[];
   targetAudienceAgeGroup?: string;
   requiredInfluencerNiche?: string;
@@ -62,7 +63,7 @@ export default function MarketingCampaigns() {
   const { campaigns, participations, loadCampaigns, loadParticipations, error, joinCampaign } = useCampaignStore();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const isAdmin = user?.role?.roleName === 'admin' || user?.role?.roleName === 'super-admin';
+  const isAdmin = user?.role?.roleName === 'Tenant Admin' || user?.role?.roleName === 'super-admin';
   const isInfluencer = user?.role?.roleName === 'influencer';
   const isPotentialInfluencer = user?.role?.roleName === 'potential_influencer';
   const [isLoading, setIsLoading] = useState(true);
@@ -75,6 +76,7 @@ export default function MarketingCampaigns() {
   const [selectedObjectives, setSelectedObjectives] = useState<string>('');
   const [guidelinesModal, setGuidelinesModal] = useState<{ open: boolean, text: string }>({ open: false, text: '' });
   const [objectivesModal, setObjectivesModal] = useState<{ open: boolean, text: string }>({ open: false, text: '' });
+  const [detailsModal, setDetailsModal] = useState<{ open: boolean, campaign?: Campaign | null }>({ open: false, campaign: null });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -147,6 +149,8 @@ export default function MarketingCampaigns() {
         </div>
       </CardHeader>
       <CardContent>
+        <div className="mb-2 text-lg font-semibold text-primary">Commission Rate: {campaign.commissionRate ? `${campaign.commissionRate}%` : 'N/A'}</div>
+        <div className="mb-2 text-sm text-muted-foreground">Type: {campaign.type}</div>
         <p className="text-gray-600 mb-4">{campaign?.description || 'No description available'}</p>
         
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -316,6 +320,13 @@ export default function MarketingCampaigns() {
             </Table>
           </div>
         )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setDetailsModal({ open: true, campaign })}
+        >
+          View Details
+        </Button>
       </CardContent>
     </Card>
   );
@@ -403,6 +414,7 @@ export default function MarketingCampaigns() {
     );
   }
 
+  // Always show all campaigns for the tenant with filters, no tabs
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
@@ -411,19 +423,12 @@ export default function MarketingCampaigns() {
           Create Campaign
         </Button>
       </div>
-
       <CampaignFilters
         filters={filters}
         onFilterChange={handleFilterChange}
         onReset={handleResetFilters}
       />
-
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-        {filteredCampaigns.map((campaign) => (
-          <CampaignCard key={campaign.id} campaign={campaign} />
-        ))}
-      </div>
-      {filteredCampaigns.length === 0 && (
+      {filteredCampaigns.length === 0 ? (
         <Card className="p-8 text-center">
           <CardDescription>
             {campaigns.length === 0 
@@ -431,8 +436,13 @@ export default function MarketingCampaigns() {
               : "No campaigns match your current filters."}
           </CardDescription>
         </Card>
+      ) : (
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+          {filteredCampaigns.map((campaign) => (
+            <CampaignCard key={campaign.id} campaign={campaign} />
+          ))}
+        </div>
       )}
-      {/* Guidelines Modal */}
       <Dialog open={guidelinesModal.open} onOpenChange={open => setGuidelinesModal(m => ({ ...m, open }))}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -443,7 +453,6 @@ export default function MarketingCampaigns() {
           </div>
         </DialogContent>
       </Dialog>
-      {/* Objectives Modal */}
       <Dialog open={objectivesModal.open} onOpenChange={open => setObjectivesModal(m => ({ ...m, open }))}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>

@@ -4,6 +4,7 @@ import { db } from '../db';
 import { campaigns, campaignParticipations, affiliates, tenants, users, influencers, roles } from '../db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { generatePromoCode } from '@/lib/utils';
+import nodemailer from 'nodemailer';
 
 // Validation schemas
 const campaignSchema = z.object({
@@ -18,6 +19,7 @@ const campaignSchema = z.object({
   basicGuidelines: z.string().min(1),
   preferredSocialMedia: z.string().min(1),
   marketingObjective: z.string().min(1),
+  commissionRate: z.coerce.number().min(0).optional().nullable(),
   metrics: z.object({
     totalReach: z.number().default(0),
     engagementRate: z.number().default(0),
@@ -42,6 +44,15 @@ interface UserWithRole {
     description: string;
   };
 }
+
+// Create nodemailer transporter (reuse from affiliates.ts)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'dattanidumukkala.98@gmail.com',
+    pass: 'pbbmlywqphqiakpz',
+  },
+});
 
 export default async function campaignRoutes(fastify: FastifyInstance) {
   // Get all campaigns (for influencer dashboard)
@@ -137,7 +148,7 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const { name, startDate, endDate } = result.data;
+      const { name, startDate, endDate, requiredInfluencerNiche } = result.data;
 
       // Check for duplicate campaign names
       const existingCampaign = await db.select()
@@ -166,6 +177,30 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
           updatedAt: new Date()
         })
         .returning();
+
+      // Notify influencers of this niche who have opted in
+      const matchingInfluencers = await db.query.influencers.findMany({
+        where: and(
+          eq(influencers.niche, requiredInfluencerNiche),
+          eq(influencers.allowNotificationForCampaign, true)
+        ),
+        with: { user: true }
+      });
+      for (const influencer of matchingInfluencers) {
+        if (influencer.user?.email) {
+          try {
+            await transporter.sendMail({
+              from: 'dattanidumukkala.98@gmail.com',
+              to: influencer.user.email,
+              subject: 'New Campaign in Your Niche!',
+              html: `<p>A new campaign has been created in your niche (<b>${requiredInfluencerNiche}</b>).</p>
+                     <p>Go to your website and check the details!</p>`
+            });
+          } catch (err) {
+            fastify.log.error('Error sending campaign notification email:', err);
+          }
+        }
+      }
 
       return reply.status(201).send(newCampaign);
     } catch (error) {

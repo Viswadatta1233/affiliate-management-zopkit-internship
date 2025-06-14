@@ -1,5 +1,5 @@
 {
-  "id": "9cee3b35-aecc-41ec-88af-847726a8937b",
+  "id": "0a87245d-ff45-45fc-9f98-831552e5720e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -771,6 +771,12 @@
           "notNull": true,
           "default": "'{\"totalReach\":0,\"engagementRate\":0,\"conversions\":0,\"revenue\":0}'::jsonb"
         },
+        "commission_rate": {
+          "name": "commission_rate",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -1035,6 +1041,20 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{\"followers\":0,\"engagement\":0,\"reach\":0}'::jsonb"
+        },
+        "allow_notification_for_campaign": {
+          "name": "allow_notification_for_campaign",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "allow_notification_for_approval": {
+          "name": "allow_notification_for_approval",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "created_at": {
           "name": "created_at",
