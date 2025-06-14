@@ -282,60 +282,14 @@ export default function InfluencerCampaigns() {
               <span>Niche: {campaign.requiredInfluencerNiche}</span>
             </div>
           </div>
-          <div className="space-y-4">
-            <div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mr-2"
-                onClick={() => setDetailsModal({ open: true, campaign })}
-              >
-                View Details
-              </Button>
-            </div>
-          </div>
-          {isParticipating && participation && (
-            <div className="mt-4 space-y-2">
-              <h4 className="font-medium">Your Promotional Links</h4>
-                  {participation.promotionalLinks.map((link, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <code className="flex-1 text-xs bg-muted p-2 rounded">
-                        {link}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyPromotionalLink(link)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-              <h4 className="font-medium mt-2">Your Promotional Codes</h4>
-                  {participation.promotionalCodes.map((code, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <code className="flex-1 text-xs bg-muted p-2 rounded">
-                        {code}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyPromotionalLink(code)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
         </CardContent>
         <CardFooter>
           {isInfluencer && !isParticipating && (
             <Button 
               className="w-full"
-              onClick={() => handleJoinCampaign(campaign.id)}
+              onClick={() => setDetailsModal({ open: true, campaign })}
             >
-              Join Campaign
+              View & Apply
             </Button>
           )}
           {isPotentialInfluencer && (
@@ -395,6 +349,30 @@ export default function InfluencerCampaigns() {
         onReset={handleResetFilters}
       />
       
+      {/* Details Modal for both Available and My Campaigns, always rendered */}
+      <Dialog open={detailsModal.open} onOpenChange={open => setDetailsModal({ open, campaign: open ? detailsModal.campaign : null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Campaign Details</DialogTitle>
+          </DialogHeader>
+          <div>
+            <div className="font-bold mb-2">Objectives</div>
+            <div className="mb-4 whitespace-pre-line">{detailsModal.campaign?.marketingObjective}</div>
+            <div className="font-bold mb-2">Guidelines</div>
+            <div className="whitespace-pre-line">{detailsModal.campaign?.basicGuidelines}</div>
+            <div className="font-bold mb-2">Commission Rate</div>
+            <div className="mb-4 whitespace-pre-line">{detailsModal.campaign?.commissionRate ? `${detailsModal.campaign.commissionRate}%` : 'N/A'}</div>
+            {/* Add more fields as needed */}
+          </div>
+          {isInfluencer && detailsModal.campaign && !participations.some(p => p.campaignId === detailsModal.campaign?.id) && (
+            <Button className="mt-4 w-full" onClick={() => { handleJoinCampaign(detailsModal.campaign.id); setDetailsModal({ open: false, campaign: null }); }}>
+              Apply for Campaign
+            </Button>
+          )}
+          <Button className="mt-4 w-full" variant="outline" onClick={() => setDetailsModal({ open: false, campaign: null })}>Close</Button>
+        </DialogContent>
+      </Dialog>
+
       <Tabs defaultValue="available" className="mt-6">
         <TabsList>
           <TabsTrigger value="available">Available Campaigns</TabsTrigger>
@@ -544,21 +522,6 @@ export default function InfluencerCampaigns() {
               You haven't joined any campaigns yet
             </div>
           )}
-          {/* Details Modal for My Campaigns */}
-          <Dialog open={detailsModal.open} onOpenChange={open => setDetailsModal({ open, campaign: open ? detailsModal.campaign : null })}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Campaign Details</DialogTitle>
-              </DialogHeader>
-              <div>
-                <div className="font-bold mb-2">Objectives</div>
-                <div className="mb-4 whitespace-pre-line">{detailsModal.campaign?.marketingObjective}</div>
-                <div className="font-bold mb-2">Guidelines</div>
-                <div className="whitespace-pre-line">{detailsModal.campaign?.basicGuidelines}</div>
-              </div>
-              <Button className="mt-4 w-full" onClick={() => setDetailsModal({ open: false, campaign: null })}>Close</Button>
-            </DialogContent>
-          </Dialog>
         </TabsContent>
       </Tabs>
     </div>

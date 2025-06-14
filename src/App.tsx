@@ -52,6 +52,7 @@ import InfluencerCampaigns from '@/pages/influencer/campaigns';
 import InfluencerSettingsProfile from '@/pages/influencer/settings/profile';
 import InfluencerSettingsSecurity from '@/pages/influencer/settings/security';
 import InfluencerSettingsNotifications from '@/pages/influencer/settings/notifications';
+import InfluencerSupportHub from '@/pages/influencer/support-hub';
 
 // Route guard for authenticated routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -140,6 +141,7 @@ function App() {
             <Route path="settings/profile" element={<InfluencerSettingsProfile />} />
             <Route path="settings/security" element={<InfluencerSettingsSecurity />} />
             <Route path="settings/notifications" element={<InfluencerSettingsNotifications />} />
+            <Route path="support-hub" element={<InfluencerSupportHub />} />
             <Route path="*" element={<Navigate to="/influencer/dashboard" replace />} />
           </Route>
           

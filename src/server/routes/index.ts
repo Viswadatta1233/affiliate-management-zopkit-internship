@@ -11,6 +11,7 @@ import analyticsRoutes from './analytics';
 import { marketingRoutes } from './marketing';
 import fraudRoutes from './fraud';
 import { influencerRoutes } from './influencers';
+import { supportRoutes } from './support';
 
 export const configureRoutes = async (server: FastifyInstance) => {
   // Register route handlers
@@ -26,4 +27,5 @@ export const configureRoutes = async (server: FastifyInstance) => {
   await server.register(marketingRoutes, { prefix: '/api/marketing' });
   await server.register(fraudRoutes, { prefix: '/api/fraud' });
   await server.register(influencerRoutes, { prefix: '/api/influencers' });
+  await server.register(supportRoutes, { prefix: '/api/support' });
 };

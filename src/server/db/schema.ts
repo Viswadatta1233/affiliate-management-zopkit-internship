@@ -267,6 +267,20 @@ export const influencers = pgTable('influencers', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+// Support Tickets
+export const supportTickets = pgTable('support_tickets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  issueType: varchar('issue_type', { length: 50 }).notNull(),
+  subject: varchar('subject', { length: 200 }).notNull(),
+  description: text('description').notNull(),
+  fileUrl: varchar('file_url', { length: 500 }),
+  status: varchar('status', { length: 20 }).notNull().default('open'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 // Relations
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   users: many(users),
@@ -531,6 +545,9 @@ export const selectMarketingGuidelineSchema = createSelectSchema(marketingGuidel
 export const insertInfluencerSchema = createInsertSchema(influencers);
 export const selectInfluencerSchema = createSelectSchema(influencers);
 
+export const insertSupportTicketSchema = createInsertSchema(supportTickets);
+export const selectSupportTicketSchema = createSelectSchema(supportTickets);
+
 // Types
 export type Tenant = typeof tenants.$inferSelect;
 export type NewTenant = typeof tenants.$inferInsert;
@@ -579,6 +596,9 @@ export type NewMarketingAsset = typeof marketingAssets.$inferInsert;
 
 export type MarketingGuideline = typeof marketingGuidelines.$inferSelect;
 export type NewMarketingGuideline = typeof marketingGuidelines.$inferInsert;
+
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type NewSupportTicket = typeof supportTickets.$inferInsert;
 
 export type Influencer = typeof influencers.$inferSelect;
 export type NewInfluencer = typeof influencers.$inferInsert;
