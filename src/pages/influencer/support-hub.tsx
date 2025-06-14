@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { HelpCircle, CheckCircle2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const FAQS = [
   { q: "How do I connect my bank account?", a: "Go to Settings > Payouts and follow the instructions to securely connect your bank account." },
@@ -38,8 +37,6 @@ const InfluencerSupportHub: React.FC = () => {
   const [ticketNumber, setTicketNumber] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [faqDialogOpen, setFaqDialogOpen] = useState(false);
-  const [faqDialogContent, setFaqDialogContent] = useState<{q: string, a: string} | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,26 +77,23 @@ const InfluencerSupportHub: React.FC = () => {
           <CardTitle className="text-2xl font-extrabold text-blue-900 tracking-wide">Support FAQ</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <Accordion type="single" collapsible>
             {FAQS.map((faq, idx) => (
-              <button
+              <AccordionItem
+                value={String(idx)}
                 key={idx}
-                className="w-full text-left text-lg font-bold text-blue-800 px-6 py-4 flex items-center gap-2 bg-white/80 rounded-lg shadow hover:shadow-lg hover:bg-blue-50 transition cursor-pointer"
-                onClick={() => { setFaqDialogContent(faq); setFaqDialogOpen(true); }}
+                className="mb-3 rounded-lg overflow-hidden border-0 bg-white/80 shadow hover:shadow-lg transition"
               >
-                <HelpCircle className="w-5 h-5 text-blue-400 mr-2" />
-                {faq.q}
-              </button>
+                <AccordionTrigger className="text-lg font-bold text-blue-800 px-6 py-4 flex items-center gap-2 hover:bg-blue-50">
+                  <HelpCircle className="w-5 h-5 text-blue-400 mr-2" />
+                  {faq.q}
+                </AccordionTrigger>
+                <AccordionContent className="bg-blue-50 px-6 py-6 text-lg font-semibold text-blue-900 border-t border-blue-100 rounded-b-lg shadow-inner tracking-wide leading-relaxed">
+                  {faq.a}
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
-          <Dialog open={faqDialogOpen} onOpenChange={setFaqDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{faqDialogContent?.q}</DialogTitle>
-              </DialogHeader>
-              <div className="text-base text-gray-800 py-2">{faqDialogContent?.a}</div>
-            </DialogContent>
-          </Dialog>
+          </Accordion>
         </CardContent>
       </Card>
       <Card>
