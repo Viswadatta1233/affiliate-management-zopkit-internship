@@ -6,8 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
-import { HelpCircle, CheckCircle2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { HelpCircle, CheckCircle2, LifeBuoy, Mail, FileText, MessageCircle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 const FAQS = [
   { q: "How do I connect my bank account?", a: "Go to Settings > Payouts and follow the instructions to securely connect your bank account." },
@@ -38,8 +38,6 @@ const InfluencerSupportHub: React.FC = () => {
   const [ticketNumber, setTicketNumber] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [faqDialogOpen, setFaqDialogOpen] = useState(false);
-  const [faqDialogContent, setFaqDialogContent] = useState<{q: string, a: string} | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,38 +71,44 @@ const InfluencerSupportHub: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
-      <Card className="mb-8 shadow-2xl border-0 bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="container mx-auto py-8">
+      <Tabs defaultValue="faqs" className="w-full">
+        <TabsList className="flex w-full justify-center mb-6 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl shadow-lg">
+          <TabsTrigger value="faqs" className="flex-1 flex items-center gap-2 text-lg font-semibold">
+            <LifeBuoy className="h-5 w-5 text-blue-500" /> FAQs
+          </TabsTrigger>
+          <TabsTrigger value="support" className="flex-1 flex items-center gap-2 text-lg font-semibold">
+            <Mail className="h-5 w-5 text-indigo-500" /> Contact Support
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="faqs">
+          <Card className="shadow-xl border-0 bg-gradient-to-br from-blue-50 to-indigo-100 w-full">
         <CardHeader className="flex flex-row items-center gap-3 pb-2">
           <HelpCircle className="text-blue-500 w-7 h-7" />
           <CardTitle className="text-2xl font-extrabold text-blue-900 tracking-wide">Support FAQ</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+              <Accordion type="multiple" className="w-full mt-2">
             {FAQS.map((faq, idx) => (
-              <button
-                key={idx}
-                className="w-full text-left text-lg font-bold text-blue-800 px-6 py-4 flex items-center gap-2 bg-white/80 rounded-lg shadow hover:shadow-lg hover:bg-blue-50 transition cursor-pointer"
-                onClick={() => { setFaqDialogContent(faq); setFaqDialogOpen(true); }}
-              >
-                <HelpCircle className="w-5 h-5 text-blue-400 mr-2" />
+                  <AccordionItem key={idx} value={`faq-${idx}`} className="rounded-lg border mb-2 bg-white/80 shadow hover:shadow-lg transition">
+                    <AccordionTrigger className="text-lg font-bold text-blue-800 px-4 py-3 flex items-center gap-2">
+                      <MessageCircle className="w-5 h-5 text-blue-400 mr-2" />
                 {faq.q}
-              </button>
-            ))}
-          </div>
-          <Dialog open={faqDialogOpen} onOpenChange={setFaqDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{faqDialogContent?.q}</DialogTitle>
-              </DialogHeader>
-              <div className="text-base text-gray-800 py-2">{faqDialogContent?.a}</div>
-            </DialogContent>
-          </Dialog>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-base text-gray-800 px-6 pb-4 pt-2">
+                      {faq.a}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Contact Support</CardTitle>
+        </TabsContent>
+        <TabsContent value="support">
+          <Card className="shadow-xl border-0 bg-gradient-to-br from-indigo-50 to-blue-100 w-full">
+            <CardHeader className="flex flex-row items-center gap-3 pb-2">
+              <FileText className="text-indigo-500 w-7 h-7" />
+              <CardTitle className="text-2xl font-extrabold text-indigo-900 tracking-wide">Contact Support</CardTitle>
         </CardHeader>
         <CardContent>
           {submitted && ticketNumber ? (
@@ -147,6 +151,8 @@ const InfluencerSupportHub: React.FC = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

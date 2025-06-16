@@ -135,12 +135,17 @@ export default function MarketingCampaigns() {
     });
   };
 
-  const CampaignCard = ({ campaign }: { campaign: Campaign }) => (
+  const CampaignCard = ({ campaign }: { campaign: Campaign }) => {
+    const navigate = useNavigate();
+    const campaignParticipations = participations.filter(p => p.campaignId === campaign.id);
+    const firstParticipation = campaignParticipations[0];
+
+    return (
     <Card className="hover:shadow-lg transition-shadow duration-200">
-      <CardHeader>
+        <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>{campaign?.name || 'Untitled Campaign'}</CardTitle>
+              <CardTitle className="text-lg">{campaign?.name || 'Untitled Campaign'}</CardTitle>
             <Badge className={getStatusBadgeColor(campaign?.status || 'draft')}>
               {(campaign?.status || 'Draft').charAt(0).toUpperCase() + (campaign?.status || 'draft').slice(1)}
             </Badge>
@@ -149,10 +154,10 @@ export default function MarketingCampaigns() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="mb-2 text-lg font-semibold text-primary">Commission Rate: {campaign.commissionRate ? `${campaign.commissionRate}%` : 'N/A'}</div>
-        <div className="mb-2 text-sm text-muted-foreground">Type: {campaign.type}</div>
-        <p className="text-gray-600 mb-4">{campaign?.description || 'No description available'}</p>
-        
+          <div className="mb-3 text-lg font-semibold text-primary">
+            Commission Rate: {campaign.commissionRate ? `${campaign.commissionRate}%` : 'N/A'}
+          </div>
+          
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-gray-500" />
@@ -170,166 +175,74 @@ export default function MarketingCampaigns() {
           )}
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Users className="h-4 w-4 text-gray-500 mr-2" />
-              <span className="text-sm">Target Age Group</span>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-gray-500" />
+              <span className="text-sm">Age Group: {campaign?.targetAudienceAgeGroup || 'N/A'}</span>
             </div>
-            <span className="text-sm font-medium">{campaign?.targetAudienceAgeGroup}</span>
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-gray-500" />
+              <span className="text-sm">Niche: {campaign?.requiredInfluencerNiche || 'N/A'}</span>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Target className="h-4 w-4 text-gray-500 mr-2" />
-              <span className="text-sm">Required Niche</span>
-            </div>
-            <span className="text-sm font-medium">{campaign?.requiredInfluencerNiche}</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Share2 className="h-4 w-4 text-gray-500 mr-2" />
-              <span className="text-sm">Platform</span>
-            </div>
-            <span className="text-sm font-medium">{campaign?.preferredSocialMedia}</span>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center">
-              <Target className="h-4 w-4 text-gray-500 mr-2" />
-              <span className="text-sm font-medium">Marketing Objective</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setObjectivesModal({ open: true, text: campaign?.marketingObjective || '' })}
-            >
-              View Objectives
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center">
-              <ClipboardList className="h-4 w-4 text-gray-500 mr-2" />
-              <span className="text-sm font-medium">Guidelines</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setGuidelinesModal({ open: true, text: campaign?.basicGuidelines || '' })}
-            >
-              View Guidelines
-            </Button>
-          </div>
-
-          {campaign?.metrics && (
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-              <div>
-                <p className="text-sm text-gray-500">Total Reach</p>
-                <p className="text-lg font-semibold">{campaign.metrics.totalReach}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Engagement Rate</p>
-                <p className="text-lg font-semibold">{campaign.metrics.engagementRate}%</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Conversions</p>
-                <p className="text-lg font-semibold">{campaign.metrics.conversions}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Revenue</p>
-                <p className="text-lg font-semibold">${campaign.metrics.revenue}</p>
+          {/* Show first joined influencer */}
+          {firstParticipation && (
+            <div className="border-t pt-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Joined Influencers</span>
+                          <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/marketing/campaigns/${campaign.id}/influencers`)}
+                          >
+                  View All Influencers
+                          </Button>
+                        </div>
+              <div className="overflow-x-auto">
+                <div className="flex gap-4 min-w-max py-1">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-gray-500" />
+                    <span>{firstParticipation.influencerName}</span>
+                    <Badge variant="outline" className="ml-auto">
+                      {firstParticipation.status}
+                    </Badge>
+                  </div>
+                  {firstParticipation.promotionalCodes && firstParticipation.promotionalCodes.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Promo Code:</span>
+                      {firstParticipation.promotionalCodes.map((code, idx) => (
+                        <code key={idx} className="text-xs bg-muted px-1 py-0.5 rounded whitespace-nowrap">{code}</code>
+                      ))}
+                        </div>
+                  )}
+                  {firstParticipation.promotionalLinks && firstParticipation.promotionalLinks.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Promo Link:</span>
+                      {firstParticipation.promotionalLinks.map((link, idx) => (
+                        <code key={idx} className="text-xs bg-muted px-1 py-0.5 rounded whitespace-nowrap">{link}</code>
+                ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
-        </div>
 
-        {participations.filter(p => p.campaignId === campaign.id).length > 0 && (
-          <div className="mt-6">
-            <h4 className="text-sm font-medium mb-2">Influencer Participations</h4>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Influencer</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead>Promotional Links</TableHead>
-                  <TableHead>Promotional Codes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {participations.filter(p => p.campaignId === campaign.id).map((participation) => (
-                  <TableRow key={participation.id}>
-                    <TableCell>{participation.influencerName || 'Unknown Influencer'}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          participation.status === "completed"
-                            ? "default"
-                            : participation.status === "active"
-                            ? "secondary"
-                            : "outline"
-                        }
-                      >
-                        {participation.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {participation.joinedAt 
-                        ? new Date(participation.joinedAt).toLocaleDateString()
-                        : ''}
-                    </TableCell>
-                    <TableCell>
-                      {participation.promotionalLinks?.map((link, index) => (
-                        <div key={index} className="flex items-center gap-2 mb-1">
-                          <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                            {link}
-                          </code>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => copyPromotionalLink(link)}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </TableCell>
-                    <TableCell>
-                      {participation.promotionalCodes?.map((code, index) => (
-                        <div key={index} className="flex items-center gap-2 mb-1">
-                          <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                            {code}
-                          </code>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => copyPromotionalLink(code)}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="flex mt-4">
+            <Button
+              variant="default"
+              className="w-full bg-black text-white hover:bg-gray-900"
+              size="lg"
+              onClick={() => navigate(`/marketing/campaigns/${campaign.id}`)}
+            >
+              View Details
+            </Button>
           </div>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setDetailsModal({ open: true, campaign })}
-        >
-          View Details
-        </Button>
       </CardContent>
     </Card>
   );
+  };
 
   const handleFilterChange = (newFilters: typeof filters) => {
     setFilters(newFilters);
@@ -420,8 +333,8 @@ export default function MarketingCampaigns() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Campaigns</h1>
         <Button onClick={() => navigate('/marketing/campaigns/create')}>
-          Create Campaign
-        </Button>
+            Create Campaign
+          </Button>
       </div>
       <CampaignFilters
         filters={filters}
@@ -429,19 +342,19 @@ export default function MarketingCampaigns() {
         onReset={handleResetFilters}
       />
       {filteredCampaigns.length === 0 ? (
-        <Card className="p-8 text-center">
+            <Card className="p-8 text-center">
           <CardDescription>
             {campaigns.length === 0 
               ? "No campaigns available."
               : "No campaigns match your current filters."}
           </CardDescription>
-        </Card>
+            </Card>
       ) : (
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
           {filteredCampaigns.map((campaign) => (
-            <CampaignCard key={campaign.id} campaign={campaign} />
-          ))}
-        </div>
+                  <CampaignCard key={campaign.id} campaign={campaign} />
+                ))}
+            </div>
       )}
       <Dialog open={guidelinesModal.open} onOpenChange={open => setGuidelinesModal(m => ({ ...m, open }))}>
         <DialogContent className="max-w-2xl">

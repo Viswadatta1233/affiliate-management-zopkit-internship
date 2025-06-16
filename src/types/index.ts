@@ -20,6 +20,7 @@ export interface Campaign {
     conversions: number;
     revenue: number;
   };
+  commissionRate?: number;
   rewards?: {
     commissionRate: number;
     bonusAmount?: number;

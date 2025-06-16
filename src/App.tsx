@@ -53,6 +53,9 @@ import InfluencerSettingsProfile from '@/pages/influencer/settings/profile';
 import InfluencerSettingsSecurity from '@/pages/influencer/settings/security';
 import InfluencerSettingsNotifications from '@/pages/influencer/settings/notifications';
 import InfluencerSupportHub from '@/pages/influencer/support-hub';
+import CampaignDetails from '@/pages/marketing/campaign-details';
+import CampaignInfluencers from '@/pages/marketing/campaign-influencers';
+import InfluencerCampaignDetails from '@/pages/influencer/campaign-details';
 
 // Route guard for authenticated routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -138,6 +141,7 @@ function App() {
           <Route path="/influencer" element={<InfluencerRoute><InfluencerShell /></InfluencerRoute>}>
             <Route path="dashboard" element={<InfluencerDashboard />} />
             <Route path="campaigns" element={<InfluencerCampaigns />} />
+            <Route path="campaigns/:id" element={<InfluencerCampaignDetails />} />
             <Route path="settings/profile" element={<InfluencerSettingsProfile />} />
             <Route path="settings/security" element={<InfluencerSettingsSecurity />} />
             <Route path="settings/notifications" element={<InfluencerSettingsNotifications />} />
@@ -205,6 +209,8 @@ function App() {
               <Route path="create-campaign" element={<CreateCampaign />} />
               <Route path="resources" element={<MarketingResources />} />
               <Route path="campaigns" element={<MarketingCampaigns />} />
+              <Route path="campaigns/:id" element={<CampaignDetails />} />
+              <Route path="campaigns/:id/influencers" element={<CampaignInfluencers />} />
               <Route path="influencer-search" element={<InfluencerSearch />} />
               <Route path="knowledge-base" element={<KnowledgeBase />} />
             </Route>

@@ -287,7 +287,7 @@ export default function InfluencerCampaigns() {
           {isInfluencer && !isParticipating && (
             <Button 
               className="w-full"
-              onClick={() => setDetailsModal({ open: true, campaign })}
+              onClick={() => navigate(`/influencer/campaigns/${campaign.id}`)}
             >
               View & Apply
             </Button>
@@ -349,30 +349,6 @@ export default function InfluencerCampaigns() {
         onReset={handleResetFilters}
       />
       
-      {/* Details Modal for both Available and My Campaigns, always rendered */}
-      <Dialog open={detailsModal.open} onOpenChange={open => setDetailsModal({ open, campaign: open ? detailsModal.campaign : null })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Campaign Details</DialogTitle>
-          </DialogHeader>
-          <div>
-            <div className="font-bold mb-2">Objectives</div>
-            <div className="mb-4 whitespace-pre-line">{detailsModal.campaign?.marketingObjective}</div>
-            <div className="font-bold mb-2">Guidelines</div>
-            <div className="whitespace-pre-line">{detailsModal.campaign?.basicGuidelines}</div>
-            <div className="font-bold mb-2">Commission Rate</div>
-            <div className="mb-4 whitespace-pre-line">{detailsModal.campaign?.commissionRate ? `${detailsModal.campaign.commissionRate}%` : 'N/A'}</div>
-            {/* Add more fields as needed */}
-          </div>
-          {isInfluencer && detailsModal.campaign && !participations.some(p => p.campaignId === detailsModal.campaign?.id) && (
-            <Button className="mt-4 w-full" onClick={() => { handleJoinCampaign(detailsModal.campaign.id); setDetailsModal({ open: false, campaign: null }); }}>
-              Apply for Campaign
-            </Button>
-          )}
-          <Button className="mt-4 w-full" variant="outline" onClick={() => setDetailsModal({ open: false, campaign: null })}>Close</Button>
-        </DialogContent>
-      </Dialog>
-
       <Tabs defaultValue="available" className="mt-6">
         <TabsList>
           <TabsTrigger value="available">Available Campaigns</TabsTrigger>
@@ -383,11 +359,11 @@ export default function InfluencerCampaigns() {
           {isLoading ? (
             <div>Loading campaigns...</div>
           ) : availableCampaigns.length > 0 ? (
-            <div className="grid gap-4">
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
               {availableCampaigns.map(campaign => (
-              <CampaignCard key={campaign.id} campaign={campaign} />
-            ))}
-          </div>
+                <CampaignCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               No available campaigns match your filters
@@ -401,121 +377,10 @@ export default function InfluencerCampaigns() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : joinedCampaigns.length > 0 ? (
-            <div className="grid gap-4">
-              {joinedCampaigns.map(campaign => {
-                const participation = participations.find(p => p.campaignId === campaign.id);
-                return (
-                  <Card key={campaign.id} className="mb-4">
-                    {/* Yellow highlighted clickable box */}
-                    <div
-                      className="bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded-t-md mb-2 cursor-pointer hover:bg-yellow-200 transition"
-                      onClick={() => setDetailsModal({ open: true, campaign })}
-                    >
-                      <div className="font-bold text-yellow-900 text-base">
-                        Check the details for Do's and Dont's and Deliverables
-                      </div>
-                    </div>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>{campaign.name}</CardTitle>
-                          <CardDescription>{campaign.description}</CardDescription>
-                        </div>
-                        <Badge variant={campaign.status === 'active' ? 'default' : 'secondary'}>
-                          {campaign.status}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="mb-2 text-lg font-semibold text-primary">Commission Rate: {campaign.commissionRate ? `${campaign.commissionRate}%` : 'N/A'}</div>
-                      <div className="mb-2 text-sm text-muted-foreground">Type: {campaign.type}</div>
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>Start: {formatDate(campaign.startDate)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>End: {formatDate(campaign.endDate)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          <span>Target Age: {campaign.targetAudienceAgeGroup}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Target className="h-4 w-4" />
-                          <span>Niche: {campaign.requiredInfluencerNiche}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mr-2"
-                            onClick={() => setDetailsModal({ open: true, campaign })}
-                          >
-                            View Details
-                          </Button>
-                        </div>
-                      </div>
-                      {participation && (
-                        <div className="mt-4 space-y-2">
-                          <h4 className="font-medium">Your Promotional Links</h4>
-                          {participation.promotionalLinks.map((link, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <code className="flex-1 text-xs bg-muted p-2 rounded">
-                                {link}
-                              </code>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => copyPromotionalLink(link)}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                          <h4 className="font-medium mt-2">Your Promotional Codes</h4>
-                          {participation.promotionalCodes.map((code, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <code className="flex-1 text-xs bg-muted p-2 rounded">
-                                {code}
-                              </code>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => copyPromotionalLink(code)}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                    <CardFooter>
-                      {isInfluencer && (
-                        <Button 
-                          className="w-full"
-                          disabled
-                        >
-                          Joined
-                        </Button>
-                      )}
-                      {isPotentialInfluencer && (
-                        <Button
-                          className="w-full"
-                          variant="outline"
-                          disabled
-                        >
-                          Upgrade to Influencer to Join
-                        </Button>
-                      )}
-                    </CardFooter>
-                  </Card>
-                );
-              })}
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+              {joinedCampaigns.map(campaign => (
+                <CampaignCard key={campaign.id} campaign={campaign} />
+              ))}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -81,6 +80,7 @@ type CampaignFormValues = z.infer<typeof campaignSchema>;
 export default function CreateCampaign() {
   const navigate = useNavigate();
   const { token } = useAuthStore();
+  const [currentStep, setCurrentStep] = useState(1);
   
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignSchema),
@@ -119,208 +119,64 @@ export default function CreateCampaign() {
     }
   };
 
+  const nextStep = () => {
+    setCurrentStep(prev => prev + 1);
+  };
+
+  const prevStep = () => {
+    setCurrentStep(prev => prev - 1);
+  };
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
   return (
-    <div className="container mx-auto py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New Campaign</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              {/* Basics & Demographics side by side */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Campaign Basics */}
-                <fieldset className="border border-gray-200 rounded-lg p-6 h-full">
-                  <legend className="text-xl font-bold text-primary bg-gray-50 px-4 py-1 rounded mb-2">Campaign Basics</legend>
-                  <div className="grid grid-cols-1 gap-y-4 mt-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Campaign Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter campaign name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Campaign Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select campaign type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="product">Product</SelectItem>
-                              <SelectItem value="service">Service</SelectItem>
-                              <SelectItem value="event">Event</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="startDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Start Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="endDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>End Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="commissionRate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Commission Rate (%)</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" min="0" placeholder="Enter commission rate" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </fieldset>
-
-                {/* Demographics */}
-                <fieldset className="border border-gray-200 rounded-lg p-6 h-full">
-                  <legend className="text-xl font-bold text-primary bg-gray-50 px-4 py-1 rounded mb-2">Demographics</legend>
-                  <div className="grid grid-cols-1 gap-y-4 mt-4">
-                    <FormField
-                      control={form.control}
-                      name="targetAudienceAgeGroup"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Target Audience Age Group</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select age group" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {AGE_GROUP_OPTIONS.map((ageGroup) => (
-                                <SelectItem key={ageGroup.value} value={ageGroup.value}>
-                                  {ageGroup.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="requiredInfluencerNiche"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Required Influencer Niche</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select niche" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {NICHE_OPTIONS.map((niche) => (
-                                <SelectItem key={niche.value} value={niche.value}>
-                                  {niche.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="preferredSocialMedia"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Preferred Social Media Platform</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select platform" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {socialMediaPlatforms.map((platform) => (
-                                <SelectItem key={platform} value={platform}>
-                                  {platform}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </fieldset>
-              </div>
-
-              {/* Description */}
-              <fieldset className="border border-gray-200 rounded-lg p-6 mb-8">
-                <legend className="text-xl font-bold text-primary bg-gray-50 px-4 py-1 rounded mb-2">Description</legend>
+          <fieldset className="border border-gray-200 rounded-lg p-4">
+            <legend className="text-lg font-semibold text-primary bg-gray-50 px-3 py-1 rounded mb-2">Campaign Basics</legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
-                  name="description"
+                  name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Campaign Description</FormLabel>
+                      <FormLabel>Campaign Name</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Enter campaign description" {...field} />
+                      <Input placeholder="Enter campaign name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </fieldset>
-
-              {/* Guidelines & Objectives */}
-              <fieldset className="border border-gray-200 rounded-lg p-6 mb-8">
-                <legend className="text-xl font-bold text-primary bg-gray-50 px-4 py-1 rounded mb-2">Guidelines & Objectives</legend>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mt-4">
+                <FormField
+                  control={form.control}
+                name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Campaign Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select campaign type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="product">Product</SelectItem>
+                        <SelectItem value="service">Service</SelectItem>
+                        <SelectItem value="event">Event</SelectItem>
+                      </SelectContent>
+                    </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                   <FormField
                     control={form.control}
-                    name="basicGuidelines"
+                    name="startDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Basic Guidelines</FormLabel>
+                        <FormLabel>Start Date</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Enter campaign guidelines" {...field} />
+                      <Input type="date" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -328,29 +184,191 @@ export default function CreateCampaign() {
                   />
                   <FormField
                     control={form.control}
-                    name="marketingObjective"
+                    name="endDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Marketing Objective</FormLabel>
+                    <FormLabel>End Date</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Enter marketing objective" {...field} />
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="commissionRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Commission Rate (%)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" min="0" placeholder="Enter commission rate" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-              </fieldset>
+          </fieldset>
+        );
+      case 2:
+        return (
+          <fieldset className="border border-gray-200 rounded-lg p-4">
+            <legend className="text-lg font-semibold text-primary bg-gray-50 px-3 py-1 rounded mb-2">Demographics</legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="targetAudienceAgeGroup"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Target Audience Age Group</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select age group" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {AGE_GROUP_OPTIONS.map((ageGroup) => (
+                          <SelectItem key={ageGroup.value} value={ageGroup.value}>
+                            {ageGroup.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="requiredInfluencerNiche"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Required Influencer Niche</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select niche" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {NICHE_OPTIONS.map((niche) => (
+                          <SelectItem key={niche.value} value={niche.value}>
+                            {niche.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+                <FormField
+                  control={form.control}
+                name="preferredSocialMedia"
+                  render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Preferred Social Media Platform</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                          <SelectValue placeholder="Select platform" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        {socialMediaPlatforms.map((platform) => (
+                          <SelectItem key={platform} value={platform}>
+                            {platform}
+                          </SelectItem>
+                        ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+          </fieldset>
+        );
+      case 3:
+        return (
+          <fieldset className="border border-gray-200 rounded-lg p-4">
+            <legend className="text-lg font-semibold text-primary bg-gray-50 px-3 py-1 rounded mb-2">Guidelines & Objectives</legend>
+            <div className="grid grid-cols-1 gap-3">
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Campaign Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter campaign description" className="h-20" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="basicGuidelines"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Basic Guidelines</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter basic guidelines" className="h-20" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="marketingObjective"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Marketing Objective</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter marketing objective" className="h-20" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </fieldset>
+        );
+      default:
+        return null;
+    }
+  };
 
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate('/marketing/campaigns')}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">Create Campaign</Button>
+  return (
+    <div className="container mx-auto py-6">
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle>Create New Campaign</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {renderStep()}
+              
+              <div className="flex justify-between pt-2">
+                {currentStep > 1 && (
+                  <Button type="button" variant="outline" onClick={prevStep}>
+                    Previous
+                  </Button>
+                )}
+                {currentStep < 3 ? (
+                  <Button type="button" onClick={nextStep} className="ml-auto">
+                    Next
+                  </Button>
+                ) : (
+                  <Button type="submit" className="ml-auto">
+                    Create Campaign
+                  </Button>
+                )}
               </div>
             </form>
           </Form>

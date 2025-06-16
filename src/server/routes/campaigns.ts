@@ -111,13 +111,28 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
 
+      // Get user's role from database
+      const userWithRole = await db.query.users.findFirst({
+        where: eq(users.id, request.user.userId),
+        with: { role: true }
+      }) as UserWithRole | null;
+
       const { id } = request.params;
-      const campaign = await db.select().from(campaigns)
+      let campaign;
+      if (userWithRole?.role?.roleName === 'influencer' || userWithRole?.role?.roleName === 'potential_influencer') {
+        // Influencer: fetch by ID only
+        campaign = await db.select().from(campaigns)
+          .where(eq(campaigns.id, id))
+          .limit(1);
+      } else {
+        // Admin: fetch by ID and tenant
+        campaign = await db.select().from(campaigns)
         .where(and(
           eq(campaigns.id, id),
           eq(campaigns.tenantId, request.user.tenantId)
         ))
         .limit(1);
+      }
 
       if (!campaign.length) {
         return reply.status(404).send({ error: 'Campaign not found' });
