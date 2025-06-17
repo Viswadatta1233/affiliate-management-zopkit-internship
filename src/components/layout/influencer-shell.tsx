@@ -76,33 +76,32 @@ const InfluencerShell: React.FC = () => {
         </div>
       </div>
       <ScrollArea className="flex-1 py-2 px-4">
-        <SidebarItem
-          href="/influencer/dashboard"
-          icon={<Home className="h-4 w-4" />}
-          title="Dashboard"
-          isCurrent={location.pathname === '/influencer/dashboard'}
-        />
-        <SidebarItem
-          href="/influencer/campaigns"
-          icon={<Target className="h-4 w-4" />}
-          title="Campaigns"
-          isCurrent={location.pathname === '/influencer/campaigns'}
-        />
-        <SidebarItem
-          href="/influencer/settings/notifications"
-          icon={<Bell className="h-4 w-4" />}
-          title="Notifications"
-          isCurrent={location.pathname === '/influencer/settings/notifications'}
-        />
-        <div className="mt-4">
+        <div className="flex flex-col gap-2">
+          <SidebarItem
+            href="/influencer/dashboard"
+            icon={<Home className="h-4 w-4" />}
+            title="Dashboard"
+            isCurrent={location.pathname === '/influencer/dashboard'}
+          />
+          <SidebarItem
+            href="/influencer/campaigns"
+            icon={<Target className="h-4 w-4" />}
+            title="Campaigns"
+            isCurrent={location.pathname === '/influencer/campaigns'}
+          />
+          <SidebarItem
+            href="/influencer/settings/notifications"
+            icon={<Bell className="h-4 w-4" />}
+            title="Notifications"
+            isCurrent={location.pathname === '/influencer/settings/notifications'}
+          />
           <SidebarItem
             href="/influencer/settings/profile"
             icon={<Settings className="h-4 w-4" />}
             title="Settings"
             isCurrent={location.pathname.startsWith('/influencer/settings') && !location.pathname.endsWith('/notifications')}
           />
-        </div>
-        <div className="mt-4">
+          <div className="border-t border-gray-200 my-2" />
           <SidebarItem
             href="/influencer/support-hub"
             icon={<HelpCircle className="h-4 w-4" />}
