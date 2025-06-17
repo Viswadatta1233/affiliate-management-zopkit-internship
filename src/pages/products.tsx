@@ -26,14 +26,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Product } from '@/types';
+import { useNavigate } from 'react-router-dom';
 
 type ProductFormData = Omit<Product, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>;
 
 const ProductsPage: React.FC = () => {
   const { products, isLoading, error, fetchProducts, createProduct, updateProduct, deleteProduct } = useProductStore();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
@@ -46,6 +45,7 @@ const ProductsPage: React.FC = () => {
     commission_percent: 0,
     status: 'active',
   });
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProducts();
@@ -113,67 +113,6 @@ const ProductsPage: React.FC = () => {
     } catch (error) {
       console.error('Error creating product:', error);
       toast.error('Failed to create product');
-    }
-  };
-
-  const openEditDialog = (product: Product) => {
-    setCurrentProduct(product);
-    setFormData({
-      name: product.name,
-      description: product.description || '',
-      imageUrl: product.imageUrl || '',
-      price: Number(product.price),
-      currency: product.currency,
-      category: product.category || '',
-      sku: product.sku,
-      commission_percent: Number(product.commission_percent),
-      status: product.status,
-    });
-    setIsEditDialogOpen(true);
-  };
-
-  const handleUpdateProduct = async () => {
-    if (!currentProduct) return;
-    
-    try {
-      const validationError = validateForm(formData);
-      if (validationError) {
-        toast.error(validationError);
-        return;
-      }
-
-      const productData = {
-        ...formData,
-        price: Number(formData.price),
-        commission_percent: Number(formData.commission_percent),
-      };
-
-      await updateProduct(currentProduct.id, productData);
-      toast.success('Product updated successfully');
-      setIsEditDialogOpen(false);
-      resetForm();
-      fetchProducts(); // Refresh the products list
-    } catch (error) {
-      console.error('Error updating product:', error);
-      toast.error('Failed to update product');
-    }
-  };
-
-  const openDeleteDialog = (product: Product) => {
-    setCurrentProduct(product);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDeleteProduct = async () => {
-    if (!currentProduct) return;
-    
-    try {
-      await deleteProduct(currentProduct.id);
-      toast.success('Product deleted successfully');
-      setIsDeleteDialogOpen(false);
-      setCurrentProduct(null);
-    } catch (error) {
-      toast.error('Failed to delete product');
     }
   };
 
@@ -365,7 +304,7 @@ const ProductsPage: React.FC = () => {
                         variant="ghost" 
                         size="icon" 
                         className="h-9 w-9 sm:h-12 sm:w-12" 
-                        onClick={() => openEditDialog(product)}
+                        onClick={() => navigate(`/products/${product.id}/edit`)}
                       >
                             <Pencil size={18} className="sm:w-6 sm:h-6" />
                       </Button>
@@ -373,7 +312,12 @@ const ProductsPage: React.FC = () => {
                         variant="ghost" 
                         size="icon" 
                         className="h-9 w-9 sm:h-12 sm:w-12" 
-                        onClick={() => openDeleteDialog(product)}
+                        onClick={() => {
+                          toast.success('Deleting product...');
+                          deleteProduct(product.id)
+                            .then(() => toast.success('Product deleted successfully'))
+                            .catch(() => toast.error('Failed to delete product'));
+                        }}
                       >
                             <Trash2 size={18} className="sm:w-6 sm:h-6" />
                       </Button>
@@ -386,151 +330,6 @@ const ProductsPage: React.FC = () => {
           </Table>
         </div>
       )}
-
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-semibold">Edit Product</DialogTitle>
-            <DialogDescription>Update your product details.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdateProduct} className="space-y-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Name</Label>
-                <Input
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">SKU</Label>
-                <Input
-                  name="sku"
-                  value={formData.sku}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Description</Label>
-              <Textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                className="min-h-[100px]"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Price</Label>
-                <Input
-                  name="price"
-                  type="number"
-                  value={formData.price || ''}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Currency</Label>
-                <Select
-                  value={formData.currency}
-                  onValueChange={(value) => handleSelectChange('currency', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="INR">INR</SelectItem>
-                    <SelectItem value="JPY">JPY</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Category</Label>
-                <Input
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Commission %</Label>
-                <Input
-                  name="commission_percent"
-                  type="number"
-                  value={formData.commission_percent || ''}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Image URL</Label>
-              <Input
-                name="imageUrl"
-                value={formData.imageUrl}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: 'active' | 'inactive') => handleSelectChange('status', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <DialogFooter className="gap-3 pt-4">
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button type="submit">Update Product</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="max-w-[500px] w-[95vw]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-semibold">Confirm Deletion</DialogTitle>
-          </DialogHeader>
-          <div className="py-6">
-            <p className="text-xl">Are you sure you want to delete the product "{currentProduct?.name}"?</p>
-            <p className="text-lg text-muted-foreground mt-4">This action cannot be undone.</p>
-          </div>
-          <DialogFooter className="gap-6 pt-6">
-            <DialogClose asChild>
-              <Button variant="outline" className="h-16 px-10 text-xl">Cancel</Button>
-            </DialogClose>
-            <Button variant="destructive" onClick={handleDeleteProduct} className="h-16 px-10 text-xl">Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

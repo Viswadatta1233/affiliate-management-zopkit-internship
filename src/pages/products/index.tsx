@@ -101,8 +101,7 @@ export default function ProductsPage() {
               <CardDescription>Manage your products</CardDescription>
             </div>
             <Button onClick={() => navigate('/products/create')}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Product
+              Create your first product
             </Button>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-10">
@@ -118,139 +117,90 @@ export default function ProductsPage() {
 
   return (
     <div className="container mx-auto py-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="border-none shadow-md rounded-xl overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between bg-white border-b p-6">
           <div>
-            <CardTitle>Products</CardTitle>
-            <CardDescription>Manage your products</CardDescription>
+            <CardTitle className="text-2xl font-bold">Products</CardTitle>
+            <CardDescription className="text-gray-500 mt-1">Manage your product catalog</CardDescription>
           </div>
-          <Button onClick={() => navigate('/products/create')}>
+          <Button 
+            onClick={() => navigate('/products/create')}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Product
+            New Product
           </Button>
         </CardHeader>
-        <CardContent>
-          {/* Mobile Card/List View */}
-          <div className="block md:hidden">
-            {products.map(product => (
-              <div key={product.id} className="mb-4 p-4 rounded-lg shadow bg-white">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-bold">{product.name}</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{product.status}</span>
-                </div>
-                <div className="text-sm text-muted-foreground mb-2">SKU: {product.sku}</div>
-                <div className="text-sm mb-2">Price: {new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency || 'USD' }).format(product.price)}</div>
-                <div className="text-sm mb-2">Commission: {product.commission_percent}%</div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => navigate(`/products/edit/${product.id}`)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="sm" variant="outline">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{product.name}"? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteProductMutation.mutate(product.id)}
-                          className="bg-red-600 hover:bg-red-700"
+        <CardContent className="p-0">
+          {/* Table View */}
+          <div className="overflow-x-auto">
+            <Table className="w-full">
+              <TableHeader className="bg-gray-50">
+                <TableRow>
+                  <TableHead className="py-4 px-6 text-sm font-medium text-gray-600">Name</TableHead>
+                  <TableHead className="py-4 px-6 text-sm font-medium text-gray-600">Price</TableHead>
+                  <TableHead className="py-4 px-6 text-sm font-medium text-gray-600">Category</TableHead>
+                  <TableHead className="py-4 px-6 text-sm font-medium text-gray-600">Status</TableHead>
+                  <TableHead className="py-4 px-6 text-sm font-medium text-gray-600 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {products.map((product: Product) => (
+                  <TableRow 
+                    key={product.id}
+                    className="border-b hover:bg-gray-50 transition-colors"
+                  >
+                    <TableCell className="py-4 px-6 font-medium">{product.name}</TableCell>
+                    <TableCell className="py-4 px-6">
+                      {new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: product.currency || 'USD',
+                      }).format(product.price)}
+                    </TableCell>
+                    <TableCell className="py-4 px-6">{product.category || 'Others'}</TableCell>
+                    <TableCell className="py-4 px-6">
+                      <span 
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          product.status === 'active' 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {product.status === 'active' ? 'Active' : 'Inactive'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-4 px-6 text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-3 text-gray-600 border-gray-300 hover:bg-gray-50"
+                          onClick={() => navigate(`/products/edit/${product.id}`)}
                         >
+                          <Pencil className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 px-3 text-red-600 border-red-200 hover:bg-red-50"
+                          onClick={() => {
+                            toast({
+                              title: "Deleting product...",
+                              description: `Removing "${product.name}"`,
+                            });
+                            deleteProductMutation.mutate(product.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
                           Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Table View for md+ screens */}
-          <div className="hidden md:block">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[700px] w-full text-sm sm:text-base">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-left">Name</TableHead>
-                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-left">SKU</TableHead>
-                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-left">Price</TableHead>
-                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-left">Commission</TableHead>
-                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-left">Status</TableHead>
-                    <TableHead className="py-3 px-2 sm:py-4 sm:px-4 text-right">Actions</TableHead>
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {products.map((product: Product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium py-3 px-2 sm:py-4 sm:px-4">{product.name}</TableCell>
-                      <TableCell className="py-3 px-2 sm:py-4 sm:px-4">{product.sku}</TableCell>
-                      <TableCell className="py-3 px-2 sm:py-4 sm:px-4">
-                        {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: product.currency || 'USD',
-                        }).format(product.price)}
-                      </TableCell>
-                      <TableCell className="py-3 px-2 sm:py-4 sm:px-4">{product.commission_percent}%</TableCell>
-                      <TableCell className="py-3 px-2 sm:py-4 sm:px-4">
-                        <span 
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            product.status === 'active' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {product.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right py-3 px-2 sm:py-4 sm:px-4">
-                        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-9 w-9 sm:h-10 sm:w-10"
-                            onClick={() => navigate(`/products/edit/${product.id}`)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "{product.name}"? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteProductMutation.mutate(product.id)}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>

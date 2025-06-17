@@ -138,110 +138,95 @@ export default function MarketingCampaigns() {
   const CampaignCard = ({ campaign }: { campaign: Campaign }) => {
     const navigate = useNavigate();
     const campaignParticipations = participations.filter(p => p.campaignId === campaign.id);
-    const firstParticipation = campaignParticipations[0];
-
+    
     return (
-    <Card className="hover:shadow-lg transition-shadow duration-200">
-        <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-              <CardTitle className="text-lg">{campaign?.name || 'Untitled Campaign'}</CardTitle>
-            <Badge className={getStatusBadgeColor(campaign?.status || 'draft')}>
-              {(campaign?.status || 'Draft').charAt(0).toUpperCase() + (campaign?.status || 'draft').slice(1)}
-            </Badge>
-          </div>
-          <Badge variant="outline" className="capitalize">{campaign?.type || 'Unknown'}</Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-          <div className="mb-3 text-lg font-semibold text-primary">
-            Commission Rate: {campaign.commissionRate ? `${campaign.commissionRate}%` : 'N/A'}
-          </div>
-          
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-gray-500" />
-            <span className="text-sm">
-              Starts: {campaign?.startDate ? formatDate(campaign.startDate.toString()) : 'Not set'}
-            </span>
-          </div>
-          {campaign?.endDate && (
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <span className="text-sm">
-                Ends: {formatDate(campaign.endDate.toString())}
-              </span>
-            </div>
-          )}
-        </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-gray-500" />
-              <span className="text-sm">Age Group: {campaign?.targetAudienceAgeGroup || 'N/A'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-gray-500" />
-              <span className="text-sm">Niche: {campaign?.requiredInfluencerNiche || 'N/A'}</span>
-            </div>
-          </div>
-
-          {/* Show first joined influencer */}
-          {firstParticipation && (
-            <div className="border-t pt-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Joined Influencers</span>
-                          <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/marketing/campaigns/${campaign.id}/influencers`)}
-                          >
-                  View All Influencers
-                          </Button>
-                        </div>
-              <div className="overflow-x-auto">
-                <div className="flex gap-4 min-w-max py-1">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-gray-500" />
-                    <span>{firstParticipation.influencerName}</span>
-                    <Badge variant="outline" className="ml-auto">
-                      {firstParticipation.status}
-                    </Badge>
-                  </div>
-                  {firstParticipation.promotionalCodes && firstParticipation.promotionalCodes.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Promo Code:</span>
-                      {firstParticipation.promotionalCodes.map((code, idx) => (
-                        <code key={idx} className="text-xs bg-muted px-1 py-0.5 rounded whitespace-nowrap">{code}</code>
-                      ))}
-                        </div>
-                  )}
-                  {firstParticipation.promotionalLinks && firstParticipation.promotionalLinks.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Promo Link:</span>
-                      {firstParticipation.promotionalLinks.map((link, idx) => (
-                        <code key={idx} className="text-xs bg-muted px-1 py-0.5 rounded whitespace-nowrap">{link}</code>
-                ))}
-                    </div>
-                  )}
-                </div>
+      <Card className="overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+        {/* Card Header - Campaign Title & Status */}
+        <CardHeader className="bg-white border-b pb-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-xl font-bold">{campaign?.name || 'Untitled Campaign'}</CardTitle>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge className={getStatusBadgeColor(campaign?.status || 'draft')}>
+                  {(campaign?.status || 'Draft').charAt(0).toUpperCase() + (campaign?.status || 'draft').slice(1)}
+                </Badge>
+                <Badge variant="outline" className="capitalize">
+                  {campaign?.type || 'Unknown'}
+                </Badge>
               </div>
             </div>
-          )}
-
-          <div className="flex mt-4">
-            <Button
-              variant="default"
-              className="w-full bg-black text-white hover:bg-gray-900"
-              size="lg"
+            <Button 
+              variant="ghost" 
+              size="sm" 
               onClick={() => navigate(`/marketing/campaigns/${campaign.id}`)}
             >
-              View Details
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
-      </CardContent>
-    </Card>
-  );
+        </CardHeader>
+        
+        <CardContent className="pt-5">
+          {/* Main Campaign Details */}
+          <div className="grid grid-cols-2 gap-y-4 mb-6">
+            <div>
+              <h4 className="text-xs font-medium text-gray-500 uppercase mb-1">Commission</h4>
+              <p className="text-lg font-semibold text-blue-600">
+                {campaign.commissionRate ? `${campaign.commissionRate}%` : 'N/A'}
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="text-xs font-medium text-gray-500 uppercase mb-1">Target Audience</h4>
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-gray-500" />
+                <span className="text-sm">{campaign?.targetAudienceAgeGroup || 'All ages'}</span>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-xs font-medium text-gray-500 uppercase mb-1">Timeline</h4>
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <span className="text-sm">
+                  {campaign?.startDate ? formatDate(campaign.startDate.toString()) : 'Not set'}
+                </span>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-xs font-medium text-gray-500 uppercase mb-1">Niche</h4>
+              <div className="flex items-center gap-1">
+                <Target className="h-4 w-4 text-gray-500" />
+                <span className="text-sm">{campaign?.requiredInfluencerNiche || 'Any'}</span>
+              </div>
+            </div>
+          </div>
+          
+                  {/* Influencers Count */}
+        {campaignParticipations.length > 0 && (
+          <div className="border-t pt-4 mt-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                {campaignParticipations.length} {campaignParticipations.length === 1 ? 'influencer' : 'influencers'} joined
+              </div>
+            </div>
+          </div>
+        )}
+          
+          {/* Call to Action */}
+          <div className="mt-5">
+            <Button
+              variant="default"
+              className="w-full"
+              size="default"
+              onClick={() => navigate(`/marketing/campaigns/${campaign.id}`)}
+            >
+              Manage Campaign
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
   const handleFilterChange = (newFilters: typeof filters) => {
@@ -329,33 +314,43 @@ export default function MarketingCampaigns() {
 
   // Always show all campaigns for the tenant with filters, no tabs
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Campaigns</h1>
-        <Button onClick={() => navigate('/marketing/campaigns/create')}>
-            Create Campaign
-          </Button>
+    <div className="container mx-auto py-8">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Marketing Campaigns</h1>
+          <p className="text-gray-500 mt-1">Manage and track your affiliate marketing campaigns</p>
+        </div>
+        <Button 
+          onClick={() => navigate('/marketing/campaigns/create')}
+        >
+          Create Campaign
+        </Button>
       </div>
-      <CampaignFilters
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onReset={handleResetFilters}
-      />
+      
+      <div className="bg-gray-50 p-4 rounded-lg mb-8">
+        <CampaignFilters
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onReset={handleResetFilters}
+        />
+      </div>
+      
       {filteredCampaigns.length === 0 ? (
-            <Card className="p-8 text-center">
-          <CardDescription>
+        <Card className="p-8 text-center bg-white shadow-sm">
+          <CardDescription className="text-lg">
             {campaigns.length === 0 
-              ? "No campaigns available."
+              ? "No campaigns available. Create your first campaign to get started!"
               : "No campaigns match your current filters."}
           </CardDescription>
-            </Card>
+        </Card>
       ) : (
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
           {filteredCampaigns.map((campaign) => (
-                  <CampaignCard key={campaign.id} campaign={campaign} />
-                ))}
-            </div>
+            <CampaignCard key={campaign.id} campaign={campaign} />
+          ))}
+        </div>
       )}
+      
       <Dialog open={guidelinesModal.open} onOpenChange={open => setGuidelinesModal(m => ({ ...m, open }))}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -366,6 +361,7 @@ export default function MarketingCampaigns() {
           </div>
         </DialogContent>
       </Dialog>
+      
       <Dialog open={objectivesModal.open} onOpenChange={open => setObjectivesModal(m => ({ ...m, open }))}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
