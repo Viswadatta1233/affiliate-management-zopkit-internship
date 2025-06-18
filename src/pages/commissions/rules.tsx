@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -76,6 +77,7 @@ const formatRuleValue = (value: any, type: string) => {
 };
 
 export default function CommissionRules() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
@@ -162,114 +164,10 @@ export default function CommissionRules() {
           <h1 className="text-3xl font-bold tracking-tight">Commission Rules</h1>
           <p className="text-muted-foreground">Manage special commission rules and bonus conditions.</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="shadow-md">
+        <Button className="shadow-md" onClick={() => navigate('/commissions/rules/create')}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Create New Rule
         </Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Commission Rule</DialogTitle>
-              <DialogDescription>Set up a new commission rule for your tenant.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Rule Name</label>
-                  <Input name="name" value={form.name} onChange={handleFormChange} required />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Type</label>
-                  <select
-                    name="type"
-                    value={form.type}
-                    onChange={handleFormChange}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    required
-                  >
-                    <option value="">Select Type</option>
-                    <option value="bonus">Bonus</option>
-                    <option value="multiplier">Multiplier</option>
-                    <option value="percentage">Percentage</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">Description</label>
-                <Input name="description" value={form.description} onChange={handleFormChange} />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Value</label>
-                  <Input name="value" type="number" value={form.value} onChange={handleFormChange} required />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Value Type</label>
-                  <select
-                    name="value_type"
-                    value={form.value_type}
-                    onChange={handleFormChange}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    required
-                  >
-                    <option value="">Select Value Type</option>
-                    <option value="fixed">Fixed Amount</option>
-                    <option value="percentage">Percentage</option>
-                    <option value="multiplier">Multiplier</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">Condition</label>
-                <Input name="condition" value={form.condition} onChange={handleFormChange} required />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Status</label>
-                  <select
-                    name="status"
-                    value={form.status}
-                    onChange={handleFormChange}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    required
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="expired">Expired</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Priority</label>
-                  <Input name="priority" type="number" min="1" value={form.priority} onChange={handleFormChange} required />
-                </div>
-      </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Start Date</label>
-                  <Input name="start_date" type="date" value={form.start_date} onChange={handleFormChange} required />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">End Date (Optional)</label>
-                  <Input name="end_date" type="date" value={form.end_date} onChange={handleFormChange} />
-                </div>
-            </div>
-            
-              <div className="flex justify-end gap-4 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createMutation.isPending}>Create Rule</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6 w-full overflow-x-auto">
@@ -285,17 +183,17 @@ export default function CommissionRules() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-            <select
-              className="border rounded px-2 py-1 text-sm"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="expired">Expired</option>
-            </select>
-          </div>
+              <select
+                className="border rounded px-2 py-1 text-sm"
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="expired">Expired</option>
+              </select>
+            </div>
         </div>
         {isLoading ? (
           <div>Loading...</div>

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/auth-store';
 import AppShell from '@/components/layout/app-shell';
 import SuperAdminShell from '@/components/layout/super-admin-shell';
 import InfluencerShell from '@/components/layout/influencer-shell';
+import AffiliateShell from '@/components/layout/affiliate-shell';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 
@@ -13,10 +14,13 @@ import Affiliates from '@/pages/affiliates/index';
 import AffiliateProfile from '@/pages/affiliates/profile';
 import PendingAffiliates from '@/pages/affiliates/pending';
 import AffiliateTiers from '@/pages/affiliates/tiers';
+import InviteAffiliatePage from '@/pages/affiliates/invite';
 import TrackingLinks from '@/pages/tracking-links';
 import CommissionTiers from '@/pages/commissions/tiers';
+import CreateCommissionTier from '@/pages/commissions/create-tier';
 import ProductCommissions from '@/pages/commissions/products';
 import CommissionRules from '@/pages/commissions/rules';
+import CreateCommissionRule from '@/pages/commissions/create-rule';
 import Payouts from '@/pages/payments/payouts';
 import PaymentMethods from '@/pages/payments/methods';
 import PaymentHistory from '@/pages/payments/history';
@@ -46,6 +50,9 @@ import CreateProduct from '@/pages/products/create';
 import EditProduct from '@/pages/products/edit';
 import AcceptInvite from '@/pages/affiliate/accept';
 import AffiliateDashboard from '@/pages/affiliate/dashboard';
+import AffiliateProfilePage from '@/pages/affiliate/profile';
+import AffiliateTrackingLinks from '@/pages/affiliate/links';
+import AffiliateCommissions from '@/pages/affiliate/commissions';
 import SuperAdminDashboard from '@/pages/super-admin/dashboard';
 import InfluencerDashboard from '@/pages/influencer/dashboard';
 import InfluencerCampaigns from '@/pages/influencer/campaigns';
@@ -122,6 +129,21 @@ const NonInfluencerRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Route guard for affiliate routes
+const AffiliateRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated || !user?.isAffiliate) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -152,8 +174,14 @@ function App() {
           {/* Public affiliate accept route */}
           <Route path="/affiliate/accept" element={<AcceptInvite />} />
           
-          {/* Public affiliate dashboard route (no AppShell/sidebar) */}
-          <Route path="/affiliate/dashboard" element={<AffiliateDashboard />} />
+          {/* Affiliate routes */}
+          <Route path="/affiliate" element={<AffiliateRoute><AffiliateShell /></AffiliateRoute>}>
+            <Route path="dashboard" element={<AffiliateDashboard />} />
+            <Route path="profile" element={<AffiliateProfilePage />} />
+            <Route path="links" element={<AffiliateTrackingLinks />} />
+            <Route path="commissions" element={<AffiliateCommissions />} />
+            <Route path="*" element={<Navigate to="/affiliate/dashboard" replace />} />
+          </Route>
           
           {/* App routes - protected, with AppShell/sidebar */}
           <Route path="/" element={<NonInfluencerRoute><PrivateRoute><AppShell /></PrivateRoute></NonInfluencerRoute>}>
@@ -172,6 +200,7 @@ function App() {
               <Route path=":id" element={<AffiliateProfile />} />
               <Route path="pending" element={<PendingAffiliates />} />
               <Route path="tiers" element={<AffiliateTiers />} />
+              <Route path="invite" element={<InviteAffiliatePage />} />
             </Route>
             
             {/* Tracking Links */}
@@ -180,8 +209,10 @@ function App() {
             {/* Commissions */}
             <Route path="commissions">
               <Route path="tiers" element={<CommissionTiers />} />
+              <Route path="tiers/create" element={<CreateCommissionTier />} />
               <Route path="products" element={<ProductCommissions />} />
               <Route path="rules" element={<CommissionRules />} />
+              <Route path="rules/create" element={<CreateCommissionRule />} />
             </Route>
             
             {/* Payments */}

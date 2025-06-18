@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import { apiCommissionTiers } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CommissionTiers() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -101,69 +103,10 @@ export default function CommissionTiers() {
           <h1 className="text-3xl font-bold tracking-tight">Commission Tiers</h1>
           <p className="text-muted-foreground">Manage commission tier structure</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="shadow-md">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add New Tier
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Commission Tier</DialogTitle>
-              <DialogDescription>
-                Set up a new commission tier with specific rates and requirements.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="tierName">Tier Name</Label>
-                <Input
-                  id="tierName"
-                  name="tier_name"
-                  value={form.tier_name}
-                  onChange={handleFormChange}
-                  placeholder="e.g., Gold, Silver, Bronze"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="commissionPercent">Commission Rate (%)</Label>
-                <Input
-                  id="commissionPercent"
-                  name="commission_percent"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={form.commission_percent}
-                  onChange={handleFormChange}
-                  placeholder="e.g., 10"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="minSales">Min Sales</Label>
-                <Input
-                  id="minSales"
-                  name="min_sales"
-                  type="number"
-                  min="0"
-                  value={form.min_sales}
-                  onChange={handleFormChange}
-                  placeholder="e.g., 5"
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createMutation.isPending}>Create Tier</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button className="shadow-md" onClick={() => navigate('/commissions/tiers/create')}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add New Tier
+        </Button>
       </div>
 
       <div className="bg-card rounded-xl shadow-md p-6 w-full overflow-x-auto">

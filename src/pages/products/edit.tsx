@@ -127,46 +127,42 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="container mx-auto py-4 sm:py-6 px-2 sm:px-0">
+    <div className="container mx-auto py-8 px-2 sm:px-0 max-w-5xl">
       <Button
-        variant="outline"
-        className="mb-4 flex items-center gap-2 rounded-full shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+        variant="ghost"
+        className="mb-6 flex items-center gap-2 rounded-full hover:bg-accent hover:text-accent-foreground transition-colors"
         onClick={() => navigate(-1)}
       >
         <ArrowLeft className="h-5 w-5" />
-        <span className="font-medium">Go Back</span>
+        <span className="font-medium">Back to Products</span>
       </Button>
-      
-      <div className="bg-white rounded-xl shadow">
-        <div className="p-6 border-b">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Product Details</h2>
-              <div className="text-gray-500 text-sm mt-1">
-                {product?.sku} • {product?.category || 'No Category'}
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                product?.status === 'active' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-red-100 text-red-700'
-              }`}>
-                {product?.status === 'active' ? 'Active' : 'Inactive'}
-              </span>
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200">
+        <div className="p-8 border-b flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+              <span>Product Details</span>
+            </h2>
+            <div className="text-gray-500 text-sm mt-1">
+              {product?.sku} • {product?.category || 'No Category'}
             </div>
           </div>
+          <span className={`px-4 py-1 rounded-full text-sm font-semibold shadow-sm border ${
+            product?.status === 'active'
+              ? 'bg-green-50 text-green-700 border-green-200'
+              : 'bg-red-50 text-red-700 border-red-200'
+          }`}>
+            {product?.status === 'active' ? 'Active' : 'Inactive'}
+          </span>
         </div>
-
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Basic Information */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold mb-4 text-gray-700 flex items-center gap-2">
-                  <span>Basic Information</span>
+              <section className="bg-gray-50 rounded-xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="font-semibold text-lg text-gray-700 flex items-center gap-2 mb-4">
+                  <span>📝</span> <span>Basic Information</span>
                 </h3>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-6">
                   <FormField
                     control={form.control}
                     name="name"
@@ -180,7 +176,6 @@ export default function EditProductPage() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="sku"
@@ -194,7 +189,6 @@ export default function EditProductPage() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="category"
@@ -208,7 +202,6 @@ export default function EditProductPage() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="status"
@@ -234,14 +227,13 @@ export default function EditProductPage() {
                     )}
                   />
                 </div>
-              </div>
-
+              </section>
               {/* Pricing Information */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold mb-4 text-gray-700 flex items-center gap-2">
-                  <span>Pricing Information</span>
+              <section className="bg-gray-50 rounded-xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="font-semibold text-lg text-gray-700 flex items-center gap-2 mb-4">
+                  <span>💰</span> <span>Pricing Information</span>
                 </h3>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-6">
                   <FormField
                     control={form.control}
                     name="price"
@@ -265,7 +257,6 @@ export default function EditProductPage() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="currency"
@@ -293,7 +284,6 @@ export default function EditProductPage() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="commission_percent"
@@ -319,18 +309,19 @@ export default function EditProductPage() {
                     )}
                   />
                 </div>
-              </div>
+              </section>
             </div>
-
             {/* Additional Information */}
-            <div className="mt-6 bg-gray-50 rounded-lg p-4">
-              <h3 className="font-semibold mb-4 text-gray-700">Additional Information</h3>
-              <div className="space-y-4">
+            <section className="bg-gray-50 rounded-xl p-6 border border-gray-100 shadow-sm">
+              <h3 className="font-semibold text-lg text-gray-700 flex items-center gap-2 mb-4">
+                <span>📦</span> <span>Additional Information</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
                   name="description"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="md:col-span-2">
                       <FormLabel>Description</FormLabel>
                       <FormControl>
                         <Textarea
@@ -343,7 +334,6 @@ export default function EditProductPage() {
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="imageUrl"
@@ -358,9 +348,8 @@ export default function EditProductPage() {
                   )}
                 />
               </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-4">
+            </section>
+            <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
               <Button
                 type="button"
                 variant="outline"

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,16 +24,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { InviteDialog } from '@/components/affiliates/invite-dialog';
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Checkbox } from '@/components/ui/checkbox';
 
 export default function Affiliates() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [selectedAffiliate, setSelectedAffiliate] = useState<string | null>(null);
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileAffiliateId, setProfileAffiliateId] = useState<string | null>(null);
 
@@ -84,7 +84,7 @@ export default function Affiliates() {
           <h1 className="text-3xl font-bold tracking-tight">Affiliates</h1>
           <p className="text-muted-foreground">Manage your affiliate partners and performance</p>
         </div>
-        <InviteDialog trigger={<Button onClick={() => setInviteDialogOpen(true)}>Invite Affiliate</Button>} />
+        <Button onClick={() => navigate('/affiliates/invite')}>Invite Affiliate</Button>
       </div>
 
       <Card>
