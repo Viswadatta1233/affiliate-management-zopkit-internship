@@ -150,28 +150,10 @@ export function TrackingLinkList({ links, onRefresh }: TrackingLinkListProps) {
               Manage your affiliate tracking links
             </CardDescription>
           </div>
-          <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-            <DialogTrigger asChild>
-              <Button variant="default">
-                <Link2 className="mr-2 h-4 w-4" />
-                Create New Link
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[625px]">
-              <DialogHeader>
-                <DialogTitle>Create Tracking Link</DialogTitle>
-                <DialogDescription>
-                  Create a new tracking link to promote products and earn commissions.
-                </DialogDescription>
-              </DialogHeader>
-              <TrackingLinkForm 
-                onSuccess={() => {
-                  setShowEditDialog(false);
-                  onRefresh();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+          <Button variant="default" onClick={() => window.location.href = '/tracking-links/create'}>
+            <Link2 className="mr-2 h-4 w-4" />
+            Create New Link
+          </Button>
         </CardHeader>
         <CardContent>
           {links.length === 0 ? (

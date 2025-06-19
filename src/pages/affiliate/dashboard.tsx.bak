@@ -161,10 +161,10 @@ export default function AffiliateDashboard() {
       <div className="flex justify-between items-center">
         <h1 className="text-4xl font-bold text-white bg-gradient-to-r from-teal-500 to-teal-400 px-8 py-4 rounded-r-full -ml-6 shadow-lg">
           Your Stats
-          </h1>
+        </h1>
         <Button variant="outline" className="rounded-full px-6 shadow-sm">
           More Details
-          </Button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -250,21 +250,21 @@ export default function AffiliateDashboard() {
           {/* Tracking Links */}
           <Card className="mt-6 shadow-md border-0">
             <CardHeader className="bg-gradient-to-r from-teal-500 to-teal-400 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Tracking Links</CardTitle>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Tracking Links</CardTitle>
                   <CardDescription className="text-white/80">Your product tracking links and their performance</CardDescription>
-                  </div>
-                <Button variant="secondary" size="sm" asChild className="bg-white text-teal-600 hover:bg-gray-100">
-                    <RouterLink to="/affiliate/links">
-                      View All <ChevronRight className="ml-1 h-4 w-4" />
-                    </RouterLink>
-                  </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
+                <Button variant="secondary" size="sm" asChild className="bg-white text-teal-600 hover:bg-gray-100">
+                  <RouterLink to="/affiliate/links">
+                    View All <ChevronRight className="ml-1 h-4 w-4" />
+                  </RouterLink>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
                   <TableRow className="border-b border-gray-200">
                     <TableHead className="text-teal-700">Product</TableHead>
                     <TableHead className="text-teal-700">Tracking Code</TableHead>
@@ -272,21 +272,21 @@ export default function AffiliateDashboard() {
                     <TableHead className="text-right text-teal-700">Conversions</TableHead>
                     <TableHead className="text-right text-teal-700">Sales</TableHead>
                     <TableHead className="text-right text-teal-700">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {topPerformingLinks.map((link) => (
                     <TableRow key={link.id} className="hover:bg-gray-50">
-                            <TableCell className="font-medium">
+                      <TableCell className="font-medium">
                         {link.product?.name || productMap[link.productId]?.name || 'Unknown Product'}
-                            </TableCell>
+                      </TableCell>
                       <TableCell className="font-mono text-sm text-teal-600">
                         {link.trackingCode}
-                            </TableCell>
-                            <TableCell className="text-right">{link.totalClicks}</TableCell>
-                            <TableCell className="text-right">{link.totalConversions}</TableCell>
+                      </TableCell>
+                      <TableCell className="text-right">{link.totalClicks}</TableCell>
+                      <TableCell className="text-right">{link.totalConversions}</TableCell>
                       <TableCell className="text-right">${link.totalSales.toFixed(2)}</TableCell>
-                            <TableCell className="text-right">
+                      <TableCell className="text-right">
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -295,19 +295,19 @@ export default function AffiliateDashboard() {
                         >
                           <Copy className="h-4 w-4 mr-1" />
                           Copy
-                              </Button>
-                            </TableCell>
-                          </TableRow>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   ))}
                   {topPerformingLinks.length === 0 && (
-                        <TableRow>
+                    <TableRow>
                       <TableCell colSpan={6} className="h-24 text-center text-gray-500">
-                            No tracking links found
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                        No tracking links found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
 
@@ -340,7 +340,7 @@ export default function AffiliateDashboard() {
             {/* Performance Ranking */}
             <Card className="shadow-md border-0 bg-gradient-to-br from-teal-50 to-teal-100">
               <CardContent className="p-6 flex items-center justify-between">
-                  <div>
+                <div>
                   <h3 className="font-semibold text-lg mb-2">Performance Ranking</h3>
                   <div className="flex items-center">
                     <div className="bg-teal-200 rounded-lg p-2">
@@ -422,10 +422,10 @@ export default function AffiliateDashboard() {
                       View all commissions
                     </RouterLink>
                   </Button>
-              )}
+                )}
               </div>
             </CardContent>
-            </Card>
+          </Card>
         </div>
       </div>
     </div>

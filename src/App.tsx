@@ -6,7 +6,7 @@ import SuperAdminShell from '@/components/layout/super-admin-shell';
 import InfluencerShell from '@/components/layout/influencer-shell';
 import AffiliateShell from '@/components/layout/affiliate-shell';
 import { Toaster } from 'react-hot-toast';
-import { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 
 // Import pages
 import Dashboard from '@/pages/dashboard';
@@ -16,6 +16,7 @@ import PendingAffiliates from '@/pages/affiliates/pending';
 import AffiliateTiers from '@/pages/affiliates/tiers';
 import InviteAffiliatePage from '@/pages/affiliates/invite';
 import TrackingLinks from '@/pages/tracking-links';
+import CreateTrackingLink from '@/pages/tracking-links/create';
 import CommissionTiers from '@/pages/commissions/tiers';
 import CreateCommissionTier from '@/pages/commissions/create-tier';
 import ProductCommissions from '@/pages/commissions/products';
@@ -51,6 +52,7 @@ import EditProduct from '@/pages/products/edit';
 import AcceptInvite from '@/pages/affiliate/accept';
 import AffiliateDashboard from '@/pages/affiliate/dashboard';
 import AffiliateProfilePage from '@/pages/affiliate/profile';
+import AffiliateChangePassword from '@/pages/affiliate/change-password';
 import AffiliateTrackingLinks from '@/pages/affiliate/links';
 import AffiliateCommissions from '@/pages/affiliate/commissions';
 import SuperAdminDashboard from '@/pages/super-admin/dashboard';
@@ -178,6 +180,7 @@ function App() {
           <Route path="/affiliate" element={<AffiliateRoute><AffiliateShell /></AffiliateRoute>}>
             <Route path="dashboard" element={<AffiliateDashboard />} />
             <Route path="profile" element={<AffiliateProfilePage />} />
+            <Route path="change-password" element={<AffiliateChangePassword />} />
             <Route path="links" element={<AffiliateTrackingLinks />} />
             <Route path="commissions" element={<AffiliateCommissions />} />
             <Route path="*" element={<Navigate to="/affiliate/dashboard" replace />} />
@@ -205,6 +208,7 @@ function App() {
             
             {/* Tracking Links */}
             <Route path="tracking-links" element={<TrackingLinks />} />
+            <Route path="tracking-links/create" element={<CreateTrackingLink />} />
             
             {/* Commissions */}
             <Route path="commissions">

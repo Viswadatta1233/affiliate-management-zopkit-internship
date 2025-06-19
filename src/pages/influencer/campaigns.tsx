@@ -250,35 +250,35 @@ export default function InfluencerCampaigns() {
 
     return (
       <Card className="mb-4">
-        <CardHeader>
+        <CardHeader className="bg-gradient-to-r from-teal-500 to-teal-400 text-white">
           <div className="flex justify-between items-start">
             <div>
               <CardTitle>{campaign.name}</CardTitle>
-              <CardDescription>{campaign.description}</CardDescription>
+              <CardDescription className="text-white opacity-90">{campaign.description}</CardDescription>
             </div>
-            <Badge variant={campaign.status === 'active' ? 'default' : 'secondary'}>
+            <Badge variant={campaign.status === 'active' ? 'default' : 'secondary'} className="bg-white text-teal-600">
               {campaign.status}
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-2 text-lg font-semibold text-primary">Commission Rate: {campaign.commissionRate ? `${campaign.commissionRate}%` : 'N/A'}</div>
+          <div className="mb-2 text-lg font-semibold text-teal-600">Commission Rate: {campaign.commissionRate ? `${campaign.commissionRate}%` : 'N/A'}</div>
           <div className="mb-2 text-sm text-muted-foreground">Type: {campaign.type}</div>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+              <Calendar className="h-4 w-4 text-teal-500" />
               <span>Start: {formatDate(campaign.startDate)}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+              <Calendar className="h-4 w-4 text-teal-500" />
               <span>End: {formatDate(campaign.endDate)}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
+              <Users className="h-4 w-4 text-teal-500" />
               <span>Target Age: {campaign.targetAudienceAgeGroup}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Target className="h-4 w-4" />
+              <Target className="h-4 w-4 text-teal-500" />
               <span>Niche: {campaign.requiredInfluencerNiche}</span>
             </div>
           </div>
@@ -286,14 +286,14 @@ export default function InfluencerCampaigns() {
         <CardFooter>
           {isInfluencer && !isParticipating && (
             <Button 
-              className="w-full"
+              className="w-full bg-teal-500 hover:bg-teal-600 text-white"
               onClick={() => navigate(`/influencer/campaigns/${campaign.id}`)}
             >
               View & Apply
             </Button>
           )}
           {isPotentialInfluencer && (
-            <Button
+            <Button 
               className="w-full"
               variant="outline"
               disabled
@@ -306,43 +306,21 @@ export default function InfluencerCampaigns() {
     );
   };
 
-    return (
+  return (
     <div className="container mx-auto py-6">
       <Toaster position="bottom-right" />
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Campaigns</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Campaigns</h1>
       </div>
-
+      
       {/* Success Message */}
       {successMessage && (
         <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
           <CheckCircle2 className="h-5 w-5" />
           <span>{successMessage}</span>
-      </div>
+        </div>
       )}
-
-      {/* Guidelines Modal */}
-      <Dialog open={guidelinesModal.open} onOpenChange={open => setGuidelinesModal({ open, text: open ? guidelinesModal.text : '' })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Campaign Guidelines</DialogTitle>
-          </DialogHeader>
-          <div className="whitespace-pre-line text-sm">{guidelinesModal.text}</div>
-          <Button className="mt-4 w-full" onClick={() => setGuidelinesModal({ open: false, text: '' })}>Close</Button>
-        </DialogContent>
-      </Dialog>
-
-      {/* Objectives Modal */}
-      <Dialog open={objectivesModal.open} onOpenChange={open => setObjectivesModal({ open, text: open ? objectivesModal.text : '' })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Marketing Objectives</DialogTitle>
-          </DialogHeader>
-          <div className="whitespace-pre-line text-sm">{objectivesModal.text}</div>
-          <Button className="mt-4 w-full" onClick={() => setObjectivesModal({ open: false, text: '' })}>Close</Button>
-        </DialogContent>
-      </Dialog>
-
+      
       <CampaignFilters
         filters={filters}
         onFilterChange={handleFilterChange}
@@ -350,9 +328,9 @@ export default function InfluencerCampaigns() {
       />
       
       <Tabs defaultValue="available" className="mt-6">
-        <TabsList>
-          <TabsTrigger value="available">Available Campaigns</TabsTrigger>
-          <TabsTrigger value="my-campaigns">My Campaigns</TabsTrigger>
+        <TabsList className="bg-white border border-gray-200">
+          <TabsTrigger value="available" className="data-[state=active]:bg-teal-500 data-[state=active]:text-white">Available Campaigns</TabsTrigger>
+          <TabsTrigger value="my-campaigns" className="data-[state=active]:bg-teal-500 data-[state=active]:text-white">My Campaigns</TabsTrigger>
         </TabsList>
 
         <TabsContent value="available">
@@ -374,7 +352,7 @@ export default function InfluencerCampaigns() {
         <TabsContent value="my-campaigns">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
             </div>
           ) : joinedCampaigns.length > 0 ? (
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
@@ -389,6 +367,28 @@ export default function InfluencerCampaigns() {
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Guidelines Modal */}
+      <Dialog open={guidelinesModal.open} onOpenChange={open => setGuidelinesModal({ open, text: open ? guidelinesModal.text : '' })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Campaign Guidelines</DialogTitle>
+          </DialogHeader>
+          <div className="whitespace-pre-line text-sm">{guidelinesModal.text}</div>
+          <Button className="mt-4 w-full bg-teal-500 hover:bg-teal-600" onClick={() => setGuidelinesModal({ open: false, text: '' })}>Close</Button>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Objectives Modal */}
+      <Dialog open={objectivesModal.open} onOpenChange={open => setObjectivesModal({ open, text: open ? objectivesModal.text : '' })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Marketing Objectives</DialogTitle>
+          </DialogHeader>
+          <div className="whitespace-pre-line text-sm">{objectivesModal.text}</div>
+          <Button className="mt-4 w-full bg-teal-500 hover:bg-teal-600" onClick={() => setObjectivesModal({ open: false, text: '' })}>Close</Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

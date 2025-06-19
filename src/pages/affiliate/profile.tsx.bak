@@ -241,34 +241,34 @@ export default function AffiliateProfile() {
         <h1 className="text-4xl font-bold text-white bg-gradient-to-r from-teal-500 to-teal-400 px-8 py-4 rounded-r-full -ml-6 shadow-lg">
           Your Profile
         </h1>
-            {!showProfileForm && (
+        {!showProfileForm && (
           <Button 
             variant="outline" 
             className="rounded-full px-6 shadow-sm border-teal-500 text-teal-600 hover:bg-teal-50"
             onClick={() => setShowProfileForm(true)}
           >
             <Edit3 className="h-4 w-4 mr-2" /> Edit Profile
-                </Button>
+          </Button>
         )}
       </div>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
-                      </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Profile Overview */}
-                      <div>
+          <div>
             <Card className="shadow-md border-0 overflow-hidden h-full">
               <CardHeader className="bg-gradient-to-r from-teal-500 to-teal-400 text-white pb-12 relative">
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="absolute inset-0 bg-black opacity-10"></div>
                   <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/20 to-transparent"></div>
-                      </div>
+                </div>
                 <div className="relative z-10">
                   <CardTitle className="text-xl">Affiliate Details</CardTitle>
-                      </div>
+                </div>
               </CardHeader>
               <div className="relative">
                 <div className="absolute -top-10 inset-x-0 flex justify-center">
@@ -278,7 +278,7 @@ export default function AffiliateProfile() {
                       {user?.firstName?.[0] || "A"}
                     </AvatarFallback>
                   </Avatar>
-                      </div>
+                </div>
               </div>
               <CardContent className="pt-12 pb-6 text-center">
                 <h3 className="text-xl font-semibold mb-1">{user?.firstName} {user?.lastName}</h3>
@@ -298,7 +298,7 @@ export default function AffiliateProfile() {
                     <div className="flex items-center justify-center gap-2">
                       <div className="bg-gray-100 px-4 py-2 rounded-lg font-mono text-teal-700 border border-gray-200">
                         {affiliateDetails?.referralCode || 'N/A'}
-                </div>
+                      </div>
                       <Button
                         size="sm"
                         variant="outline"
@@ -309,7 +309,7 @@ export default function AffiliateProfile() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   {affiliateDetails?.websiteUrl && (
                     <div>
                       <div className="text-sm text-gray-500 mb-1">Website</div>
@@ -339,8 +339,8 @@ export default function AffiliateProfile() {
                 </Button>
               </CardFooter>
             </Card>
-              </div>
-              
+          </div>
+
           {/* Right Column - Details */}
           <div className="lg:col-span-2">
             {!showProfileForm ? (
@@ -372,12 +372,12 @@ export default function AffiliateProfile() {
                                 className="text-sm text-teal-600 hover:underline truncate block"
                               >
                                 {url as string}
-                          </a>
-                        </div>
+                              </a>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
+                    ) : (
                       <div className="bg-gray-50 rounded-lg p-8 text-center">
                         <div className="mx-auto w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mb-4">
                           <User className="h-6 w-6 text-gray-500" />
@@ -393,7 +393,7 @@ export default function AffiliateProfile() {
                           Connect Accounts
                         </Button>
                       </div>
-                )}
+                    )}
                   </CardContent>
                 </Card>
 
@@ -405,14 +405,14 @@ export default function AffiliateProfile() {
                         <CardTitle>Promotional Methods</CardTitle>
                         <CardDescription className="text-white/80">How you promote affiliate products</CardDescription>
                       </div>
-              </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-6">
                     {affiliateDetails?.promotionalMethods?.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {affiliateDetails.promotionalMethods.map(method => (
+                      <div className="flex flex-wrap gap-2">
+                        {affiliateDetails.promotionalMethods.map(method => (
                           <Badge key={method} variant="secondary" className="bg-teal-50 text-teal-700 hover:bg-teal-100 px-3 py-1.5 rounded-full">
-                        {method}
+                            {method}
                           </Badge>
                         ))}
                       </div>
@@ -431,12 +431,12 @@ export default function AffiliateProfile() {
                         >
                           Add Methods
                         </Button>
-                  </div>
-                )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-            </div>
-          ) : (
+              </div>
+            ) : (
               <Card className="shadow-md border-0 overflow-hidden">
                 <CardHeader className="bg-gradient-to-r from-teal-500 to-teal-400 text-white">
                   <CardTitle>Edit Profile</CardTitle>
@@ -444,12 +444,12 @@ export default function AffiliateProfile() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <form onSubmit={handleProfileSubmit} className="space-y-6">
-              {formError && (
+                    {formError && (
                       <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">
-                  {formError}
-                </div>
-              )}
-              
+                        {formError}
+                      </div>
+                    )}
+                    
                     <div className="space-y-4">
                       <h3 className="text-lg font-medium text-teal-700">Basic Information</h3>
                       <div className="grid grid-cols-1 gap-4">
@@ -457,20 +457,20 @@ export default function AffiliateProfile() {
                           <label htmlFor="websiteUrl" className="block text-sm font-medium text-gray-700">
                             Website URL
                           </label>
-                <Input
+                          <Input
                             id="websiteUrl"
                             value={profileForm.websiteUrl}
                             onChange={(e) => setProfileForm({...profileForm, websiteUrl: e.target.value})}
-                  placeholder="https://yourwebsite.com"
+                            placeholder="https://yourwebsite.com"
                             className="border-gray-300 focus:border-teal-500 focus:ring-teal-500"
-                />
+                          />
                         </div>
                       </div>
-              </div>
+                    </div>
                     
                     <Separator className="bg-teal-200" />
-              
-              <div className="space-y-4">
+                    
+                    <div className="space-y-4">
                       <h3 className="text-lg font-medium text-teal-700">Social Media</h3>
                       <div className="grid grid-cols-1 gap-4">
                         {Object.entries(profileForm.socialMedia).map(([platform, url]) => (
@@ -497,62 +497,62 @@ export default function AffiliateProfile() {
                             </Button>
                           </div>
                         ))}
-                
+                        
                         <div className="flex gap-2 mt-2">
-                  <Select
-                    value={profileForm.selectedSocial}
+                          <Select
+                            value={profileForm.selectedSocial}
                             onValueChange={(value) => setProfileForm({...profileForm, selectedSocial: value})}
-                  >
+                          >
                             <SelectTrigger className="w-[180px] border-gray-300 focus:border-teal-500 focus:ring-teal-500">
-                      <SelectValue placeholder="Select platform" />
-                    </SelectTrigger>
-                    <SelectContent>
+                              <SelectValue placeholder="Select platform" />
+                            </SelectTrigger>
+                            <SelectContent>
                               {SOCIAL_MEDIA_OPTIONS
                                 .filter(option => !Object.keys(profileForm.socialMedia).includes(option.value))
                                 .map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
                                 ))
                               }
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    value={profileForm.socialUrl}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            value={profileForm.socialUrl}
                             onChange={(e) => setProfileForm({...profileForm, socialUrl: e.target.value})}
                             placeholder="https://platform.com/username"
                             className="flex-1 border-gray-300 focus:border-teal-500 focus:ring-teal-500"
-                  />
+                          />
                           <Button
                             type="button"
                             onClick={handleAddSocial}
                             disabled={!profileForm.selectedSocial || !profileForm.socialUrl}
                             className="bg-teal-500 hover:bg-teal-600 text-white"
                           >
-                    Add
-                  </Button>
+                            Add
+                          </Button>
                         </div>
                       </div>
-              </div>
+                    </div>
                     
                     <Separator className="bg-teal-200" />
-              
-              <div className="space-y-4">
+                    
+                    <div className="space-y-4">
                       <h3 className="text-lg font-medium text-teal-700">Promotional Methods</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {PROMO_METHOD_OPTIONS.map(method => (
+                        {PROMO_METHOD_OPTIONS.map(method => (
                           <label key={method} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
-                      <Checkbox
-                        checked={profileForm.promotionalMethods.includes(method)}
-                        onCheckedChange={() => handlePromoToggle(method)}
+                            <Checkbox
+                              checked={profileForm.promotionalMethods.includes(method)}
+                              onCheckedChange={() => handlePromoToggle(method)}
                               className="border-gray-300 data-[state=checked]:bg-teal-500 data-[state=checked]:border-teal-500"
                             />
                             <span>{method}</span>
-                      </label>
-                  ))}
-                </div>
-              </div>
-              
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    
                     <div className="flex justify-end gap-2">
                       <Button
                         type="button"
@@ -560,19 +560,19 @@ export default function AffiliateProfile() {
                         onClick={() => setShowProfileForm(false)}
                         className="border-gray-300"
                       >
-                  Cancel
-                </Button>
+                        Cancel
+                      </Button>
                       <Button 
                         type="submit" 
                         disabled={updateProfileMutation.isPending}
                         className="bg-teal-500 hover:bg-teal-600 text-white"
                       >
-                  {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </form>
-        </CardContent>
-      </Card>
+                        {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>

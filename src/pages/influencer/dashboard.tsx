@@ -1,258 +1,275 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, Legend, Cell } from 'recharts';
-import { TrendingUp, DollarSign, Link2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useAuthStore } from '@/store/auth-store';
-
-// Replace the existing color constants with a more diverse palette
-// Blue-grey shade for subtle blueish tint (for graphs only)
-const BLUE_GREY = '#b6c6e3'; // soft blue-grey
-const BLUE_GREY_DARK = '#7d8fa9'; // for lines
-const BLUE_GREY_LIGHT = '#eaf0fa'; // for backgrounds/hover
-
-// Update the chart colors with a better categorical palette
-const CHART_COLORS = {
-  primary: '#4F46E5', // indigo
-  secondary: '#06B6D4', // cyan
-  tertiary: '#8B5CF6', // purple
-  success: '#10B981', // emerald
-  warning: '#F59E0B', // amber
-  danger: '#EF4444', // red
-  neutral: '#6B7280', // gray
-  
-  // Gradient stops
-  gradientStart: '#4F46E5', 
-  gradientEnd: '#06B6D4',
-  
-  // Bar chart colors - category colors (visually distinct)
-  summerSale: '#8B5CF6', // vibrant purple
-  blackFriday: '#EC4899', // pink
-  springCollection: '#06B6D4', // cyan
-  
-  // Line chart colors
-  linePrimary: '#10B981',
-  lineSecondary: '#F59E0B',
-};
-
-// Static data for charts and table
-const topLinks = [
-  { name: 'Summer Sale', clicks: 243 },
-  { name: 'Black Friday', clicks: 156 },
-  { name: 'Spring Collection', clicks: 87 },
-];
-const earningsByCampaign = [
-  { name: 'Summer Sale', earnings: 320 },
-  { name: 'Black Friday', earnings: 210 },
-  { name: 'Spring Collection', earnings: 90 },
-];
-const conversionRateOverTime = [
-  { date: '2024-05-01', rate: 2.1 },
-  { date: '2024-05-02', rate: 2.5 },
-  { date: '2024-05-03', rate: 3.0 },
-  { date: '2024-05-04', rate: 2.7 },
-  { date: '2024-05-05', rate: 3.2 },
-];
-const trackingLinks = [
-  {
-    campaignName: 'Summer Sale',
-    url: 'https://example.com/summer',
-    clicks: 243,
-    conversions: 18,
-    commission: 320,
-    conversionRate: 7.4,
-  },
-  {
-    campaignName: 'Black Friday',
-    url: 'https://example.com/blackfriday',
-    clicks: 156,
-    conversions: 12,
-    commission: 210,
-    conversionRate: 7.7,
-  },
-  {
-    campaignName: 'Spring Collection',
-    url: 'https://example.com/spring',
-    clicks: 87,
-    conversions: 9,
-    commission: 90,
-    conversionRate: 10.3,
-  },
-];
-
-function truncateUrl(url: string, max = 28) {
-  if (url.length <= max) return url;
-  return url.slice(0, max) + '...';
-}
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Instagram, Twitter, Facebook, MoreVertical } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 export default function InfluencerDashboard() {
     const { user } = useAuthStore();
+  
+  // Sample data for the dashboard
+  const stats = {
+    potential: 58,
+    accountNumber: "3253",
+    viewers: "65,031",
+    engagement: "25,214",
+    monthlyGoal: {
+      progress: 53,
+      points: 350
+    },
+    socialMedia: {
+      instagram: { points: 1230 },
+      twitter: { points: 1230 },
+      facebook: { points: 1230 }
+    },
+    actions: [
+      { icon: "📝", title: "3 Posts Added", color: "bg-blue-100" },
+      { icon: "⭐", title: "Premium Plan Bought", color: "bg-purple-100" },
+      { icon: "📹", title: "2 Videos Added", color: "bg-green-100" },
+      { icon: "✅", title: "Sponsorship Signed", color: "bg-teal-100" }
+    ]
+  };
+
     return (
-    <div className="container mx-auto py-8 min-h-[90vh] flex flex-col gap-10">
-      <h1 className="text-4xl mb-2 tracking-tight text-black">Dashboard</h1>
-      <div className="text-xl text-gray-400 mb-6 -mt-2">
-        Welcome to your dashboard,{' '}
-        <span className="font-semibold text-gray-700">{user?.firstName} {user?.lastName}</span>
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-4xl font-bold text-white bg-gradient-to-r from-teal-500 to-teal-400 px-8 py-4 rounded-r-full -ml-6 shadow-lg">
+          Your Stats
+        </h1>
+        <Button variant="outline" className="rounded-full px-6 shadow-sm">
+          More Details
+        </Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-4">
-        {/* Top Performing Links Chart */}
-        <Card className="shadow-xl border-0 bg-white h-[400px] flex flex-col justify-between">
-          <CardHeader className="flex flex-row items-center gap-3 pb-2">
-            <Link2 className="" style={{ color: BLUE_GREY_DARK }} />
-            <CardTitle className="text-2xl text-black">Top Performing Links</CardTitle>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Account Details */}
+        <div className="lg:col-span-2">
+          <Card className="shadow-md border-0 overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xl">Account Details</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 flex items-center">
-            <ResponsiveContainer width="100%" height="90%">
-              <BarChart data={topLinks} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" tick={{ fontSize: 14, fill: '#000' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 14, fill: '#000' }} axisLine={false} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{ background: '#fff', color: '#111', borderRadius: 8, border: '1px solid #e5e7eb' }} 
-                  labelStyle={{ color: '#111' }} 
-                  cursor={{ fill: 'rgba(79, 70, 229, 0.1)' }}
-                />
-                <Bar dataKey="clicks" radius={[12, 12, 0, 0]}>
-                  {topLinks.map((entry, index) => {
-                    let color;
-                    if (entry.name === 'Summer Sale') color = CHART_COLORS.summerSale;
-                    else if (entry.name === 'Black Friday') color = CHART_COLORS.blackFriday;
-                    else if (entry.name === 'Spring Collection') color = CHART_COLORS.springCollection;
-                    else color = CHART_COLORS.primary;
-                    
-                    return <Cell key={`cell-${index}`} fill={color} />;
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Potential Progress */}
+              <div className="flex flex-col items-center justify-center">
+                <div className="relative w-32 h-32">
+                  <svg className="w-full h-full" viewBox="0 0 100 100">
+                    <circle 
+                      className="text-gray-200" 
+                      strokeWidth="10" 
+                      stroke="currentColor" 
+                      fill="transparent" 
+                      r="40" 
+                      cx="50" 
+                      cy="50" 
+                    />
+                    <circle 
+                      className="text-teal-500" 
+                      strokeWidth="10" 
+                      strokeDasharray={`${stats.potential * 2.51} 251`} 
+                      strokeLinecap="round" 
+                      stroke="currentColor" 
+                      fill="transparent" 
+                      r="40" 
+                      cx="50" 
+                      cy="50" 
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-3xl font-bold">{stats.potential}%</span>
+                    <span className="text-xs text-gray-500">POTENTIAL</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Card */}
+              <div className="flex flex-col">
+                <div className="bg-gradient-to-r from-pink-500 to-pink-400 rounded-lg p-4 text-white shadow-lg h-full flex flex-col justify-between">
+                  <div className="uppercase text-sm font-bold mb-4">Account</div>
+                  <div className="text-lg font-bold">**** {stats.accountNumber}</div>
+                  <div className="mt-4 flex justify-end">
+                    <div className="bg-white/20 p-2 rounded-full">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M7.5 12H16.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12 7.5V16.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Viewers */}
+                <div className="bg-white rounded-lg p-4 shadow-md border border-gray-100">
+                  <div className="text-sm text-gray-500 mb-1">Viewers</div>
+                  <div className="flex items-center justify-center">
+                    <svg className="w-full h-16" viewBox="0 0 100 30">
+                      <path d="M0,15 Q10,5 20,15 T40,15 T60,15 T80,15 T100,15" fill="none" stroke="#10B981" strokeWidth="2"/>
+                    </svg>
+                  </div>
+                  <div className="text-center font-semibold mt-1">{stats.viewers} views</div>
+                </div>
+                
+                {/* Engagement */}
+                <div className="bg-white rounded-lg p-4 shadow-md border border-gray-100">
+                  <div className="text-sm text-gray-500 mb-1">Engagement</div>
+                  <div className="flex items-center justify-center">
+                    <svg className="w-full h-16" viewBox="0 0 100 30">
+                      <path d="M0,20 Q25,5 50,20 T100,10" fill="none" stroke="#EC4899" strokeWidth="2"/>
+                    </svg>
+                  </div>
+                  <div className="text-center font-semibold mt-1">{stats.engagement} focused</div>
+                </div>
+              </div>
           </CardContent>
         </Card>
-        {/* Earnings by Campaign Chart */}
-        <Card className="shadow-xl border-0 bg-white h-[400px] flex flex-col justify-between">
-          <CardHeader className="flex flex-row items-center gap-3 pb-2">
-            <DollarSign className="" style={{ color: BLUE_GREY_DARK }} />
-            <CardTitle className="text-2xl text-black">Earnings by Campaign</CardTitle>
+
+          {/* Actions Performed */}
+          <Card className="mt-6 shadow-md border-0">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xl">Actions Performed</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 flex items-center">
-            <ResponsiveContainer width="100%" height="90%">
-              <BarChart data={earningsByCampaign} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="summerSaleGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={CHART_COLORS.summerSale} stopOpacity={0.9}/>
-                    <stop offset="100%" stopColor={CHART_COLORS.summerSale} stopOpacity={0.6}/>
-                  </linearGradient>
-                  <linearGradient id="blackFridayGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={CHART_COLORS.blackFriday} stopOpacity={0.9}/>
-                    <stop offset="100%" stopColor={CHART_COLORS.blackFriday} stopOpacity={0.6}/>
-                  </linearGradient>
-                  <linearGradient id="springCollectionGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={CHART_COLORS.springCollection} stopOpacity={0.9}/>
-                    <stop offset="100%" stopColor={CHART_COLORS.springCollection} stopOpacity={0.6}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" tick={{ fontSize: 14, fill: '#000' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 14, fill: '#000' }} axisLine={false} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{ background: '#fff', color: '#111', borderRadius: 8, border: '1px solid #e5e7eb' }} 
-                  labelStyle={{ color: '#111' }}
-                  cursor={{ fill: 'rgba(6, 182, 212, 0.1)' }} 
-                />
-                <Bar dataKey="earnings" radius={[12, 12, 0, 0]}>
-                  {earningsByCampaign.map((entry, index) => {
-                    let fill;
-                    if (entry.name === 'Summer Sale') fill = "url(#summerSaleGradient)";
-                    else if (entry.name === 'Black Friday') fill = "url(#blackFridayGradient)";
-                    else if (entry.name === 'Spring Collection') fill = "url(#springCollectionGradient)";
-                    else fill = "url(#earningsGradient)";
-                    
-                    return <Cell key={`cell-${index}`} fill={fill} />;
-                  })}
-                </Bar>
-                <Legend />
-              </BarChart>
-            </ResponsiveContainer>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                {stats.actions.map((action, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <div className={`${action.color} w-10 h-10 rounded-lg flex items-center justify-center text-lg`}>
+                      {action.icon}
+                    </div>
+                    <span className="text-sm font-medium">{action.title}</span>
+                  </div>
+                ))}
+              </div>
           </CardContent>
         </Card>
-        {/* Conversion Rate Over Time Chart */}
-        <Card className="shadow-xl border-0 bg-white h-[400px] flex flex-col justify-between md:col-span-2">
-          <CardHeader className="flex flex-row items-center gap-3 pb-2">
-            <TrendingUp className="" style={{ color: BLUE_GREY_DARK }} />
-            <CardTitle className="text-2xl text-black">Conversion Rate Over Time</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex items-center">
-            <ResponsiveContainer width="100%" height="90%">
-              <LineChart data={conversionRateOverTime} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="rateGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor={CHART_COLORS.success} stopOpacity={1}/>
-                    <stop offset="100%" stopColor={CHART_COLORS.warning} stopOpacity={1}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="date" tick={{ fontSize: 14, fill: '#000' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 14, fill: '#000' }} domain={[0, 'dataMax + 1']} axisLine={false} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{ background: '#fff', color: '#111', borderRadius: 8, border: '1px solid #e5e7eb' }} 
-                  labelStyle={{ color: '#111' }} 
-                />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="rate" 
-                  stroke="url(#rateGradient)" 
-                  strokeWidth={4} 
-                  dot={{ r: 7, fill: CHART_COLORS.success, stroke: 'white', strokeWidth: 2 }} 
-                  activeDot={{ r: 9, fill: CHART_COLORS.warning, stroke: 'white', strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+
+          {/* Feature Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            {/* Mobile App Sync */}
+            <Card className="shadow-md border-0 bg-gradient-to-br from-yellow-50 to-yellow-100">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Mobile App Sync</h3>
+                  <div className="flex items-center">
+                    <div className="bg-yellow-200 rounded-lg p-2">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="5" y="2" width="14" height="20" rx="2" stroke="#F59E0B" strokeWidth="2"/>
+                        <path d="M12 18H12.01" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="relative">
+                  <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-yellow-200 rounded-full opacity-50"></div>
+                  <div className="relative z-10">
+                    <img src="https://placehold.co/120x120/FFEDD5/F59E0B?text=📱" alt="Mobile App" className="w-20 h-20 object-cover" />
+                  </div>
+                </div>
           </CardContent>
         </Card>
-        {/* Table View */}
-        <Card className="shadow-xl border-0 bg-gradient-to-br from-white via-gray-100 to-gray-50 min-h-[340px] md:col-span-2">
-        <CardHeader>
-            <CardTitle className="text-2xl text-black">Tracking Links Breakdown</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-lg text-black">Campaign Name</TableHead>
-                    <TableHead className="text-lg text-black">Link URL</TableHead>
-                    <TableHead className="text-lg text-black">Clicks</TableHead>
-                    <TableHead className="text-lg text-black">Sales (Conversions)</TableHead>
-                    <TableHead className="text-lg text-black">Commission Earned</TableHead>
-                    <TableHead className="text-lg text-black">Conversion Rate (%)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {trackingLinks.map(link => (
-                    <TableRow key={link.campaignName} className="hover:bg-[#eaf0fa] transition cursor-pointer">
-                      <TableCell className="text-black">{link.campaignName}</TableCell>
-                      <TableCell>
-                        <a
-                          href={link.url}
-                          className="inline-block px-3 py-1 rounded-full bg-[#eaf0fa] text-black font-mono text-sm hover:bg-[#dbeafe] transition max-w-[200px] truncate"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={link.url}
-                        >
-                          {truncateUrl(link.url)}
-                        </a>
-                      </TableCell>
-                      <TableCell className="text-black">{link.clicks}</TableCell>
-                      <TableCell className="text-black">{link.conversions}</TableCell>
-                      <TableCell className="text-black">${link.commission}</TableCell>
-                      <TableCell className="text-black">{link.conversionRate}%</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+
+            {/* Influence Ranking */}
+            <Card className="shadow-md border-0 bg-gradient-to-br from-teal-50 to-teal-100">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Influence Ranking</h3>
+                  <div className="flex items-center">
+                    <div className="bg-teal-200 rounded-lg p-2">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 4L8 12L16 20" stroke="#0D9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="relative">
+                  <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-teal-200 rounded-full opacity-50"></div>
+                  <div className="relative z-10 bg-white rounded-full w-12 h-12 flex items-center justify-center text-teal-500 font-bold text-xl">
+                    #11
+                  </div>
             </div>
         </CardContent>
       </Card>
+          </div>
+        </div>
+
+        {/* Right Column - User Profile */}
+        <div>
+          <Card className="shadow-md border-0 h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div className="flex items-center gap-2">
+                <div className="text-sm text-gray-500">Hello,</div>
+                <div className="font-semibold">{user?.firstName || 'David'} {user?.lastName || 'Jones'}</div>
+              </div>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center pt-6">
+              <Avatar className="h-24 w-24 border-4 border-white shadow-xl mb-6">
+                <AvatarImage src={user?.avatarUrl || "https://placehold.co/200x200/FFFFFF/5EEAD4?text=👤"} alt={user?.firstName || "User"} />
+                <AvatarFallback className="bg-teal-100 text-teal-800 text-2xl">
+                  {user?.firstName?.[0] || "D"}
+                </AvatarFallback>
+              </Avatar>
+
+              {/* Monthly Goal */}
+              <div className="w-full mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="font-medium">Monthly Goal</div>
+                  <div className="text-gray-500">{stats.monthlyGoal.points} Points</div>
+                </div>
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full border-4 border-gray-100 flex items-center justify-center absolute -left-2 -top-1 bg-white">
+                    <div className="text-teal-500 font-bold text-lg">{stats.monthlyGoal.progress}%</div>
+                  </div>
+                  <Progress value={stats.monthlyGoal.progress} className="h-3 ml-6" />
+                </div>
+              </div>
+
+              {/* Social Media Accounts */}
+              <div className="w-full space-y-4 mt-8">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-pink-100 p-2 rounded-full">
+                      <Instagram className="h-5 w-5 text-pink-500" />
+                    </div>
+                    <span>Instagram</span>
+                  </div>
+                  <div>{stats.socialMedia.instagram.points} Points</div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 p-2 rounded-full">
+                      <Twitter className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <span>Twitter</span>
+                  </div>
+                  <div>{stats.socialMedia.twitter.points} Points</div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-indigo-100 p-2 rounded-full">
+                      <Facebook className="h-5 w-5 text-indigo-500" />
+                    </div>
+                    <span>Facebook</span>
+                  </div>
+                  <div>{stats.socialMedia.facebook.points} Points</div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full bg-yellow-400 hover:bg-yellow-500 text-black">
+                LOOK FOR SPONSORSHIP
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     </div>
   );

@@ -1,9 +1,13 @@
-import React from 'react';
-import { Outlet, Link as RouterLink, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Outlet, Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthStore } from '@/store/auth-store';
 import { cn } from '@/lib/utils';
+import { Toaster } from '@/components/ui/sonner';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Home,
   BarChart3,
@@ -11,130 +15,164 @@ import {
   Link2,
   CreditCard,
   User,
-  LogOut
+  LogOut,
+  Search,
+  Settings
 } from 'lucide-react';
 
-const sidebarNavItems = [
-  {
-    section: "Dashboard",
-    items: [
-      {
-        title: "Overview",
-        href: "/affiliate/dashboard",
-        icon: Home,
-        description: "Your affiliate summary"
-      }
-    ]
+const navItems = [
+  { 
+    icon: <Home className="h-5 w-5" />, 
+    href: "/affiliate/dashboard", 
+    label: "Dashboard" 
   },
-  
-  {
-    section: "Finance",
-    items: [
-      {
-        title: "Earnings",
-        href: "/affiliate/earnings",
-        icon: DollarSign,
-        description: "Your commission earnings"
-      },
-      {
-        title: "Payouts",
-        href: "/affiliate/payouts",
-        icon: CreditCard,
-        description: "Payment history and requests"
-      }
-    ]
+  { 
+    icon: <BarChart3 className="h-5 w-5" />, 
+    href: "/affiliate/links", 
+    label: "Links" 
   },
-  {
-    section: "Account",
-    items: [
-      {
-        title: "Profile",
-        href: "/affiliate/profile",
-        icon: User,
-        description: "Manage your profile"
-      }
-    ]
-  }
+  { 
+    icon: <DollarSign className="h-5 w-5" />, 
+    href: "/affiliate/earnings", 
+    label: "Earnings" 
+  },
+  { 
+    icon: <CreditCard className="h-5 w-5" />, 
+    href: "/affiliate/payouts", 
+    label: "Payouts" 
+  },
+  { 
+    icon: <User className="h-5 w-5" />, 
+    href: "/affiliate/profile", 
+    label: "Profile" 
+  },
 ];
 
 export default function AffiliateShell() {
   const location = useLocation();
-  const { logout } = useAuthStore();
+  const navigate = useNavigate();
+  const { user, isLoading, isAuthenticated, loadUserData, logout } = useAuthStore();
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
+  // Check for mobile view
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobileView(mobile);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  // Load user data
+  useEffect(() => {
+    if (isAuthenticated && !user) {
+      loadUserData();
+    }
+  }, [isAuthenticated, user, loadUserData]);
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/login';
+    navigate('/login');
   };
 
-  return (
-    <div className="flex min-h-screen">
-      {/* Sidebar */}
-      <div className="hidden lg:flex lg:w-72 lg:flex-col lg:fixed lg:inset-y-0">
-        <div className="flex flex-col gap-4 border-r bg-white dark:bg-gray-900 h-full">
-          <div className="flex items-center gap-2 px-6 py-6 border-b">
-            <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Affiliate Portal</h2>
-          </div>
-          <div className="flex flex-col flex-1 overflow-y-auto px-4 py-2">
-            <nav className="flex flex-col gap-6 flex-1">
-              {sidebarNavItems.map((section) => (
-                <div key={section.section} className="space-y-3">
-                  <div className="px-2 py-1">
-                    <h3 className="text-xs uppercase font-semibold tracking-wider text-gray-500 dark:text-gray-400">{section.section}</h3>
-                  </div>
-                  <div className="space-y-1">
-                    {section.items.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <RouterLink
-                          key={item.href}
-                          to={item.href}
-                          className={cn(
-                            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all hover:bg-gray-100 dark:hover:bg-gray-800 group relative",
-                            location.pathname === item.href 
-                              ? "bg-primary/10 text-primary font-medium" 
-                              : "text-gray-700 dark:text-gray-300"
-                          )}
-                        >
-                          <div className={cn(
-                            "p-1 rounded-md",
-                            location.pathname === item.href 
-                              ? "bg-primary/20 text-primary" 
-                              : "text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300"
-                          )}>
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <span>{item.title}</span>
-                        </RouterLink>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </nav>
-          </div>
-          
-          {/* Logout Button */}
-          <div className="px-4 py-4 mt-auto border-t">
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start gap-3 text-gray-700 dark:text-gray-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-              onClick={handleLogout}
-            >
-              <div className="p-1 rounded-md text-gray-500">
-                <LogOut className="h-4 w-4" />
-              </div>
-              <span>Logout</span>
-            </Button>
+  // Loading skeleton
+  if (isLoading && !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="border-b bg-card">
+          <Skeleton className="h-16 w-full" />
+        </div>
+        <div className="flex-1 p-4 md:p-8 space-y-6">
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-[250px]" />
+            <Skeleton className="h-4 w-[400px]" />
           </div>
         </div>
       </div>
+    );
+  }
 
+  // Sidebar content
+  const sidebar = (
+    <aside className={cn(
+      'z-20 flex flex-col bg-gradient-to-b from-teal-500 to-teal-400 transition-transform duration-300 ease-in-out',
+      isMobileView ? 'fixed inset-y-0 left-0 w-24 max-w-full transform translate-x-0 md:relative md:translate-x-0' : 'relative w-24',
+    )} aria-label="Sidebar">
+      <div className="px-4 pt-8 pb-6 flex flex-col items-center">
+        <Avatar className="h-16 w-16 border-4 border-white shadow-lg">
+          <AvatarImage src={user?.avatarUrl || ""} alt={user?.firstName || "User"} />
+          <AvatarFallback className="bg-yellow-300 text-yellow-800 text-xl">
+            {user?.firstName?.[0] || "A"}
+          </AvatarFallback>
+        </Avatar>
+      </div>
+      <div className="flex-1 py-6 flex flex-col items-center gap-8">
+        {navItems.map((item) => (
+          <RouterLink
+            key={item.href}
+            to={item.href}
+            className={cn(
+              "flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all",
+              location.pathname === item.href || 
+              (item.href.includes('/profile') && location.pathname.includes('/profile'))
+                ? "bg-white text-teal-600 shadow-md"
+                : "text-white hover:bg-teal-400 hover:text-white"
+            )}
+          >
+            {item.icon}
+          </RouterLink>
+        ))}
+      </div>
+      <div className="px-4 py-8 flex flex-col items-center">
+        <button
+          onClick={handleLogout}
+          className="flex items-center justify-center w-12 h-12 rounded-full text-white hover:bg-teal-400 transition-all"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
+      </div>
+    </aside>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#f0f4fa] flex">
+      {/* Sidebar */}
+      {sidebar}
+      
       {/* Main Content */}
-      <div className="lg:pl-72 flex flex-col flex-1">
-        <main className="flex-1 py-8">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="h-20 bg-white shadow-sm px-6 flex items-center justify-between">
+          <div className="flex items-center gap-3 w-full max-w-md">
+            <Search className="h-5 w-5 text-gray-400" />
+            <Input 
+              type="search" 
+              placeholder="Search..." 
+              className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" className="text-sm">
+              Account Settings
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="ml-1 h-4 w-4">
+                <path d="M3.13523 6.15803C3.3241 5.95657 3.64052 5.94637 3.84197 6.13523L7.5 9.56464L11.158 6.13523C11.3595 5.94637 11.6759 5.95657 11.8648 6.15803C12.0536 6.35949 12.0434 6.67591 11.842 6.86477L7.84197 10.6148C7.64964 10.7951 7.35036 10.7951 7.15803 10.6148L3.15803 6.86477C2.95657 6.67591 2.94637 6.35949 3.13523 6.15803Z" fill="currentColor"></path>
+              </svg>
+            </Button>
+          </div>
+        </header>
+        
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-auto p-6">
           <Outlet />
         </main>
       </div>
+      <Toaster position="bottom-right" />
     </div>
   );
 } 

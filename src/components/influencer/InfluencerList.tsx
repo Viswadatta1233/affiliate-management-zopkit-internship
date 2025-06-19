@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Table } from '@/components/ui/table';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Mail, User, Globe, Briefcase, Flag, BarChart, Users } from 'lucide-react';
 import { InfluencerDialog } from './InfluencerDialog';
 import { useToast } from '@/components/ui/use-toast';
 import {
@@ -120,61 +119,96 @@ export function InfluencerList({ influencers, onRefresh }: InfluencerListProps) 
             Add New Influencer
           </Button>
         </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <thead>
-              <tr>
-                <th>Email</th>
-                <th>Name</th>
-                <th>Role</th>
-                <th>Niche</th>
-                <th>Country</th>
-                <th>Status</th>
-                <th>Followers</th>
-                <th>Engagement</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {influencers.map((influencer) => (
-                <tr key={influencer.id}>
-                  <td>{influencer.email}</td>
-                  <td>{`${influencer.firstName} ${influencer.lastName}`}</td>
-                  <td>{influencer.roleName}</td>
-                  <td>{influencer.niche}</td>
-                  <td>{influencer.country}</td>
-                  <td>
-                    <Badge variant={influencer.status === 'pending' ? 'warning' : 'success'}>
-                      {influencer.status}
-                    </Badge>
-                  </td>
-                  <td>{influencer.followers}</td>
-                  <td>{influencer.engagement}%</td>
-                  <td>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(influencer)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setSelectedInfluencer(influencer);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+        
+        {/* Grid Layout at Section Level */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {influencers.map((influencer) => (
+            <Card key={influencer.id} className="overflow-hidden border rounded-lg">
+              <div className="p-4 bg-muted/20">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">{`${influencer.firstName} ${influencer.lastName}`}</h3>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Mail className="h-3.5 w-3.5 mr-1" />
+                      <span>{influencer.email}</span>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+                  </div>
+                  <Badge variant={influencer.status === 'pending' ? 'warning' : 'success'}>
+                    {influencer.status}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="p-4 space-y-4">
+                {/* Section-level grid for influencer details */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Role</div>
+                    <div className="flex items-center">
+                      <Briefcase className="h-3.5 w-3.5 mr-1 text-primary" />
+                      <span>{influencer.roleName}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Niche</div>
+                    <div className="flex items-center">
+                      <User className="h-3.5 w-3.5 mr-1 text-primary" />
+                      <span>{influencer.niche}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Country</div>
+                    <div className="flex items-center">
+                      <Flag className="h-3.5 w-3.5 mr-1 text-primary" />
+                      <span>{influencer.country}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Followers</div>
+                    <div className="flex items-center">
+                      <Users className="h-3.5 w-3.5 mr-1 text-primary" />
+                      <span>{influencer.followers}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Engagement Rate</div>
+                  <div className="flex items-center">
+                    <BarChart className="h-3.5 w-3.5 mr-1 text-primary" />
+                    <span>{influencer.engagement}%</span>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(influencer)}
+                    className="flex items-center"
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedInfluencer(influencer);
+                      setDeleteDialogOpen(true);
+                    }}
+                    className="flex items-center text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
       </Card>
 

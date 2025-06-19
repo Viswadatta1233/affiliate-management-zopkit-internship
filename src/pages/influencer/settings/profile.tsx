@@ -49,7 +49,7 @@ function SettingsTabs() {
       {tabs.map((tab) => (
         <button
           key={tab.path}
-          className={`pb-2 px-2 text-lg font-medium border-b-2 transition-colors duration-150 ${location.pathname === tab.path ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-primary'}`}
+          className={`pb-2 px-2 text-lg font-medium border-b-2 transition-colors duration-150 ${location.pathname === tab.path ? 'border-teal-500 text-teal-600' : 'border-transparent text-muted-foreground hover:text-teal-600'}`}
           onClick={() => navigate(tab.path)}
           type="button"
         >
@@ -124,11 +124,17 @@ export default function InfluencerSettingsProfile() {
 
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-4">Update Profile</h1>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-800 mb-1">Update Profile</h1>
+        <p className="text-gray-600">Manage your personal information and account details</p>
+      </div>
       <SettingsTabs />
-      <div className="bg-white rounded-lg shadow p-6 max-w-2xl mx-auto">
+      <div className="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto">
         {initialLoading ? (
-          <div className="text-center py-8">Loading...</div>
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-teal-500 border-gray-200 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading your profile...</p>
+          </div>
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -138,11 +144,14 @@ export default function InfluencerSettingsProfile() {
                   name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First Name</FormLabel>
+                      <FormLabel className="text-gray-700">First Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input 
+                          {...field} 
+                          className="border-gray-300 focus:border-teal-500 focus:ring-teal-500" 
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
@@ -151,11 +160,14 @@ export default function InfluencerSettingsProfile() {
                   name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel className="text-gray-700">Last Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input 
+                          {...field} 
+                          className="border-gray-300 focus:border-teal-500 focus:ring-teal-500" 
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
@@ -165,11 +177,15 @@ export default function InfluencerSettingsProfile() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-gray-700">Email</FormLabel>
                     <FormControl>
-                      <Input type="email" {...field} />
+                      <Input 
+                        type="email" 
+                        {...field} 
+                        className="border-gray-300 focus:border-teal-500 focus:ring-teal-500" 
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
@@ -178,11 +194,14 @@ export default function InfluencerSettingsProfile() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone</FormLabel>
+                    <FormLabel className="text-gray-700">Phone</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input 
+                        {...field} 
+                        className="border-gray-300 focus:border-teal-500 focus:ring-teal-500" 
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
@@ -192,11 +211,14 @@ export default function InfluencerSettingsProfile() {
                   name="country"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Country</FormLabel>
+                      <FormLabel className="text-gray-700">Country</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input 
+                          {...field} 
+                          className="border-gray-300 focus:border-teal-500 focus:ring-teal-500" 
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
@@ -205,10 +227,10 @@ export default function InfluencerSettingsProfile() {
                   name="niche"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Niche</FormLabel>
+                      <FormLabel className="text-gray-700">Niche</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="border-gray-300 focus:border-teal-500 focus:ring-teal-500">
                             <SelectValue placeholder="Select niche" />
                           </SelectTrigger>
                         </FormControl>
@@ -220,7 +242,7 @@ export default function InfluencerSettingsProfile() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
@@ -230,45 +252,66 @@ export default function InfluencerSettingsProfile() {
                 name="bio"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bio</FormLabel>
+                    <FormLabel className="text-gray-700">Bio</FormLabel>
                     <FormControl>
-                      <Textarea rows={3} {...field} />
+                      <Textarea 
+                        rows={3} 
+                        {...field} 
+                        className="border-gray-300 focus:border-teal-500 focus:ring-teal-500" 
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="socialMedia.instagram"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Instagram</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://instagram.com/yourusername" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="socialMedia.youtube"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>YouTube</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://youtube.com/yourchannel" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-800">Social Media Profiles</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="socialMedia.instagram"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">Instagram</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://instagram.com/yourusername" 
+                            {...field} 
+                            className="border-gray-300 focus:border-teal-500 focus:ring-teal-500" 
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500" />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="socialMedia.youtube"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">YouTube</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://youtube.com/c/yourchannel" 
+                            {...field} 
+                            className="border-gray-300 focus:border-teal-500 focus:ring-teal-500" 
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
-              <div className="flex justify-end">
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Saving...' : 'Update Profile'}
+              
+              <div className="pt-4 border-t">
+                <Button 
+                  type="submit" 
+                  disabled={loading}
+                  className="bg-teal-500 hover:bg-teal-600"
+                >
+                  {loading ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
             </form>

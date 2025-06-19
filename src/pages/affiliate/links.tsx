@@ -51,7 +51,7 @@ export default function AffiliateTrackingLinks() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
       </div>
     );
   }
@@ -67,40 +67,40 @@ export default function AffiliateTrackingLinks() {
 
   return (
     <div className="container mx-auto px-4">
-      <Card className="overflow-hidden shadow-lg border-gray-200">
-        <CardHeader className="border-b bg-muted/40 px-6">
+      <Card className="overflow-hidden shadow-lg border-none">
+        <CardHeader className="border-b bg-gradient-to-r from-teal-500 to-teal-400 text-white px-6">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-2xl">Your Tracking Links</CardTitle>
-              <CardDescription>Your product tracking links and their performance</CardDescription>
+              <CardDescription className="text-white/80">Your product tracking links and their performance</CardDescription>
             </div>
-            <Button variant="default" size="sm">
+            <Button variant="secondary" size="sm" className="bg-white text-teal-600 hover:bg-gray-100">
               <Plus className="h-4 w-4 mr-2" />
               Create New Link
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-6 bg-white">
           {trackingLinks && trackingLinks.length > 0 ? (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Tracking Link</TableHead>
-                    <TableHead className="text-right">Clicks</TableHead>
-                    <TableHead className="text-right">Conversions</TableHead>
-                    <TableHead className="text-right">Sales</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="border-b border-gray-200">
+                    <TableHead className="text-teal-700">Product</TableHead>
+                    <TableHead className="text-teal-700">Tracking Link</TableHead>
+                    <TableHead className="text-right text-teal-700">Clicks</TableHead>
+                    <TableHead className="text-right text-teal-700">Conversions</TableHead>
+                    <TableHead className="text-right text-teal-700">Sales</TableHead>
+                    <TableHead className="text-right text-teal-700">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {trackingLinks.map((link) => (
-                    <TableRow key={link.id}>
+                    <TableRow key={link.id} className="hover:bg-gray-50">
                       <TableCell className="font-medium">
                         {link.product?.name || 'Unknown Product'}
                       </TableCell>
-                      <TableCell className="font-mono text-sm truncate max-w-xs">
+                      <TableCell className="font-mono text-sm truncate max-w-xs text-teal-600">
                         {`${window.location.origin}/track/${link.trackingCode}`}
                       </TableCell>
                       <TableCell className="text-right">{link.totalClicks}</TableCell>
@@ -111,6 +111,7 @@ export default function AffiliateTrackingLinks() {
                           variant="outline" 
                           size="sm"
                           onClick={() => handleCopyLink(link.trackingCode)}
+                          className="border-teal-500 text-teal-600 hover:bg-teal-50"
                         >
                           <Copy className="h-4 w-4 mr-1" />
                           Copy Link
@@ -123,8 +124,8 @@ export default function AffiliateTrackingLinks() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No tracking links found.</p>
-              <Button className="mt-4" variant="outline">
+              <p className="text-gray-500">No tracking links found.</p>
+              <Button className="mt-4 bg-teal-500 hover:bg-teal-600 text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Tracking Link
               </Button>
