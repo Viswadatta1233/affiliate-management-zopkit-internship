@@ -693,7 +693,16 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
           promotionalMethods: [],
         }).returning().then(r => r[0]);
       }
-      return details;
+      // Fetch user info for name/email
+      const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+      if (!user) return reply.status(404).send({ error: 'User not found' });
+      // Merge and return
+      return {
+        ...details,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      };
     } catch (error) {
       fastify.log.error('Error fetching affiliate details:', error);
       return reply.status(500).send({ error: 'Failed to fetch affiliate details' });
@@ -885,6 +894,42 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (error) {
       fastify.log.error('Error updating password:', error);
       return reply.status(500).send({ error: 'Failed to update password' });
+    }
+  });
+
+  // Get tracking links for the currently authenticated affiliate
+  fastify.get('/tracking-links', async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const affiliateId = request.user.userId;
+
+      // Fetch all tracking links for this affiliate
+      const trackingLinksList = await db.query.trackingLinks.findMany({
+        where: eq(trackingLinks.affiliateId, affiliateId),
+      });
+
+      // Fetch product details for each tracking link
+      const productIds = trackingLinksList.map(link => link.productId);
+      let productsById: Record<string, any> = {};
+      if (productIds.length > 0) {
+        const productsList = await db.query.products.findMany({
+          where: inArray(products.id, productIds),
+        });
+        productsById = Object.fromEntries(productsList.map(p => [p.id, p]));
+      }
+
+      // Attach product details to each tracking link
+      const trackingLinksWithProduct = trackingLinksList.map(link => ({
+        ...link,
+        product: productsById[link.productId] || null,
+      }));
+
+      return trackingLinksWithProduct;
+    } catch (error) {
+      fastify.log.error('Error fetching affiliate tracking links:', error);
+      return reply.status(500).send({ error: 'Failed to fetch tracking links' });
     }
   });
 };

@@ -34,9 +34,9 @@ export default function CommissionTiers() {
   const createMutation = useMutation({
     mutationFn: (payload: any) =>
       apiCommissionTiers.create({
-        tierName: payload.tier_name,
-        commissionPercent: parseFloat(payload.commission_percent),
-        minSales: parseInt(payload.min_sales, 10),
+        tier_name: payload.tier_name,
+        commission_percent: parseFloat(payload.commission_percent),
+        min_sales: parseInt(payload.min_sales, 10),
       }),
     onSuccess: () => {
       toast({ title: 'Tier created' });
@@ -50,9 +50,9 @@ export default function CommissionTiers() {
   const updateMutation = useMutation({
     mutationFn: ({ id, ...payload }: any) =>
       apiCommissionTiers.update(id, {
-        tierName: payload.tier_name,
-        commissionPercent: parseFloat(payload.commission_percent),
-        minSales: parseInt(payload.min_sales, 10),
+        tier_name: payload.tier_name,
+        commission_percent: parseFloat(payload.commission_percent),
+        min_sales: parseInt(payload.min_sales, 10),
       }),
     onSuccess: () => {
       toast({ title: 'Tier updated' });
@@ -131,7 +131,7 @@ export default function CommissionTiers() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => setEditTier({ ...tier })}
+                      onClick={() => navigate(`/commissions/tiers/${tier.id}/edit`)}
                       className="text-muted-foreground hover:text-primary hover:bg-primary/10"
                       aria-label="Edit"
                     >
@@ -172,7 +172,7 @@ export default function CommissionTiers() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => setEditTier({ ...tier })}
+                            onClick={() => navigate(`/commissions/tiers/${tier.id}/edit`)}
                             className="text-muted-foreground hover:text-primary hover:bg-primary/10"
                             aria-label="Edit"
                           >

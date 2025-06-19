@@ -215,10 +215,10 @@ export default function CommissionRules() {
                     <div className="text-sm mb-1">Priority: {rule.priority}</div>
                     <div className="flex gap-2 mt-2">
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="ghost"
-                        onClick={() => setEditRule({ ...rule })}
-                        className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200"
+                        onClick={() => navigate(`/commissions/rules/${rule.id}/edit`)}
+                        className="text-muted-foreground hover:text-primary hover:bg-primary/10"
                         aria-label="Edit"
                       >
                         <Pencil className="h-5 w-5" />
@@ -275,8 +275,8 @@ export default function CommissionRules() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => setEditRule({ ...rule })}
-                              className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200"
+                              onClick={() => navigate(`/commissions/rules/${rule.id}/edit`)}
+                              className="text-muted-foreground hover:text-primary hover:bg-primary/10"
                               aria-label="Edit"
                             >
                               <Pencil className="h-5 w-5" />
@@ -301,109 +301,6 @@ export default function CommissionRules() {
           </>
         )}
       </div>
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editRule} onOpenChange={(open) => !open && setEditRule(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Commission Rule</DialogTitle>
-          </DialogHeader>
-          {editRule && (
-            <form onSubmit={handleEditSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Rule Name</label>
-                  <Input name="name" value={editRule.name} onChange={e => setEditRule({ ...editRule, name: e.target.value })} required />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Type</label>
-                  <select
-                    name="type"
-                    value={editRule.type}
-                    onChange={e => setEditRule({ ...editRule, type: e.target.value })}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    required
-                  >
-                    <option value="bonus">Bonus</option>
-                    <option value="multiplier">Multiplier</option>
-                    <option value="percentage">Percentage</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">Description</label>
-                <Input name="description" value={editRule.description} onChange={e => setEditRule({ ...editRule, description: e.target.value })} />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Value</label>
-                  <Input name="value" type="number" value={editRule.value} onChange={e => setEditRule({ ...editRule, value: e.target.value })} required />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Value Type</label>
-                  <select
-                    name="value_type"
-                    value={editRule.value_type}
-                    onChange={e => setEditRule({ ...editRule, value_type: e.target.value })}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    required
-                  >
-                    <option value="fixed">Fixed Amount</option>
-                    <option value="percentage">Percentage</option>
-                    <option value="multiplier">Multiplier</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">Condition</label>
-                <Input name="condition" value={editRule.condition} onChange={e => setEditRule({ ...editRule, condition: e.target.value })} required />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Status</label>
-                  <select
-                    name="status"
-                    value={editRule.status}
-                    onChange={e => setEditRule({ ...editRule, status: e.target.value })}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    required
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="expired">Expired</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Priority</label>
-                  <Input name="priority" type="number" min="1" value={editRule.priority} onChange={e => setEditRule({ ...editRule, priority: e.target.value })} required />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Start Date</label>
-                  <Input name="start_date" type="date" value={editRule.start_date} onChange={e => setEditRule({ ...editRule, start_date: e.target.value })} required />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">End Date (Optional)</label>
-                  <Input name="end_date" type="date" value={editRule.end_date} onChange={e => setEditRule({ ...editRule, end_date: e.target.value })} />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-4 pt-4">
-                <Button type="button" variant="outline" onClick={() => setEditRule(null)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={updateMutation.isPending}>Save Changes</Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

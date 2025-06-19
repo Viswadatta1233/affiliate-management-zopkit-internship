@@ -8,14 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { PlusCircle, Users, DollarSign, TrendingUp, Link2, Eye } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { useToast } from '@/components/ui/use-toast';
 import {
   Select,
@@ -33,24 +25,11 @@ export default function Affiliates() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [selectedAffiliate, setSelectedAffiliate] = useState<string | null>(null);
-  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  const [profileAffiliateId, setProfileAffiliateId] = useState<string | null>(null);
 
   // Fetch affiliates with products and commission status
   const { data: affiliates, isLoading, isError, refetch } = useQuery({
     queryKey: ['affiliates-with-products'],
     queryFn: async () => (await api.get('/api/affiliates/with-products')).data,
-  });
-
-  // Fetch affiliate profile details when modal is open
-  const { data: affiliateProfile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ['affiliate-profile', profileAffiliateId],
-    queryFn: async () => {
-      if (!profileAffiliateId) return null;
-      return (await api.get(`/api/affiliates/details?userId=${profileAffiliateId}`)).data;
-    },
-    enabled: !!profileAffiliateId && profileDialogOpen,
   });
 
   // Handler to update commission status
@@ -121,34 +100,14 @@ export default function Affiliates() {
                         <p className="text-sm text-muted-foreground">{affiliate.email}</p>
                       </div>
                     </div>
-                    <Dialog open={profileDialogOpen && profileAffiliateId === affiliate.id} onOpenChange={open => { setProfileDialogOpen(open); if (!open) setProfileAffiliateId(null); }}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" onClick={() => { setProfileAffiliateId(affiliate.id); setProfileDialogOpen(true); }}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Profile
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Affiliate Profile</DialogTitle>
-                        </DialogHeader>
-                        {isProfileLoading ? (
-                          <div>Loading profile...</div>
-                        ) : affiliateProfile ? (
-                          <div className="space-y-2">
-                            <div><b>Name:</b> {affiliate.firstName || affiliate.email} {affiliate.lastName || ''}</div>
-                            <div><b>Email:</b> {affiliate.email}</div>
-                            <div><b>Referral Code:</b> {affiliateProfile.referralCode || 'N/A'}</div>
-                            <div><b>Current Tier:</b> {affiliateProfile.currentTier || 'N/A'}</div>
-                            <div><b>Website URL:</b> {affiliateProfile.websiteUrl || 'N/A'}</div>
-                            <div><b>Social Media:</b> {Object.entries(affiliateProfile.socialMedia || {}).map(([k, v]) => v ? `${k}: ${v}` : null).filter(Boolean).join(', ') || 'N/A'}</div>
-                            <div><b>Promotional Methods:</b> {affiliateProfile.promotionalMethods?.join(', ') || 'N/A'}</div>
-                          </div>
-                        ) : (
-                          <div>No profile data found.</div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => navigate(`/affiliates/${affiliate.id}`)}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Profile
+                    </Button>
                   </div>
                   {/* Product commissions table */}
                   <div className="mt-2">

@@ -65,6 +65,8 @@ import InfluencerSupportHub from '@/pages/influencer/support-hub';
 import CampaignDetails from '@/pages/marketing/campaign-details';
 import CampaignInfluencers from '@/pages/marketing/campaign-influencers';
 import InfluencerCampaignDetails from '@/pages/influencer/campaign-details';
+import EditCommissionTier from '@/pages/commissions/edit-tier';
+import EditCommissionRule from '@/pages/commissions/edit-rule';
 
 // Route guard for authenticated routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -214,8 +216,10 @@ function App() {
             <Route path="commissions">
               <Route path="tiers" element={<CommissionTiers />} />
               <Route path="tiers/create" element={<CreateCommissionTier />} />
+              <Route path="tiers/:id/edit" element={<EditCommissionTier />} />
               <Route path="products" element={<ProductCommissions />} />
               <Route path="rules" element={<CommissionRules />} />
+              <Route path="rules/:id/edit" element={<EditCommissionRule />} />
               <Route path="rules/create" element={<CreateCommissionRule />} />
             </Route>
             
