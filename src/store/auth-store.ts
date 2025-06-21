@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, Tenant, Role } from '@/types';
 import api from '@/lib/axios';
+import { api as customApi } from '@/lib/api';
 
 type AuthState = {
   user: User | null;
@@ -16,6 +17,7 @@ type AuthState = {
   // Actions
   login: (email: string, password: string, tenant?: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
+  setInfluencerAuth: (token: string, user: User, role: Role) => void;
   logout: () => void;
   loadUserData: () => Promise<void>;
   clearError: () => void;
@@ -63,6 +65,7 @@ export const useAuthStore = create<AuthState>()(
           
           localStorage.setItem('token', token);
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          customApi.setToken(token);
           
           set({
             user,
@@ -93,6 +96,7 @@ export const useAuthStore = create<AuthState>()(
           
           localStorage.setItem('token', token);
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          customApi.setToken(token);
           
           set({
             user,
@@ -114,6 +118,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         delete api.defaults.headers.common['Authorization'];
+        customApi.clearToken();
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         
@@ -141,6 +146,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+          customApi.setToken(storedToken);
           
           const response = await api.get('/auth/me');
           const { user, tenant, role } = response.data;
@@ -165,6 +171,23 @@ export const useAuthStore = create<AuthState>()(
           });
         }
       },
+
+      setInfluencerAuth: (token: string, user: User, role: Role) => {
+        localStorage.setItem('token', token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        customApi.setToken(token);
+        
+        set({
+          user,
+          tenant: null, // Influencers don't have tenants initially
+          role,
+          token,
+          isAuthenticated: true,
+          isSuperAdmin: user?.email === 'zopkit@gmail.com',
+          isLoading: false,
+          error: null,
+        });
+      },
     }),
     {
       name: 'auth-store',
@@ -172,6 +195,7 @@ export const useAuthStore = create<AuthState>()(
       onRehydrateStorage: () => (state) => {
         if (state?.token) {
           api.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
+          customApi.setToken(state.token);
         }
       },
     }

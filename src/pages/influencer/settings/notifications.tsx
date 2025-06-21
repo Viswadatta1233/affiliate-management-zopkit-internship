@@ -45,7 +45,10 @@ function SettingsTabs() {
 }
 
 export default function InfluencerSettingsNotifications() {
+  console.log('InfluencerSettingsNotifications');
+
   const { user } = useAuthStore();
+  console.log('user', user);
   const [loading, setLoading] = React.useState(false);
   const form = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationSchema),

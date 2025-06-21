@@ -1,6 +1,7 @@
-import { pgTable, text, timestamp, jsonb, uuid, integer, boolean, varchar, numeric, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, jsonb, uuid, integer, boolean, varchar, numeric, pgEnum, decimal } from 'drizzle-orm/pg-core';
 import { sql, relations } from 'drizzle-orm';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { z } from 'zod';
 
 // Enums
 export const userStatusEnum = pgEnum('user_status', ['active', 'inactive', 'pending']);
@@ -267,6 +268,55 @@ export const influencers = pgTable('influencers', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+// Instagram Analytics for Influencers
+export const influencerInstaAnalytics = pgTable('influencer_insta_analytics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  influencerId: uuid('influencer_id').notNull().references(() => influencers.id, { onDelete: 'cascade' }),
+  username: varchar('username').notNull(),
+  profilePictureUrl: text('profile_picture_url'),
+  followerCount: integer('follower_count').default(0),
+  averageEngagementRate: numeric('average_engagement_rate', { precision: 5, scale: 2 }).default('0.00'),
+  malePercentage: numeric('male_percentage', { precision: 5, scale: 2 }).default('0.00'),
+  femalePercentage: numeric('female_percentage', { precision: 5, scale: 2 }).default('0.00'),
+  audienceDemographicsAgeRange: text('audience_demographics_age_range'),
+  topAudienceLocation: text('top_audience_location'),
+  isConnected: boolean('is_connected').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const influencerFbAnalytics = pgTable('influencer_fb_analytics', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  influencerId: uuid('influencer_id').notNull().references(() => influencers.id, { onDelete: 'cascade' }),
+  username: varchar('username').notNull(),
+  profilePictureUrl: text('profile_picture_url'),
+  followerCount: integer('follower_count').default(0),
+  averageEngagementRate: numeric('average_engagement_rate', { precision: 5, scale: 2 }).default('0.00'),
+  malePercentage: numeric('male_percentage', { precision: 5, scale: 2 }).default('0.00'),
+  femalePercentage: numeric('female_percentage', { precision: 5, scale: 2 }).default('0.00'),
+  audienceDemographicsAgeRange: text('audience_demographics_age_range'),
+  topAudienceLocation: text('top_audience_location'),
+  isConnected: boolean('is_connected').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const influencerTwitterAnalytics = pgTable('influencer_twitter_analytics', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  influencerId: uuid('influencer_id').notNull().references(() => influencers.id, { onDelete: 'cascade' }),
+  username: varchar('username').notNull(),
+  profilePictureUrl: text('profile_picture_url'),
+  followerCount: integer('follower_count').default(0),
+  averageEngagementRate: decimal('average_engagement_rate', { precision: 5, scale: 2 }).default('0.00'),
+  malePercentage: decimal('male_percentage', { precision: 5, scale: 2 }).default('0.00'),
+  femalePercentage: decimal('female_percentage', { precision: 5, scale: 2 }).default('0.00'),
+  audienceDemographicsAgeRange: text('audience_demographics_age_range'),
+  topAudienceLocation: text('top_audience_location'),
+  isConnected: boolean('is_connected').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Support Tickets
 export const supportTickets = pgTable('support_tickets', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -489,10 +539,35 @@ export const marketingGuidelinesRelations = relations(marketingGuidelines, ({ on
 }));
 
 // Influencers relations
-export const influencersRelations = relations(influencers, ({ one }) => ({
+export const influencersRelations = relations(influencers, ({ one, many }) => ({
   user: one(users, {
     fields: [influencers.userId],
     references: [users.id]
+  }),
+  instaAnalytics: many(influencerInstaAnalytics),
+  fbAnalytics: many(influencerFbAnalytics),
+  twitterAnalytics: many(influencerTwitterAnalytics)
+}));
+
+// Instagram Analytics relations
+export const influencerInstaAnalyticsRelations = relations(influencerInstaAnalytics, ({ one }) => ({
+  influencer: one(influencers, {
+    fields: [influencerInstaAnalytics.influencerId],
+    references: [influencers.id]
+  })
+}));
+
+export const influencerFbAnalyticsRelations = relations(influencerFbAnalytics, ({ one }) => ({
+  influencer: one(influencers, {
+    fields: [influencerFbAnalytics.influencerId],
+    references: [influencers.id]
+  })
+}));
+
+export const influencerTwitterAnalyticsRelations = relations(influencerTwitterAnalytics, ({ one }) => ({
+  influencer: one(influencers, {
+    fields: [influencerTwitterAnalytics.influencerId],
+    references: [influencers.id]
   })
 }));
 
@@ -544,6 +619,15 @@ export const selectMarketingGuidelineSchema = createSelectSchema(marketingGuidel
 
 export const insertInfluencerSchema = createInsertSchema(influencers);
 export const selectInfluencerSchema = createSelectSchema(influencers);
+
+export const insertInfluencerInstaAnalyticsSchema = createInsertSchema(influencerInstaAnalytics);
+export const selectInfluencerInstaAnalyticsSchema = createSelectSchema(influencerInstaAnalytics);
+
+export const insertInfluencerFbAnalyticsSchema = createInsertSchema(influencerFbAnalytics);
+export const selectInfluencerFbAnalyticsSchema = createSelectSchema(influencerFbAnalytics);
+
+export const insertInfluencerTwitterAnalyticsSchema = createInsertSchema(influencerTwitterAnalytics);
+export const selectInfluencerTwitterAnalyticsSchema = createSelectSchema(influencerTwitterAnalytics);
 
 export const insertSupportTicketSchema = createInsertSchema(supportTickets);
 export const selectSupportTicketSchema = createSelectSchema(supportTickets);
@@ -602,3 +686,28 @@ export type NewSupportTicket = typeof supportTickets.$inferInsert;
 
 export type Influencer = typeof influencers.$inferSelect;
 export type NewInfluencer = typeof influencers.$inferInsert;
+
+export type InfluencerInstaAnalytics = typeof influencerInstaAnalytics.$inferSelect;
+export type InsertInfluencerInstaAnalytics = typeof influencerInstaAnalytics.$inferInsert;
+export const influencerInstaAnalyticsSchema = createInsertSchema(influencerInstaAnalytics);
+
+export type InfluencerFbAnalytics = typeof influencerFbAnalytics.$inferSelect;
+export type InsertInfluencerFbAnalytics = typeof influencerFbAnalytics.$inferInsert;
+export const influencerFbAnalyticsSchema = createInsertSchema(influencerFbAnalytics);
+
+export type InfluencerTwitterAnalytics = typeof influencerTwitterAnalytics.$inferSelect;
+export type InsertInfluencerTwitterAnalytics = typeof influencerTwitterAnalytics.$inferInsert;
+export const influencerTwitterAnalyticsSchema = createInsertSchema(influencerTwitterAnalytics);
+
+// Commission Tier
+export const commissionTierSchema = createInsertSchema(commissionTiers);
+
+export const CreateUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  firstName: z.string(),
+  lastName: z.string(),
+  phone: z.string().optional(),
+  tenantId: z.string().uuid(),
+  roleId: z.string().uuid()
+});

@@ -1,15 +1,102 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useAuthStore } from '@/store/auth-store';
+import { useInfluencerStore } from '@/store/influencer-store';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Instagram, Twitter, Facebook, MoreVertical } from 'lucide-react';
+import { Instagram, Twitter, Facebook, MoreVertical, AlertCircle, FileText, X } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function InfluencerDashboard() {
     const { user } = useAuthStore();
+    const { 
+      isLoading, 
+      error, 
+      isConnected,
+      isFbConnected,
+      isTwitterConnected,
+      connectInstagram, 
+      fetchInstagramAnalytics,
+      connectFacebook,
+      fetchFacebookAnalytics,
+      connectTwitter,
+      fetchTwitterAnalytics,
+      clearError 
+    } = useInfluencerStore();
+
+    // State for username inputs
+    const [instagramUsername, setInstagramUsername] = useState('');
+    const [facebookUsername, setFacebookUsername] = useState('');
+    const [twitterUsername, setTwitterUsername] = useState('');
+    const [showInstagramInput, setShowInstagramInput] = useState(false);
+    const [showFacebookInput, setShowFacebookInput] = useState(false);
+    const [showTwitterInput, setShowTwitterInput] = useState(false);
+
+    useEffect(() => {
+      fetchInstagramAnalytics();
+      fetchFacebookAnalytics();
+      fetchTwitterAnalytics();
+    }, [fetchInstagramAnalytics, fetchFacebookAnalytics, fetchTwitterAnalytics]);
+
+    const handleConnectInstagram = async () => {
+      if (!instagramUsername.trim()) {
+        toast.error('Please enter your Instagram username');
+        return;
+      }
+      try {
+        await connectInstagram(instagramUsername.trim());
+        toast.success('Instagram connected successfully!');
+        setShowInstagramInput(false);
+        setInstagramUsername('');
+      } catch (error) {
+        toast.error('Failed to connect Instagram');
+      }
+    };
+
+    const handleConnectFacebook = async () => {
+      if (!facebookUsername.trim()) {
+        toast.error('Please enter your Facebook username');
+        return;
+      }
+      try {
+        await connectFacebook(facebookUsername.trim());
+        toast.success('Facebook connected successfully!');
+        setShowFacebookInput(false);
+        setFacebookUsername('');
+      } catch (error) {
+        toast.error('Failed to connect Facebook');
+      }
+    };
+
+    const handleConnectTwitter = async () => {
+      if (!twitterUsername.trim()) {
+        toast.error('Please enter your Twitter username');
+        return;
+      }
+      try {
+        await connectTwitter(twitterUsername.trim());
+        toast.success('Twitter connected successfully!');
+        setShowTwitterInput(false);
+        setTwitterUsername('');
+      } catch (error) {
+        toast.error('Failed to connect Twitter');
+      }
+    };
+
+    useEffect(() => {
+      if (error) {
+        const timer = setTimeout(() => {
+          clearError();
+        }, 5000);
+        return () => clearTimeout(timer);
+      }
+    }, [error, clearError]);
   
-  // Sample data for the dashboard
   const stats = {
     potential: 58,
     accountNumber: "3253",
@@ -31,6 +118,8 @@ export default function InfluencerDashboard() {
       { icon: "✅", title: "Sponsorship Signed", color: "bg-teal-100" }
     ]
   };
+  
+  const isMediaKitReady = isConnected || isFbConnected || isTwitterConnected;
 
     return (
     <div className="space-y-8">
@@ -42,6 +131,279 @@ export default function InfluencerDashboard() {
         <Button variant="outline" className="rounded-full px-6 shadow-sm">
           More Details
         </Button>
+      </div>
+
+      {isMediaKitReady && (
+        <Card className="shadow-md border-0 bg-gradient-to-r from-teal-50 to-green-50">
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-gradient-to-r from-teal-500 to-green-500 p-3 rounded-full">
+                            <FileText className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-xl">Your Media Kit is Ready!</CardTitle>
+                            <CardDescription>
+                                View your combined social media analytics in one place.
+                            </CardDescription>
+                        </div>
+                    </div>
+                    <Button asChild className="bg-gradient-to-r from-teal-500 to-green-500 hover:from-teal-600 hover:to-green-600 text-white shadow-lg">
+                        <Link to="/influencer/media-kit">
+                          View Media Kit
+                        </Link>
+                    </Button>
+                </div>
+            </CardHeader>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Instagram Connection Section */}
+        <Card className="shadow-md border-0 bg-gradient-to-r from-pink-50 to-purple-50">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-r from-pink-500 to-purple-500 p-3 rounded-full">
+                  <Instagram className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Instagram Analytics</CardTitle>
+                  <CardDescription>
+                    {isConnected ? 'Instagram account is connected.' : 'Connect your Instagram to generate your media kit.'}
+                  </CardDescription>
+                </div>
+              </div>
+              {isConnected ? (
+                <div className="flex items-center gap-2 text-green-600">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="font-medium">Connected</span>
+                </div>
+              ) : (
+                <Button 
+                  onClick={() => setShowInstagramInput(true)}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+                >
+                  <Instagram className="h-4 w-4 mr-2" />
+                  Connect Instagram
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          
+          {showInstagramInput && (
+            <CardContent className="pt-0">
+              <div className="space-y-4 p-4 bg-white rounded-lg border border-pink-200">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="instagram-username" className="text-sm font-medium">
+                    Enter your Instagram username:
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowInstagramInput(false);
+                      setInstagramUsername('');
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    id="instagram-username"
+                    value={instagramUsername}
+                    onChange={(e) => setInstagramUsername(e.target.value)}
+                    placeholder="@username"
+                    className="flex-1"
+                    onKeyPress={(e) => e.key === 'Enter' && handleConnectInstagram()}
+                  />
+                  <Button 
+                    onClick={handleConnectInstagram} 
+                    disabled={isLoading || !instagramUsername.trim()}
+                    className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+                  >
+                    {isLoading ? 'Connecting...' : 'Connect'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          )}
+          
+          {error && !isConnected && !showInstagramInput && (
+            <CardContent className="pt-0">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            </CardContent>
+          )}
+        </Card>
+      
+        {/* Facebook Connection Section */}
+        <Card className="shadow-md border-0 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-500 p-3 rounded-full">
+                  <Facebook className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Facebook Analytics</CardTitle>
+                  <CardDescription>
+                    {isFbConnected ? 'Facebook account is connected.' : 'Connect your Facebook account to enhance your media kit.'}
+                  </CardDescription>
+                </div>
+              </div>
+              {isFbConnected ? (
+                <div className="flex items-center gap-2 text-green-600">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="font-medium">Connected</span>
+                </div>
+              ) : (
+                <Button 
+                  onClick={() => setShowFacebookInput(true)}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
+                >
+                  <Facebook className="h-4 w-4 mr-2" />
+                  Connect Facebook
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+        
+          {showFacebookInput && (
+            <CardContent className="pt-0">
+              <div className="space-y-4 p-4 bg-white rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="facebook-username" className="text-sm font-medium">
+                    Enter your Facebook username:
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowFacebookInput(false);
+                      setFacebookUsername('');
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    id="facebook-username"
+                    value={facebookUsername}
+                    onChange={(e) => setFacebookUsername(e.target.value)}
+                    placeholder="username"
+                    className="flex-1"
+                    onKeyPress={(e) => e.key === 'Enter' && handleConnectFacebook()}
+                  />
+                  <Button 
+                    onClick={handleConnectFacebook} 
+                    disabled={isLoading || !facebookUsername.trim()}
+                    className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
+                  >
+                    {isLoading ? 'Connecting...' : 'Connect'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          )}
+        
+          {error && !isFbConnected && !showFacebookInput && (
+            <CardContent className="pt-0">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            </CardContent>
+          )}
+        </Card>
+
+        {/* Twitter Connection Section */}
+        <Card className="shadow-md border-0 bg-gradient-to-r from-cyan-50 to-sky-50">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-r from-cyan-500 to-sky-500 p-3 rounded-full">
+                  <Twitter className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Twitter Analytics</CardTitle>
+                  <CardDescription>
+                    {isTwitterConnected ? 'Twitter account is connected.' : 'Connect your Twitter to enhance your media kit.'}
+                  </CardDescription>
+                </div>
+              </div>
+              {isTwitterConnected ? (
+                <div className="flex items-center gap-2 text-green-600">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="font-medium">Connected</span>
+                </div>
+              ) : (
+                <Button 
+                  onClick={() => setShowTwitterInput(true)}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-600 hover:to-sky-600 text-white"
+                >
+                  <Twitter className="h-4 w-4 mr-2" />
+                  Connect Twitter
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+        
+          {showTwitterInput && (
+            <CardContent className="pt-0">
+              <div className="space-y-4 p-4 bg-white rounded-lg border border-cyan-200">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="twitter-username" className="text-sm font-medium">
+                    Enter your Twitter username:
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowTwitterInput(false);
+                      setTwitterUsername('');
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    id="twitter-username"
+                    value={twitterUsername}
+                    onChange={(e) => setTwitterUsername(e.target.value)}
+                    placeholder="@username"
+                    className="flex-1"
+                    onKeyPress={(e) => e.key === 'Enter' && handleConnectTwitter()}
+                  />
+                  <Button 
+                    onClick={handleConnectTwitter} 
+                    disabled={isLoading || !twitterUsername.trim()}
+                    className="bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-600 hover:to-sky-600 text-white"
+                  >
+                    {isLoading ? 'Connecting...' : 'Connect'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          )}
+        
+          {error && !isTwitterConnected && !showTwitterInput && (
+            <CardContent className="pt-0">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            </CardContent>
+          )}
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -210,7 +572,7 @@ export default function InfluencerDashboard() {
             </CardHeader>
             <CardContent className="flex flex-col items-center pt-6">
               <Avatar className="h-24 w-24 border-4 border-white shadow-xl mb-6">
-                <AvatarImage src={user?.avatarUrl || "https://placehold.co/200x200/FFFFFF/5EEAD4?text=👤"} alt={user?.firstName || "User"} />
+                <AvatarImage src={"https://placehold.co/200x200/FFFFFF/5EEAD4?text=👤"} alt={user?.firstName || "User"} />
                 <AvatarFallback className="bg-teal-100 text-teal-800 text-2xl">
                   {user?.firstName?.[0] || "D"}
                 </AvatarFallback>

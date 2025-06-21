@@ -6,7 +6,7 @@ import { ModeToggle } from '@/components/theme/mode-toggle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Home, LogOut, Target, Settings, User, Bell, HelpCircle, Search, BarChart3, MessageCircle, BookOpen } from 'lucide-react';
+import { Home, LogOut, Target, Settings, User, Bell, HelpCircle, Search, BarChart3, MessageCircle, BookOpen, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,6 +74,11 @@ const InfluencerShell: React.FC = () => {
       href: "/influencer/campaigns", 
       label: "Stats" 
     },
+    {
+      icon: <FileText className="h-5 w-5" />,
+      href: "/influencer/media-kit",
+      label: "Media Kit"
+    },
     { 
       icon: <MessageCircle className="h-5 w-5" />, 
       href: "/influencer/settings/notifications", 
@@ -99,7 +104,7 @@ const InfluencerShell: React.FC = () => {
     )} aria-label="Sidebar">
       <div className="px-4 pt-8 pb-6 flex flex-col items-center">
         <Avatar className="h-16 w-16 border-4 border-white shadow-lg">
-          <AvatarImage src={user?.avatarUrl || ""} alt={user?.firstName || "User"} />
+          <AvatarImage src={""} alt={user?.firstName || "User"} />
           <AvatarFallback className="bg-yellow-300 text-yellow-800 text-xl">
             {user?.firstName?.[0] || "U"}
           </AvatarFallback>
@@ -110,6 +115,7 @@ const InfluencerShell: React.FC = () => {
           <Link
             key={item.href}
             to={item.href}
+            title={item.label}
             className={cn(
               "flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all",
               location.pathname === item.href || 
@@ -161,7 +167,7 @@ const InfluencerShell: React.FC = () => {
         </header>
         
         {/* Main Content Area */}
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
       </div>

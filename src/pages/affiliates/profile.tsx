@@ -18,7 +18,7 @@ import {
   CheckCircle2, 
   ExternalLink,
   Award,
-  TrendingUp,
+  TrendingUp, 
   DollarSign,
   Users,
   Link2,
@@ -26,7 +26,7 @@ import {
   MapPin,
   Phone,
   Facebook,
-  Twitter,
+  Twitter, 
   Instagram,
   Linkedin,
   Youtube,
@@ -211,7 +211,7 @@ export default function AffiliateProfile() {
                   <AvatarFallback className="bg-blue-100 text-blue-800 text-2xl">
                     {(affiliateName || 'A')[0]}
                   </AvatarFallback>
-                </Avatar>
+              </Avatar>
               </div>
             </div>
             
@@ -229,7 +229,7 @@ export default function AffiliateProfile() {
                     {tierName || 'N/A'}
                   </Badge>
                 </div>
-              </div>
+                  </div>
 
               <Separator className="my-6" />
 
@@ -288,12 +288,12 @@ export default function AffiliateProfile() {
                       >
                         {copied ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                       </Button>
-                    </div>
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
         </div>
 
         {/* Right Column - Details */}
@@ -364,7 +364,7 @@ export default function AffiliateProfile() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+          </div>
 
               {/* Additional Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -406,7 +406,7 @@ export default function AffiliateProfile() {
                         <div className="text-sm text-gray-500">Total Referrals</div>
                         <div className="text-lg font-bold">{performanceStats?.totalReferrals || '0'}</div>
                       </div>
-                    </div>
+                </div>
                   </CardContent>
                 </Card>
               </div>
@@ -484,9 +484,9 @@ export default function AffiliateProfile() {
                       <p className="text-gray-500">This affiliate hasn't specified their promotional methods yet.</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
             <TabsContent value="performance" className="space-y-6">
               <Card className="shadow-md border-0">
@@ -496,8 +496,8 @@ export default function AffiliateProfile() {
                     Performance Analytics
                   </CardTitle>
                   <CardDescription>Detailed performance metrics and trends</CardDescription>
-                </CardHeader>
-                <CardContent>
+              </CardHeader>
+              <CardContent>
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
@@ -548,11 +548,11 @@ export default function AffiliateProfile() {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
         </div>
       </div>
     </div>

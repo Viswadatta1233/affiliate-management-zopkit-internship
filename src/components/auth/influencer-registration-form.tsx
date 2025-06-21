@@ -71,7 +71,7 @@ const countries = [
 export function InfluencerRegistrationForm() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { setInfluencerAuth } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const form = useForm<InfluencerFormValues>({
@@ -151,8 +151,9 @@ export function InfluencerRegistrationForm() {
       const storedUser = localStorage.getItem('user');
 
       if (storedToken && storedUser) {
-        // Update auth store
-        await login(data.email, data.password);
+        // Update auth store with the registration response data
+        const userData = JSON.parse(storedUser);
+        setInfluencerAuth(storedToken, userData, userData.role);
         
         // Redirect immediately to influencer dashboard
         navigate('/influencer/dashboard', { replace: true });

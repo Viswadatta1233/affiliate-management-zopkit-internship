@@ -67,6 +67,7 @@ import CampaignInfluencers from '@/pages/marketing/campaign-influencers';
 import InfluencerCampaignDetails from '@/pages/influencer/campaign-details';
 import EditCommissionTier from '@/pages/commissions/edit-tier';
 import EditCommissionRule from '@/pages/commissions/edit-rule';
+import MediaKitPage from '@/pages/influencer/media-kit';
 
 // Route guard for authenticated routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -168,6 +169,7 @@ function App() {
             <Route path="dashboard" element={<InfluencerDashboard />} />
             <Route path="campaigns" element={<InfluencerCampaigns />} />
             <Route path="campaigns/:id" element={<InfluencerCampaignDetails />} />
+            <Route path="media-kit" element={<MediaKitPage />} />
             <Route path="settings/profile" element={<InfluencerSettingsProfile />} />
             <Route path="settings/security" element={<InfluencerSettingsSecurity />} />
             <Route path="settings/notifications" element={<InfluencerSettingsNotifications />} />

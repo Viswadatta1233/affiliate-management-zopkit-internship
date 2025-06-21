@@ -107,7 +107,7 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
   // Get campaign by ID
   fastify.get('/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     try {
-      if (!request.user?.tenantId) {
+      if (!request.user) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
 
@@ -126,6 +126,9 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
           .limit(1);
       } else {
         // Admin: fetch by ID and tenant
+        if (!request.user.tenantId) {
+          return reply.status(401).send({ error: 'Tenant ID required for admin access' });
+        }
         campaign = await db.select().from(campaigns)
         .where(and(
           eq(campaigns.id, id),
@@ -151,8 +154,23 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
   // Create campaign
   fastify.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      if (!request.user?.tenantId) {
+      if (!request.user) {
         return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      // Get user's role from database
+      const userWithRole = await db.query.users.findFirst({
+        where: eq(users.id, request.user.userId),
+        with: { role: true }
+      }) as UserWithRole | null;
+
+      // Only admins can create campaigns
+      if (userWithRole?.role?.roleName === 'influencer' || userWithRole?.role?.roleName === 'potential_influencer') {
+        return reply.status(403).send({ error: 'Influencers cannot create campaigns' });
+      }
+
+      if (!request.user.tenantId) {
+        return reply.status(401).send({ error: 'Tenant ID required for admin access' });
       }
 
       const result = campaignSchema.safeParse(request.body);
@@ -230,8 +248,23 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
   // Update campaign
   fastify.put('/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     try {
-      if (!request.user?.tenantId) {
+      if (!request.user) {
         return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      // Get user's role from database
+      const userWithRole = await db.query.users.findFirst({
+        where: eq(users.id, request.user.userId),
+        with: { role: true }
+      }) as UserWithRole | null;
+
+      // Only admins can update campaigns
+      if (userWithRole?.role?.roleName === 'influencer' || userWithRole?.role?.roleName === 'potential_influencer') {
+        return reply.status(403).send({ error: 'Influencers cannot update campaigns' });
+      }
+
+      if (!request.user.tenantId) {
+        return reply.status(401).send({ error: 'Tenant ID required for admin access' });
       }
 
       const { id } = request.params;
@@ -286,8 +319,23 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
   // Delete campaign
   fastify.delete('/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     try {
-      if (!request.user?.tenantId) {
+      if (!request.user) {
         return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      // Get user's role from database
+      const userWithRole = await db.query.users.findFirst({
+        where: eq(users.id, request.user.userId),
+        with: { role: true }
+      }) as UserWithRole | null;
+
+      // Only admins can delete campaigns
+      if (userWithRole?.role?.roleName === 'influencer' || userWithRole?.role?.roleName === 'potential_influencer') {
+        return reply.status(403).send({ error: 'Influencers cannot delete campaigns' });
+      }
+
+      if (!request.user.tenantId) {
+        return reply.status(401).send({ error: 'Tenant ID required for admin access' });
       }
 
       const { id } = request.params;
@@ -492,6 +540,21 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
 
+      // Get user's role from database
+      const userWithRole = await db.query.users.findFirst({
+        where: eq(users.id, request.user.userId),
+        with: { role: true }
+      }) as UserWithRole | null;
+
+      // Only admins can create test campaigns
+      if (userWithRole?.role?.roleName === 'influencer' || userWithRole?.role?.roleName === 'potential_influencer') {
+        return reply.status(403).send({ error: 'Influencers cannot create test campaigns' });
+      }
+
+      if (!request.user.tenantId) {
+        return reply.status(401).send({ error: 'Tenant ID required for admin access' });
+      }
+
       // Create a test campaign
       const [campaign] = await db.insert(campaigns).values({
         tenantId: request.user.tenantId,
@@ -501,6 +564,11 @@ export default async function campaignRoutes(fastify: FastifyInstance) {
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
         status: 'active',
         type: 'product',
+        targetAudienceAgeGroup: '18-35',
+        requiredInfluencerNiche: 'Technology',
+        basicGuidelines: 'Promote our new product',
+        preferredSocialMedia: 'Instagram',
+        marketingObjective: 'Increase brand awareness',
         metrics: {
           totalReach: 0,
           engagementRate: 0,

@@ -1,0 +1,111 @@
+{
+  "id": "instagram-analytics-migration",
+  "prevId": "c24aeda6-0e6a-49ed-b612-4d1232036bf9",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.influencer_insta_analytics": {
+      "name": "influencer_insta_analytics",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "influencer_id": {
+          "name": "influencer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "profile_picture_url": {
+          "name": "profile_picture_url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "follower_count": {
+          "name": "follower_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "average_engagement_rate": {
+          "name": "average_engagement_rate",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "male_percentage": {
+          "name": "male_percentage",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "female_percentage": {
+          "name": "female_percentage",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "audience_demographics_age_range": {
+          "name": "audience_demographics_age_range",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "top_audience_location": {
+          "name": "top_audience_location",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_connected": {
+          "name": "is_connected",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "influencer_insta_analytics_influencer_id_fkey": {
+          "name": "influencer_insta_analytics_influencer_id_fkey",
+          "tableFrom": "influencer_insta_analytics",
+          "tableTo": "influencers",
+          "columnsFrom": [
+            "influencer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  }
+} 

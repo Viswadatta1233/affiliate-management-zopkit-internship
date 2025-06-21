@@ -28,12 +28,24 @@ class ApiClient {
     };
 
     const token = this.getToken();
+    console.log('API Client - Token check:', {
+      endpoint,
+      hasToken: !!token,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'none'
+    });
+    
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
       console.log('Making authenticated request to:', endpoint, 'with token:', token.substring(0, 10) + '...');
     } else {
       console.log('Making unauthenticated request to:', endpoint);
     }
+
+    console.log('API Client - Final headers:', {
+      endpoint,
+      authorization: headers['Authorization'] ? 'Bearer [TOKEN]' : 'none',
+      contentType: headers['Content-Type']
+    });
 
     try {
       const response = await fetch(`${API_URL}${endpoint}`, {

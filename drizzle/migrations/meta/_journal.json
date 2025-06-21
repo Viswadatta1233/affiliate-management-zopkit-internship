@@ -8,6 +8,13 @@
       "when": 1749911669191,
       "tag": "0000_burly_lilith",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1749912000000,
+      "tag": "0001_instagram_analytics",
+      "breakpoints": true
     }
   ]
 }

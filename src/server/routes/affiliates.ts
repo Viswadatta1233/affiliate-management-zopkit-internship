@@ -671,12 +671,15 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
       // Accept userId from query param for admin view, or fallback to authenticated user
       const userId = (request.query as any).userId || request.user?.userId;
       if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
+      
+      // Get user information first
+      const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+      if (!user) return reply.status(404).send({ error: 'User not found' });
+      
       // Try to find details
       let details = await db.query.affiliateDetails.findFirst({ where: eq(affiliateDetails.userId, userId) });
       if (!details) {
         // Auto-fill from backend
-        const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
-        if (!user) return reply.status(404).send({ error: 'User not found' });
         const tenant = await db.query.tenants.findFirst({ where: eq(tenants.id, user.tenantId) });
         // Get referral code from trackingLinks
         const tracking = await db.query.trackingLinks.findFirst({ where: eq(trackingLinks.affiliateId, userId) });
@@ -693,15 +696,13 @@ const affiliateRoutes: FastifyPluginAsync = async (fastify) => {
           promotionalMethods: [],
         }).returning().then(r => r[0]);
       }
-      // Fetch user info for name/email
-      const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
-      if (!user) return reply.status(404).send({ error: 'User not found' });
-      // Merge and return
+      
+      // Return details with user information
       return {
         ...details,
         firstName: user.firstName,
         lastName: user.lastName,
-        email: user.email,
+        email: user.email
       };
     } catch (error) {
       fastify.log.error('Error fetching affiliate details:', error);
